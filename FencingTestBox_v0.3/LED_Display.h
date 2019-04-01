@@ -1,31 +1,6 @@
-#include <bitswap.h>
-#include <chipsets.h>
-#include <color.h>
-#include <colorpalettes.h>
-#include <colorutils.h>
-#include <controller.h>
-#include <cpp_compat.h>
-#include <dmx.h>
 //#define FASTLED_ALLOW_INTERRUPTS 0
 #include <FastLED.h>
-#include <fastled_config.h>
-#include <fastled_delay.h>
-#include <fastled_progmem.h>
-#include <fastpin.h>
-#include <fastspi.h>
-#include <fastspi_bitbang.h>
-#include <fastspi_dma.h>
-#include <fastspi_nop.h>
-#include <fastspi_ref.h>
-#include <fastspi_types.h>
-#include <hsv2rgb.h>
-#include <led_sysdefs.h>
-#include <lib8tion.h>
-#include <noise.h>
-#include <pixelset.h>
-#include <pixeltypes.h>
-#include <platforms.h>
-#include <power_mgt.h>
+
 
 #define maxThresholds 5
 #define NUM_LED_LIST_VALUES 6
@@ -39,10 +14,10 @@ class LED_Display
     void updateLED();
     void setValue(float value);
     void setColor(CRGB color);
-    void setMaxValue(float maxValue);
+    //void setMaxValue(float maxValue);
     //void setMaxColor(CRGB color);
-    void setMaxEnable(bool enable);
-    void setMaxBlink(bool enable);
+    //void setMaxEnable(bool enable);
+    //void setMaxBlink(bool enable);
     void setDisplayBlink(bool enable);
     //void setBlinkRate(long t_ms);
     void setScaleMax(float maxScaleValue);
@@ -92,7 +67,7 @@ class LED_Display
     static byte _numLEDValues;
     static float _LEDValueList[NUM_LED_LIST_VALUES];
     
-    void updateMaxPixel();
+    //void updateMaxPixel();
     void setSingleLEDValue(float value);
     void setGraphLEDValue(float value);
     void setBarLEDValue(float value);

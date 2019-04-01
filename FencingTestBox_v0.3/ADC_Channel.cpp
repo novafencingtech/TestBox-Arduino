@@ -67,6 +67,10 @@ ADC_Channel::ADC_Channel(byte ADC_Num) {
   nextChannel=this; //Point it back to itself for safety 
 }
 
+const float ADC_Channel::HIGH_GAIN=4.0;
+// Assuming 4.096Vref, 2kOhm resistor, G=48, 255 cnts/2.56V
+const float ADC_Channel::LOW_GAIN=0.025525;
+
 ADC_Channel::ADC_Channel(byte lowADC_Num,byte highADC_Num) {  
   _lowRangeADC=getADCMuxSetting(lowADC_Num);
   _lowRangeADC.gain=LOW_GAIN;
@@ -101,7 +105,7 @@ ADCMux ADC_Channel::getADCMuxSetting(byte ADC_Ch) {
 void ADC_Channel::updateVals() {
   long t_now=millis();
   int val;
-  char buf[32];
+  //char buf[32];
 
 
   //Calculate the box car average

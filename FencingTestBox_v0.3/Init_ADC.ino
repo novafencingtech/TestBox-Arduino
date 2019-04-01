@@ -44,41 +44,53 @@ void InitializeChannels() {
 
   snprintf(ChanArray[0].ch_label,4,"AAA");
   ChanArray[0].muxSetting = MUX_CABLE_AA;
+  
   snprintf(ChanArray[1].ch_label,4," AB");
-  //ChanArray[1].ch_label = " AB";
   ChanArray[1].muxSetting = MUX_CABLE_AB;
-  //ChanArray[2].ch_label = " BC";
-  snprintf(ChanArray[2].ch_label,4," BC");
-  ChanArray[2].muxSetting = MUX_CABLE_BC;
-  //ChanArray[3].ch_label = " AC";
-  snprintf(ChanArray[3].ch_label,4," AC");
-  ChanArray[3].muxSetting = MUX_CABLE_AC;
-  //ChanArray[4].ch_label = "BBB";
+  
+  snprintf(ChanArray[2].ch_label,4," AC");
+  ChanArray[2].muxSetting = MUX_CABLE_AC;
+ 
+  snprintf(ChanArray[3].ch_label,4," BA");
+  ChanArray[3].muxSetting = MUX_CABLE_BA;
+
   snprintf(ChanArray[4].ch_label,4,"BBB");
   ChanArray[4].muxSetting = MUX_CABLE_BB;
-  //ChanArray[5].ch_label = "CCC";
-  snprintf(ChanArray[5].ch_label,4,"CCC");
-  ChanArray[5].muxSetting = MUX_CABLE_CC;
-  for (int k = 0; k < NUM_ADC_SCAN_CHANNELS - 1; k++) {
-    ChanArray[k].nextChannel = &(ChanArray[k + 1]);
-    //ChanArray[k].ADC_Scan = true;
-  }
-  ChanArray[NUM_ADC_SCAN_CHANNELS - 1].nextChannel = &(ChanArray[0]); //Loop back to the 1st item
-  ActiveCh = ChanArray; //Pointer to the first channel
 
-  /*FoilADC.muxSetting=(MUX_CABLE_BC | B10000000);
+  snprintf(ChanArray[5].ch_label,4," BC");
+  ChanArray[5].muxSetting = MUX_CABLE_BC;
+
+  snprintf(ChanArray[6].ch_label,4," CA");
+  ChanArray[6].muxSetting = MUX_CABLE_CA;
+
+  snprintf(ChanArray[7].ch_label,4," CB");
+  ChanArray[7].muxSetting = MUX_CABLE_CB;
+
+  snprintf(ChanArray[8].ch_label,4,"CCC");
+  ChanArray[8].muxSetting = MUX_CABLE_CC;
+  
+  for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {
+    ChanArray[k].nextChannel = &(ChanArray[ChannelScanOrder[k]]);
+    ChanArray[k].ADC_Scan = true;
+  }
+  ActiveCh = ChanArray; //Pointer to the first channel
+  
+  //ChanArray[NUM_ADC_SCAN_CHANNELS - 1].nextChannel = &(ChanArray[0]); //Loop back to the 1st item
+  //ActiveCh = ChanArray; //Pointer to the first channel
+
+  FoilADC.muxSetting=MUX_WEAPON_FOIL;
   FoilADC.nextChannel=&(EpeeADC);
   snprintf(FoilADC.ch_label,4,"FBC");
   
-  EpeeADC.muxSetting=(MUX_CABLE_AB | B10000000);
+  EpeeADC.muxSetting=MUX_WEAPON_EPEE;
   EpeeADC.nextChannel=&(FoilADC);
-  snprintf(EpeeADC.ch_label,4,"AAB");*/
+  snprintf(EpeeADC.ch_label,4,"AAB");
   
   /*
-    for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
+  for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
     Serial.print("Channel ");Serial.print(k);Serial.print("=");Serial.print((long)&(ChanArray[k]),HEX);
     Serial.print("\tNext=");Serial.println((long)ChanArray[k].nextChannel,HEX);
-    }*/
+  }*/
 
   bananaA.directionBit = DDB4;
   bananaA.stateBit = PORTB4;

@@ -38,7 +38,7 @@ void updateWeaponResistanceLCD() {
   if (weaponState.ohm_Epee<OPEN_CIRCUIT_VALUE) {
     dtostrf(weaponState.ohm_Epee,OHM_FIELD_WIDTH,2,numString);  
   }
-  strncat(lcdString2,numString,OHM_FIELD_WIDTH);  
+  strncat(lcdString1,numString,OHM_FIELD_WIDTH);  
   
   strcpy_P(lcdString2,PSTR("Foil = "));
 
@@ -78,14 +78,15 @@ void updateWeaponLCD(){
     lcd.print(F("                "));
 }*/
 
-bool CheckCableStatusByte(byte errorCheck){
-  return ((cableState.statusByte & errorCheck)==errorCheck);
+bool CheckCablestatusWord(uint16_t errorCheck){
+  return ((cableState.statusWord & errorCheck)==errorCheck);
 }
 
 void updateCableLCD() {
   static byte priorStatus;
-  byte statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC));
+  uint16_t statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC));
   char numString[OHM_FIELD_WIDTH+1]="";
+  byte faultCount;
   //int strLen;
 
   strcpy_P(lcdString2,PSTR(""));
@@ -116,14 +117,14 @@ void updateCableLCD() {
   //strcat(lcdString2,"\n");
   //Serial.write(lcdString2);
 
-  if (cableState.statusByte==0) {
+  if (cableState.statusWord==0) {
     lcd.setCursor(0,0);
     lcd.print(F("   Cable GOOD   "));
     return;
   }
 
-  if (!(cableState.statusByte==priorStatus)) {
-    priorStatus=cableState.statusByte;
+  if (!(cableState.statusWord==priorStatus)) {
+    priorStatus=cableState.statusWord;
     tLastActive=millis();
   }
   
@@ -136,7 +137,7 @@ void updateCableLCD() {
 
   if (cableState.lameMode) {
     lcd.setCursor(0,0);
-    if (!bitRead(cableState.statusByte,BITAA)) {
+    if (!bitRead(cableState.statusWord,BITAA)) {
       lcd.print(F("    Lame Good   "));
     } else {
       lcd.print(F(" Bad spot/cable "));
@@ -144,53 +145,53 @@ void updateCableLCD() {
     return;
   }
 
+  strcpy(lcdString1,"!");
   statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC));
-  if ((cableState.statusByte & statusCheck)>0) {
-    strcpy_P(lcdString1,PSTR(" Line "));
-    if bitRead(cableState.statusByte,BITAA) {
-      strncat_P(lcdString1,PSTR("A"),1);
+  if ((cableState.statusWord & statusCheck)>0) {
+    if bitRead(cableState.statusWord,BITAA) {
+      strcat(lcdString1,"A");
     }
-    if bitRead(cableState.statusByte,BITBB) {
-      strncat_P(lcdString1,PSTR("B"),1);
+    if bitRead(cableState.statusWord,BITBB) {
+      strcat(lcdString1,"B");
     }
-    if bitRead(cableState.statusByte,BITCC) {
-      strncat_P(lcdString1,PSTR("C"),1);
+    if bitRead(cableState.statusWord,BITCC) {
+      strcat(lcdString1,"C");
     }
-    strncat_P(lcdString1,PSTR(" high"),8);
+    strcat(lcdString1," ");
+  }
+
+  statusCheck=( (1<<BITAB) );
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-4)) ) {
+    sprintf(numString,"%c%c%c ",'A',126,'B');
+    strcat(lcdString1,numString);
+  }
+  statusCheck=( (1<<BITBA) );
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-4)) ) {
+    sprintf(numString,"%c%c%c ",'B',126,'A');
+    strcat(lcdString1,numString);
   }
   
-  statusCheck=( (1<<BITAB) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AB short"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITBC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line BC short"),LCD_TEXT_COLS);
-  }
   statusCheck=( (1<<BITAC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AC short"),LCD_TEXT_COLS);
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-4)) ) {
+    sprintf(numString,"%c%c%c ",'A',126,'C');
+    strcat(lcdString1,numString);
   }
-  statusCheck=( (1<<BITAA)|(1<<BITBB)|(1<<BITAB) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AB cross"),LCD_TEXT_COLS);
+  statusCheck=( (1<<BITCA) );
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-4)) ) {
+    sprintf(numString,"%c%c%c ",'C',126,'A');
+    strcat(lcdString1,numString);
   }
-  statusCheck=( (1<<BITBB)|(1<<BITBC)|(1<<BITBC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line BC cross"),LCD_TEXT_COLS);
+
+  statusCheck=( (1<<BITBC) );
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-4)) ) {
+    sprintf(numString,"%c%c%c ",'B',126,'C');
+    strcat(lcdString1,numString);
   }
-  statusCheck=( (1<<BITAA)|(1<<BITCC)|(1<<BITAC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AC cross"),LCD_TEXT_COLS);
+  statusCheck=( (1<<BITCB) );
+  if ( (CheckCablestatusWord(statusCheck)) && (strlen(lcdString1)<(LCD_TEXT_COLS-3)) ) {
+    sprintf(numString,"%c%c%c",'C',126,'B');
+    strcat(lcdString1,numString);
   }
-  statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC)|(1<<BITAB)|(1<<BITBC));
-    if (CheckCableStatusByte(statusCheck)) {
-      strncpy(lcdString1,"BAD! A->B B->C  ",LCD_TEXT_COLS);
-    }
-  statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC)|(1<<BITAC));
-    if (CheckCableStatusByte(statusCheck)) {
-      strncpy(lcdString1,"BAD! A->C  B->A",LCD_TEXT_COLS);
-    }    
 
   while (strlen(lcdString1)<LCD_TEXT_COLS) {
     strcat(lcdString1," ");
@@ -236,9 +237,9 @@ void writeSerialOutput(char Mode){
   // C - Cable, 4-digit float
   const long tHeartBeatInterval = 5000; //Time in ms
   const byte tempBufferSize=8;
-  int bufferSize=SERIAL_BUFFER_SIZE;
-  char tempString1[tempBufferSize];
-  char tempString2[tempBufferSize];
+  byte bufferSize=SERIAL_BUFFER_SIZE;
+  static char tempString1[tempBufferSize];
+  static char tempString2[tempBufferSize];
   static long tHeartBeat=0;
   
   //char printStringBuffer[SERIAL_BUFFER_SIZE];
@@ -259,7 +260,9 @@ void writeSerialOutput(char Mode){
 
     dtostrf(EffSampleRate,5,0,tempString1); //Effective sample rate
     dtostrf(batteryVoltage,5,2,tempString2);
-    snprintf(outputString,bufferSize,"t=%ld, N=%ld, %sHz, %c, Bat=%sV\r\n",t_now,numSamples,tempString1,BoxState,tempString2);
+
+    //This line breaks things.
+    sprintf(outputString,bufferSize,"t=%ld,N=%ld,%sHz,%c,Bat=%sV\r\n",t_now,numSamples,tempString1,BoxState,tempString2);
     Serial.write(outputString);
     tHeartBeat=millis();
     t_last_upd=millis();
@@ -270,10 +273,11 @@ void writeSerialOutput(char Mode){
   switch (Mode) {
     case 'c':
       //Print the status byte
+      
       dtostrf(cableState.ohm_AA,5,2,tempString1);
       dtostrf(cableState.ohm_AAMax,5,2,tempString2);
 
-      snprintf(outputString,bufferSize,"C,%ld,%u,A,%s,%s,B,",t_now,cableState.statusByte,tempString1,tempString2);
+      snprintf(outputString,bufferSize,"C1,%ld,%u,A,%s,%s,B,",t_now,cableState.statusWord,tempString1,tempString2);
       dtostrf(cableState.ohm_BB,5,2,tempString1);
       dtostrf(cableState.ohm_BBMax,5,2,tempString2);
       strncat(outputString,tempString1,bufferSize);strncat(outputString,",",bufferSize);strncat(outputString,tempString2,bufferSize);
@@ -287,25 +291,25 @@ void writeSerialOutput(char Mode){
       strncat(outputString,tempString1,bufferSize);
       snprintf(tempString1,tempBufferSize,",BC,%u",cableState.line_BC);
       strncat(outputString,tempString1,bufferSize);strncat(outputString,"\r\n",bufferSize);
-
-      Serial.write(outputString);
-      /*
-      dtostrf(cableState.ohm_AA,5,2,tempString1);
-      dtostrf(cableState.ohm_BB,5,2,tempString2);
-      dtostrf(cableState.ohm_CC,5,2,tempString3);
-      //Serial.print(tempString1); Serial.print(tempString2); Serial.println(tempString3);
-      snprintf(outputString,bufferSize,"Rave (A B C) =%u, %s, %s, %s\r\n\0",cableState.statusByte,tempString1,tempString2,tempString3); 
-      Serial.write(outputString);
       
-      dtostrf(cableState.ohm_AAMax,5,2,tempString1);
-      dtostrf(cableState.ohm_BBMax,5,2,tempString2);
-      dtostrf(cableState.ohm_CCMax,5,2,tempString3);      
-      snprintf(outputString,bufferSize,"Rmax =, %s, %s, %s\r\n\0",tempString1,tempString2,tempString3); 
       Serial.write(outputString);
-            
-      snprintf(outputString,bufferSize,"Xadc (AB AC BC)=, %d, %d, %d\r\n\0",cableState.line_AB,cableState.line_AC,cableState.line_BC);
-      Serial.write(outputString); 
-      */
+      snprintf(outputString,bufferSize,"C2,%ld,%u,",t_now,cableState.statusWord);
+      snprintf(tempString1,tempBufferSize,",AB,%u",cableState.line_AB);
+      strncat(outputString,tempString1,bufferSize);
+      snprintf(tempString1,tempBufferSize,",AC,%u",cableState.line_AC);
+      strncat(outputString,tempString1,bufferSize);
+      snprintf(tempString1,tempBufferSize,",AB,%u",cableState.line_BA);
+      strncat(outputString,tempString1,bufferSize);      
+      snprintf(tempString1,tempBufferSize,",BC,%u",cableState.line_BC);
+      strncat(outputString,tempString1,bufferSize);      
+      snprintf(tempString1,tempBufferSize,",CA,%u",cableState.line_CA);
+      strncat(outputString,tempString1,bufferSize);
+      snprintf(tempString1,tempBufferSize,",CB,%u",cableState.line_CB);
+      strncat(outputString,tempString1,bufferSize);      
+      strcat(outputString,"\r\n");
+      
+      Serial.write(outputString);
+
       break; 
     case 'w':
       //Format is "W,time,E,Light On/Off,t last epee trigger, F, Foil light On/Off, t last foil trigger
@@ -314,10 +318,14 @@ void writeSerialOutput(char Mode){
       break;
     case 'r':
       //Format is "R,time,Epee resistance, Foil resistance"      
-      snprintf(outputString,bufferSize,"R,%ld,E,",t_now);
+      //snprintf(outputString,bufferSize,"R,%ld,E,",t_now);
       dtostrf(weaponState.ohm_Epee,5,2,tempString1);
       dtostrf(weaponState.ohm_Foil,5,2,tempString2);
-      strncat(outputString,tempString1,bufferSize);strncat(outputString,",F,",bufferSize);strncat(outputString,tempString2,bufferSize);
+      strncat(outputString,tempString1,bufferSize);strncat(outputString,",F,",bufferSize);strncat(outputString,tempString2,bufferSize);strncat(outputString,"\r\n",bufferSize);
+      Serial.write(outputString);
       break;
+  }
+  if (strlen(outputString)>=bufferSize) {
+    Serial.write("Serial overflow\r\n");
   }
 }

@@ -85,9 +85,9 @@ void LED_Display::setDisplayMode(char displayMode) {
   _displayMode = displayMode;
 };
 
-void LED_Display::setMaxBlink(bool enable) {
-  _blinkMax = enable;
-}
+//void LED_Display::setMaxBlink(bool enable) {
+//  _blinkMax = enable;
+//}
 
 void LED_Display::setDisplayBlink(bool enable) {
   _blinkAll = enable;
@@ -141,8 +141,8 @@ void LED_Display::updateLED() {
   } else {
     if (_valueEnabled) {
       setValue(_currentValue);
-      setMaxValue(_currentMaxValue);
-      if ((_blinkMax) && ((t_now - tMaxBlink) > _blinkRate)) {
+      //setMaxValue(_currentMaxValue);
+      /*if ((_blinkMax) && ((t_now - tMaxBlink) > _blinkRate)) {
         if (maxOff) {
           //_LEDArr[_maxPixel] = _maxColor;
           maxOff = false;
@@ -151,7 +151,7 @@ void LED_Display::updateLED() {
           maxOff = true;
         }
         tMaxBlink = t_now;
-      }
+      }*/
     } else {
       setColor(_currColor);
     }
@@ -159,9 +159,9 @@ void LED_Display::updateLED() {
 }
 
 
-void LED_Display::setMaxEnable(bool enable) {
-  _maxEnabled = enable;
-}
+//void LED_Display::setMaxEnable(bool enable) {
+//  _maxEnabled = enable;
+//}
 
 void LED_Display::setValue(float value) {
   _valueEnabled = true;
@@ -191,14 +191,14 @@ void LED_Display::setColor(CRGB color) {
   _maxColor = color;
   }*/
 
-void LED_Display::setMaxValue(float val) {
-  if (val < 0) {
-    val = 0.0;
-  }
-  _maxEnabled = true;
-  _currentMaxValue = val;
-  updateMaxPixel();
-}
+//void LED_Display::setMaxValue(float val) {
+//  if (val < 0) {
+//    val = 0.0;
+//  }
+//  _maxEnabled = true;
+//  _currentMaxValue = val;
+//  updateMaxPixel();
+//}
 
 bool LED_Display::setThreshold(byte thresholdNum, float value, CRGB color) {
   if (thresholdNum >= _maxThreshold) {
@@ -304,7 +304,7 @@ void LED_Display::setGraphLEDValue(float value) {
   //Serial.print(F("Scaled = "));Serial.println(_LEDArr[k_max].r);
   _currentValue = value;
 };
-
+/*
 void LED_Display::updateMaxPixel() {
   int km = 0;
   _maxPixel = 0;
@@ -345,4 +345,4 @@ void LED_Display::updateMaxPixel() {
     }
 
   }
-}
+}*/

@@ -1,21 +1,18 @@
 #include <Wire.h>
 #include <LiquidCrystal_PCF8574.h>
 #include <EEPROM.h>
-//#include <LowPower.h>
 #include <SPI.h>
-//#include <avr/interrupt.h>
-//#include <avr/pgmspace.h>
 #include "Channel.h"
 #include "string.h"
 #include "LED_Display.h"
 
-#define NUM_ADC_SCAN_CHANNELS 6
+#define NUM_ADC_SCAN_CHANNELS 9
 #define PINx PINB
 #define BANANA_DIG_IN PINB
 #define LCD_TEXT_COLS 16
 #define LCD_TEXT_ROWS 2
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
-#define SERIAL_BUFFER_SIZE 81 //Length of serial buffer 
+#define SERIAL_BUFFER_SIZE 80 //Length of serial buffer 
 
 
 // Constants
@@ -30,19 +27,19 @@ const CRGB ledColorOrange = CRGB(10, 3, 0);
 // Change the calibration valid flag when changing the format of the calibration data
 const byte calibrationValid = 0xFA; //Flags the last valid calibration
 const byte calibrationInvalid = 0xEE; //Marks a calibration as invalid and moves to the next location (used for wear leveling)
-int eepromLocationStep  = (1 + NUM_ADC_SCAN_CHANNELS+2); //Step size in bytes between eeprom flags;
+int eepromLocationStep  = (1 + NUM_ADC_SCAN_CHANNELS); //Step size in bytes between eeprom flags;
 const byte calibrationErrorValue = 200; //If calibration value exceeds, generate an error
 const byte calibrationRetries = 3; // Exit after this many retries
 
-const byte maxADCthreshold = 200; //Used for switching between high/low gain
+const byte cableShortThreshold = 100; //Used to detect cable shorts
 const byte minADCthreshold = 20; //Used for switching between high/low gain
 const long powerOffTimeOut = 180000; //Time before switching to idle mode for scanning (in ms);
-const int idleDisconnectTime = 5000; //Time before switching to idle mode for scanning (in ms);
+const int idleDisconnectTime = 1000; //Time before switching to idle mode for scanning (in ms);
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
 const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
-const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
+const int tLCDRefresh = 300; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
@@ -64,17 +61,26 @@ const byte MUX_LATCH = PORTD4;
 const byte MUX_CABLE_AA = B00010010;
 const byte MUX_CABLE_AB = B00100010;
 const byte MUX_CABLE_AC = B01000010;
+const byte MUX_CABLE_BA = B00010100;
 const byte MUX_CABLE_BB = B00100100;
 const byte MUX_CABLE_BC = B01000100;
+const byte MUX_CABLE_CA = B00011000;
+const byte MUX_CABLE_CB = B00101000;
 const byte MUX_CABLE_CC = B01001000;
 const byte MUX_WEAPON_MODE = B00000000;
+const byte MUX_WEAPON_EPEE = B00100010;
+const byte MUX_WEAPON_FOIL = B00101000;
 
+//Bit definitions for the status word
 const byte BITAA = 0;
 const byte BITAB = 1;
 const byte BITAC = 2;
-const byte BITBC = 3;
+const byte BITBA = 3;
 const byte BITBB = 4;
-const byte BITCC = 5;
+const byte BITBC = 5;
+const byte BITCA = 6;
+const byte BITCB = 7;
+const byte BITCC = 8;
 
 const byte POWER_CONTROL = PORTD7;
 const byte DIAG_PORT = PORTD3;
@@ -100,13 +106,14 @@ volatile long tIdle = 0;
 
 float batteryVoltage = 3.7;
 
-int eepromAddr = 0; //Used to store the current address used by the eeprom
+uint16_t eepromAddr = 0; //Used to store the current address used by the eeprom
 
 
-//ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS]{{7,11},11,11,12,{6,12},{5,10}}; //AA, AB, AC, BC, BB, CC
-ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {7, 11, 12, 11, 6, 5}; //AA, AB, BC, AC, BB, CC
-//ADC_Channel FoilADC(6);
-//ADC_Channel EpeeADC(6);
+//ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS]{{7,11},11,11,12,{6,12},{5,13}}; //AA, AB, AC, BC, BB, CC
+ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {7, 11, 11, 12, 6, 12,13,13,5}; //AA, AB, AC, BA, BB,BC,CA,CB CC
+const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS]={1,2,3,4,5,6,7,8,0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
+ADC_Channel EpeeADC(7);
+ADC_Channel FoilADC(5);
 volatile ADC_Channel* ActiveCh;
 
 //Required for FAST LED
@@ -146,10 +153,13 @@ struct testbox_line {
 };
 
 struct CableData {
-  byte statusByte = 0;
-  int line_AB = 255;
-  int line_AC = 255;
-  int line_BC = 255;
+  uint16_t statusWord = 0;
+  byte line_AB = 255;
+  byte line_AC = 255;
+  byte line_BA = 255;
+  byte line_BC = 255;
+  byte line_CA = 255;
+  byte line_CB = 255;
   bool update_flag = false;
   bool error_msg = false;
   bool cableDC = false;
@@ -243,10 +253,6 @@ void setup() {
 
   //delay(2000);
   Serial.begin(115200);
-  if (Serial) {
-    //Serial.write(F("Starting initialization..."));
-    //Serial.println(eepromLocationStep);
-  }
 
   analogReference(INTERNAL);
 
@@ -340,7 +346,7 @@ ISR(ADC_vect)
     ActiveCh->t_min = t_now;
   }
   /*
-    if (x > maxADCthreshold && ActiveCh->isLowRange()) {
+    if (x > cableShortThreshold && ActiveCh->isLowRange()) {
     ActiveCh->setRangeHigh();
     ActiveCh->setADCChannelActive();
     isStable = false;
@@ -383,13 +389,13 @@ ISR(PCINT0_vect) {
   static long t_prev = 0;
   static byte prevPins = 0;
   byte changed = 0;
-  byte state = 0;
+  //byte state = 0;
 
   changed = (prevPins ^ newPins);
 
   if (changed & bananaA.digitalInMask) {
     tLastActive = t_now;
-    state = (newPins & bananaA.digitalInMask) > 0;
+    //state = (newPins & bananaA.digitalInMask) > 0;
     if ((t_now - t_prev) > weaponEpeeDebounce) {
       //Serial.print("Epee Trigger t="); Serial.println(t_now);
       t_prev = t_now;
@@ -398,7 +404,7 @@ ISR(PCINT0_vect) {
     }
   }
   //Serial.println(changed);
-  state = (newPins & bananaC.digitalInMask) > 0;
+  //state = (newPins & bananaC.digitalInMask) > 0;
   //Serial.println(state);
   if (changed & bananaC.digitalInMask) {
     tLastActive = t_now;
@@ -417,11 +423,10 @@ void loop() {
   long t_now = millis();
   static long t_LCD_upd = 0;
   static long t_LED_upd = 0;
-  static long t_LED_reset = 0;
+  //static long t_LED_reset = 0;
   static long t_Serial_upd = 0;
   static long t_Battery_Check = 0;
   static bool force_update = false;
-  static bool valueChanged = false;
   static bool idleLEDIsOn = false;
   static long tIdleLEDOn = 0;
   static bool bLCDOff=false;
@@ -449,10 +454,12 @@ void loop() {
       break;
     case 'r':
       if (force_update) {
-        //FoilADC.updateVals();
-        //EpeeADC.updateVals();
-      }
-      //updateWeaponResistance();
+        FoilADC.updateVals();
+        EpeeADC.updateVals();
+        updateWeaponResistance();
+        force_update = false;
+      }   
+      
       break;
     case 'w':
       updateWeaponState();
@@ -521,12 +528,6 @@ void loop() {
     if (Serial) {
       if (Serial.availableForWrite() == 64) { //Only write if the buffer is empty
         writeSerialOutput(BoxState);
-        /*
-          float dt = (float(millis() - t_Serial_upd) * 1.0e-3);
-          EffSampleRate = float(numSamples) / dt;
-          Serial.print(F("Eff. Sample Rate = ")); Serial.print(EffSampleRate);
-          Serial.print(F(" Hz  Num samples = ")); Serial.print(numSamples); Serial.print(F(" Time = "));
-          Serial.println(dt);*/
       }
     }
     t_Serial_upd = millis();

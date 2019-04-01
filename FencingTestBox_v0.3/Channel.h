@@ -22,11 +22,11 @@ class ADC_Channel
     //static const int NUM_EXP_VALS=7;
     //const float expDecayFcnArg[NUM_EXP_VALS]={0.1,0.2,0.5,1.0,1.5,2.5,4};
     //const float expDecayFcnVal[NUM_EXP_VALS]={0.9,0.828,0.607,0.368,0.223,0.082,0.018};
-    static const int DECAY_TAU = 5; //Reduce max by 1 cnt every XX ms
-    static const float HIGH_GAIN = 4.0;
+    static const int DECAY_TAU = 4; //Reduce max by 1 cnt every XX ms
+    static const float HIGH_GAIN;
     // Assuming 4.096Vref, 2kOhm resistor, G=48, 255 cnts/2.56V
     //static const float LOW_GAIN = 0.1021; //9.792 cnt/Ohm resistance
-    static const float LOW_GAIN= 0.025525; //10-bit conversion factor
+    static const float LOW_GAIN; //10-bit conversion factor
     static const byte NUM_AVE_POW2 = 5; //32 Samples
     static const byte NUM_AVE = (1 << NUM_AVE_POW2);
     static const byte MAX_ADC_VAL=150;

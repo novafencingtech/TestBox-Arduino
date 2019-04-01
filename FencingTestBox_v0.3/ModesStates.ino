@@ -41,16 +41,25 @@ void setWeaponTestMode() {
   tLastActive = millis();
   BoxState = 'w';
 }
-/*
+
 void setWeaponResistanceMode() {
+  StopADC();
   setCableTestMode();
   StopADC();
+  
+  FoilADC.setTrim(ChanArray[4].getTrim());  //Use calibration value for BB channel since it's the B return line
+  EpeeADC.setTrim(ChanArray[4].getTrim());  //Use calibration value for BB channel since it's the B return line
+
+  lineAGauge.setOffOn(true);
+  lineBGauge.setOffOn(false);
+  lineCGauge.setOffOn(true);
+    
   ActiveCh=&(FoilADC);
+  //ActiveCh->setADCChannelActive();
 
   BoxState = 'r';
   StartADC();
-
-}*/
+}
 
 void setCableTestMode() {
   //Disable weapon interrupts
@@ -58,13 +67,7 @@ void setCableTestMode() {
   PCMSK0 &= ~(1 << weaponState.foilInterruptBit);
 
   //bitClear(PCIFR, PCIF0); //Enable interrupts
-  bitClear(PCICR, PCIE0); //Disable pin change interrupts
-
-  bitClear(PORTD, MUX_LATCH); //equivalent to digitalWrite(4, LOW); Toggle the SPI
-  SPI.beginTransaction(MUX_SPI_SETTINGS);
-  SPI.transfer(B00000000); //Disable all MUX outputs to get offset
-  SPI.endTransaction();
-  bitSet(PORTD, MUX_LATCH);
+  bitClear(PCICR, PCIE0); //Disable pin change interrupts  
 
   StopADC();
 
@@ -83,6 +86,15 @@ void setCableTestMode() {
   PORTB &= ~(1 << bananaA.stateBit);
   PORTB &= ~(1 << bananaB.stateBit);
   PORTB &= ~(1 << bananaC.stateBit);
+
+  SPI.beginTransaction(MUX_SPI_SETTINGS);
+  for (byte k=0; k<7;k++) {
+    bitClear(PORTD, MUX_LATCH); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+    SPI.transfer((1<<k)); //cycle through all outputs to allow values to stabilize
+    delayMicroseconds(250); 
+    bitSet(PORTD, MUX_LATCH);
+  }
+  SPI.endTransaction();
 
   //Reset the LEDs
   //InitializeCableLEDs();
@@ -105,10 +117,10 @@ void setCableTestMode() {
 }
 
 void updateCableState() {
-  byte statusCheck;
+  uint16_t statusCheck;
   //static long tLastConnect = 0;
   //long tNow = millis();
-  static byte priorStatus=0;
+  static uint16_t priorStatus=0;
 
   if (ChanArray[0].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
     cableState.ohm_AA = ChanArray[0].getValue();
@@ -128,9 +140,9 @@ void updateCableState() {
     cableState.ohm_BBMax = OPEN_CIRCUIT_VALUE;
   }
 
-  if (ChanArray[5].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
-    cableState.ohm_CC = ChanArray[5].getValue();
-    cableState.ohm_CCMax = ChanArray[5].getDecayMaxValue();
+  if (ChanArray[8].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+    cableState.ohm_CC = ChanArray[8].getValue();
+    cableState.ohm_CCMax = ChanArray[8].getDecayMaxValue();
   }
   else {
     cableState.ohm_CC = OPEN_CIRCUIT_VALUE;
@@ -138,20 +150,28 @@ void updateCableState() {
   }
 
   cableState.line_AB = ChanArray[1].decay_min;
-  cableState.line_AC = ChanArray[3].decay_min;
-  cableState.line_BC = ChanArray[2].decay_min;
+  cableState.line_AC = ChanArray[2].decay_min;
+  cableState.line_BA = ChanArray[3].decay_min;
+  
+  cableState.line_BC = ChanArray[5].decay_min;  
+  cableState.line_CA = ChanArray[6].decay_min;
+  cableState.line_CB = ChanArray[7].decay_min;
+  
 
-  bitWrite(cableState.statusByte, BITAA, cableState.ohm_AAMax > HIGH_RESISTANCE_THRESHOLD);
-  bitWrite(cableState.statusByte, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
-  bitWrite(cableState.statusByte, BITCC, cableState.ohm_CCMax > HIGH_RESISTANCE_THRESHOLD);
+  bitWrite(cableState.statusWord, BITAA, cableState.ohm_AAMax > HIGH_RESISTANCE_THRESHOLD);
+  bitWrite(cableState.statusWord, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
+  bitWrite(cableState.statusWord, BITCC, cableState.ohm_CCMax > HIGH_RESISTANCE_THRESHOLD);
 
-  bitWrite(cableState.statusByte, BITAB, cableState.line_AB < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITAC, cableState.line_AC < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITBC, cableState.line_BC < maxADCthreshold);
+  bitWrite(cableState.statusWord, BITAB, cableState.line_AB < cableShortThreshold);
+  bitWrite(cableState.statusWord, BITAC, cableState.line_AC < cableShortThreshold);
+  bitWrite(cableState.statusWord, BITBA, cableState.line_BA < cableShortThreshold);
+  bitWrite(cableState.statusWord, BITBC, cableState.line_BC < cableShortThreshold);
+  bitWrite(cableState.statusWord, BITCA, cableState.line_CA < cableShortThreshold);
+  bitWrite(cableState.statusWord, BITCB, cableState.line_CB < cableShortThreshold);
 
-  if (priorStatus!=cableState.statusByte) {
+  if (priorStatus!=cableState.statusWord) {
     tLastActive=millis();
-    priorStatus=cableState.statusByte;
+    priorStatus=cableState.statusWord;
   }
 
   if (cableState.cableDC) {
@@ -161,13 +181,12 @@ void updateCableState() {
   }
 
   cableState.cableDC = false;
-
+  
+  statusCheck = ~((1<<BITAA) | (1 << BITBB) | (1 << BITCC));
   if (cableState.ohm_AA >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_BB >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_CC >= OPEN_CIRCUIT_VALUE &&
-      !bitRead(cableState.statusByte, BITAB) &&
-      !bitRead(cableState.statusByte, BITAC) &&
-      !bitRead(cableState.statusByte, BITBC) )
+      ((cableState.statusWord & statusCheck)==0) ) //Make sure other bits are clean
   {
     if ((millis() - cableState.tLastConnect) > idleDisconnectTime) {
       cableState.cableDC = true;
@@ -179,7 +198,7 @@ void updateCableState() {
   }
   
   statusCheck = ((1 << BITBB) | (1 << BITCC));
-  if ( (cableState.statusByte & ~(1<<BITAA)) ==statusCheck) {
+  if ( (cableState.statusWord & ~(1<<BITAA)) ==statusCheck) {
     if ((cableState.ohm_AA < OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC >= OPEN_CIRCUIT_VALUE)) ) {
       cableState.lameMode = true;
     }
@@ -224,40 +243,11 @@ void setBoxMode(char mode) {
       setWeaponTestMode();
       break;
     case 'r':
-      //setWeaponResistanceMode();
+      setWeaponResistanceMode();
       break;
   }
 }
 
-/*
-  bool weaponTestAC() {
-  byte DDRold = DDRB;
-  byte PORTold = PORTB;
-  byte PinChangeState = PCICR;
-
-  PCICR &= (0 << PCIE0); //Disable pin change interrupts
-
-  DDRB |= (1 << bananaA.directionBit); //Set A as output
-  DDRB &= ~(1 << bananaB.directionBit); //B as input
-  DDRB &= ~(1 << bananaC.directionBit); //C as input
-
-  PORTB |= (1 << bananaB.stateBit); //Enable B pull-up to pull H
-  PORTB |= (1 << bananaC.stateBit); //Enable C pull-up to pull H
-  PORTB &= ~(1 << bananaA.stateBit); //Set A low
-  delayMicroseconds(20); //Delay for stabilization
-
-  bool return_val = ~(BANANA_DIG_IN & bananaC.digitalInMask);
-
-  DDRB = DDRold; //Reset to original configuration
-  PORTold = PORTB;
-  delayMicroseconds(20); //Wait to stabilize before returning
-
-  PCICR = PinChangeState;
-
-  return return_val;
-  }*/
-
-/*
 void updateWeaponResistance() {
   long t_now=millis();
 
@@ -284,7 +274,7 @@ void updateWeaponResistance() {
     }
   }
 
-}*/
+}
 
 void updateWeaponState() {
   //Update this code to use the A, B, C line displays
@@ -361,7 +351,7 @@ void checkButtonState() {
       if (((t_now - tButtonPress) > weaponFoilDebounce) && (t_now - tSwitch) > tModeSwitchLockOut) {
         switch (BoxState) {
           case 'c':
-            setBoxMode('w');
+            setBoxMode('r');
             break;
           case 'r':
             setBoxMode('w');

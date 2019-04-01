@@ -3,7 +3,7 @@ void InitializeCableLEDs() {
   lineAGauge.setValueListMode(false);
   //lineAGauge.setColor(CRGB::Black);
   lineAGauge.setScaleMax(12.0);
-  lineAGauge.setMaxEnable(true);
+  //lineAGauge.setMaxEnable(true);
 
   lineAGauge.clearThresholds();
   lineAGauge.setThreshold(0, 5, ledColorGreen);
@@ -16,7 +16,7 @@ void InitializeCableLEDs() {
   lineBGauge.setValueListMode(false);
   //lineBGauge.setColor(CRGB::Black);
   lineBGauge.setScaleMax(12.0);
-  lineBGauge.setMaxEnable(true);
+  //lineBGauge.setMaxEnable(true);
 
   lineBGauge.clearThresholds();
   lineBGauge.setThreshold(0, 5, ledColorGreen);
@@ -29,7 +29,7 @@ void InitializeCableLEDs() {
   lineCGauge.setValueListMode(false);
   //lineCGauge.setColor(CRGB::Black);
   lineCGauge.setScaleMax(12);
-  lineCGauge.setMaxEnable(true);
+  //lineCGauge.setMaxEnable(true);
 
   lineCGauge.clearThresholds();
   lineCGauge.setThreshold(0, 5, ledColorGreen);
@@ -108,14 +108,14 @@ void updateCableLED() {
   }
 
   lineAGauge.setValue(cableState.ohm_AA);
-  lineAGauge.setMaxValue(cableState.ohm_AAMax);
+  //lineAGauge.setMaxValue(cableState.ohm_AAMax);
 
   if (!(cableState.lameMode)) {
     lineBGauge.setValue(cableState.ohm_BB);
-    lineBGauge.setMaxValue(cableState.ohm_BBMax);
+    //lineBGauge.setMaxValue(cableState.ohm_BBMax);
 
     lineCGauge.setValue(cableState.ohm_CC);
-    lineCGauge.setMaxValue(cableState.ohm_CCMax);
+    //lineCGauge.setMaxValue(cableState.ohm_CCMax);
   } else {
     lineBGauge.setOffOn(false);
     lineCGauge.setOffOn(false);
@@ -125,26 +125,35 @@ void updateCableLED() {
 void updateWeaponResistanceLED() {
   static bool isOn = true;
 
-  if (weaponState.cableDC) {
-    if (isOn) {
-      lineAGauge.setOffOn(false);
-      lineBGauge.setOffOn(false);
-      lineCGauge.setOffOn(false);
-      isOn = false;
-    }
-    return;
-  } else {
+  if (weaponState.ohm_Epee<OPEN_CIRCUIT_VALUE) {
+    lineAGauge.setValue(weaponState.ohm_Epee);
+    //lineAGauge.setMaxValue(weaponState.ohm_EpeeMax);
+    lineAGauge.setOffOn(true);
     if (!isOn) {
-      lineAGauge.setOffOn(true);
-      lineBGauge.setOffOn(false);
-      lineCGauge.setOffOn(true);
-      isOn = true;
+      isOn=true;
+      tLastActive=millis();
+    }
+  } else {
+    lineAGauge.setOffOn(false);
+    if (isOn) {
+      isOn=false;
+      tLastActive=millis();
     }
   }
 
-  lineAGauge.setValue(weaponState.ohm_Epee);
-  lineAGauge.setMaxValue(weaponState.ohm_EpeeMax);
-
-  lineCGauge.setValue(weaponState.ohm_Foil);
-  lineCGauge.setMaxValue(weaponState.ohm_FoilMax);
+  if (weaponState.ohm_Foil<OPEN_CIRCUIT_VALUE) {
+    lineCGauge.setValue(weaponState.ohm_Foil);
+    //lineAGauge.setMaxValue(weaponState.ohm_FoilMax);
+    lineCGauge.setOffOn(true);
+    if (!isOn) {
+      isOn=true;
+      tLastActive=millis();
+    }
+  } else {
+    lineCGauge.setOffOn(false);
+    if (isOn) {
+      isOn=false;
+      tLastActive=millis();
+    }
+  }
 }
