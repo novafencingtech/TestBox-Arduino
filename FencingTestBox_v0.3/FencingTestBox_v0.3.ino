@@ -12,8 +12,7 @@
 #define LCD_TEXT_COLS 16
 #define LCD_TEXT_ROWS 2
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
-#define SERIAL_BUFFER_SIZE 80 //Length of serial buffer 
-
+#define SERIAL_MAX_LEN 80 //Length of serial buffer 
 
 // Constants
 //const float maxLEDthreshold=255;
@@ -33,18 +32,18 @@ const byte calibrationRetries = 3; // Exit after this many retries
 
 const byte cableShortThreshold = 100; //Used to detect cable shorts
 const byte minADCthreshold = 20; //Used for switching between high/low gain
-const long powerOffTimeOut = 180000; //Time before switching to idle mode for scanning (in ms);
-const int idleDisconnectTime = 1000; //Time before switching to idle mode for scanning (in ms);
+const long powerOffTimeOut = 180000; //Time before switching the box off automatically;
+const int idleDisconnectTime = 1000; //Time before switching to idle mode;
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
-const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
+//const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
 const int tLCDRefresh = 300; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
-const long tLEDResync = 10000; //ms -- Completely reset the LED display
+//const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
 const long tLCDIdleOff = 30000; //ms - Turn LCD off if idle for more than 1 min
-const int tSerialRefresh = 200; //ms - How often to send data over the serial port
+const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 300; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
@@ -85,10 +84,10 @@ const byte BITCC = 8;
 const byte POWER_CONTROL = PORTD7;
 const byte DIAG_PORT = PORTD3;
 
+
 // Basic variables
 volatile long numSamples = 0;
 volatile float EffSampleRate;
-byte batteryCharge = 0;
 
 volatile long timing_seg = 0;
 volatile long tic = 0;
@@ -97,7 +96,7 @@ volatile long tLastActive = 0; //ms - Time that an event was last detected
 
 volatile char BoxState = 'w'; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
-char outputString[SERIAL_BUFFER_SIZE];
+char outputString[SERIAL_MAX_LEN];
 char lcdString1[LCD_TEXT_COLS + 1] = "";
 char lcdString2[LCD_TEXT_COLS + 1] = "";
 bool NewErrorFlag = false;
@@ -217,8 +216,24 @@ void setup() {
   bitSet(DDRD, POWER_CONTROL); //Set PORTD2 for output
   bitSet(PORTD, POWER_CONTROL); //Set power to high (keep the box on)!
 
-  bitSet(DDRB, DDB0); //Set the SS pin as an output to avoid screw-ups
-  bitSet(PORTB, PORTB0);  //Set to HIGH to turn off LED
+  //bitSet(DDRB, DDB0); //Set the SS pin as an output to avoid screw-ups
+  //bitSet(PORTB, PORTB0);  //Set to HIGH to turn off LED
+
+  //Enable button interrupts
+  bitClear(DDRE, DDE6); //Set PINE6 as input
+  bitClear(PORTE, PORTE6); //Disable Pull-up resistor
+
+  //Wait for user to release the button
+  while (bitRead(PINE, PINE6) == HIGH) {
+  }
+
+  //tone(BUZZER_PIN,BUZZER_FREQ);
+  //delay(200);
+  //noTone(BUZZER_PIN);
+  //while (bitRead(PINE, PINE6) == LOW) {
+  //}
+  
+  
 
   //Set PINF as all inputs and disable any pull-ups
   DDRF = 0;
@@ -244,9 +259,7 @@ void setup() {
   SPI.endTransaction();
   bitSet(PORTD, MUX_LATCH); //equivalent to digitalWrite(4,HIGH);
 
-  //Enable button interrupts
-  bitClear(DDRE, DDE6); //Set PINE6 as input
-  bitClear(PORTE, PORTE6); //Disable Pull-up resistor
+
   //EICRB |= (1 << ISC60) | (0 << ISC61); //set up INT6 for falling edge
   //EIMSK |= (1 << INT6);                     //enable INT6
   //sei();  //Enable ALL interrupts
@@ -255,15 +268,15 @@ void setup() {
   Serial.begin(115200);
 
   analogReference(INTERNAL);
-
-  InitializeChannels();
-  InitializeLEDs();
-  InitializeCableLEDs();
-  InitializeADC();
-
   //CheckBatteryStatus();
   //displayBatteryStatus();
-  //delay(1500);
+  //delay(500);
+
+  InitializeChannels();
+  InitializeLEDs();  
+  
+  InitializeCableLEDs();
+  InitializeADC();
 
   setBoxMode('c');
 }
@@ -462,20 +475,15 @@ void loop() {
       
       break;
     case 'w':
-      updateWeaponState();
+      if (updateWeaponState()) {
+        t_LED_upd=0;
+      } else {
+        t_LED_upd=t_now;
+      }
       break;
     case 's':
       break;
   }
-
-  /*
-    if (t_now - t_LED_reset > tLEDResync) {
-    for (int k=0; k<NUM_LEDS_BLOCK1; k++) {
-      LED_block1[k]=CRGB::Black;
-    }
-    FastLED.show();
-    t_LED_reset=millis();
-    }*/
 
   //Automatic power off while idle
   if ((t_now - tLastActive) > powerOffTimeOut) {
@@ -514,9 +522,10 @@ void loop() {
       }
   }
 
-  if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > tBatteryInterval)) {
+  if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > idleDisconnectTime)) {
     CheckBatteryStatus();
     t_Battery_Check = millis();
+    //displayBatteryStatus();
     if ((batteryVoltage < 3.5) && (batteryVoltage > 2.0)) {
       lcd.setCursor(0, 0);
       lcd.print(F("  Low Battery  "));
@@ -526,7 +535,7 @@ void loop() {
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
     if (Serial) {
-      if (Serial.availableForWrite() == 64) { //Only write if the buffer is empty
+      if (Serial.availableForWrite() >= 64) { //Only write if the buffer is empty
         writeSerialOutput(BoxState);
       }
     }
@@ -534,7 +543,7 @@ void loop() {
   }
 
   if (t_now - t_LCD_upd > tLCDRefresh) {
-    bitWrite(PORTB, PORTB0, !bitRead(PORTB, PORTB0)); //Blink the LCD to indicate still alive
+    //bitWrite(PORTB, PORTB0, !bitRead(PORTB, PORTB0)); //Blink the LCD to indicate still alive
     updateLCDDisplay(BoxState);
     //Serial.println(lcdString1);
     //Serial.println(lcdString2);

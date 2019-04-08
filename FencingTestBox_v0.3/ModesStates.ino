@@ -35,9 +35,6 @@ void setWeaponTestMode() {
   weaponState.update_flag = true;
   weaponState.tEpeeTrigger = 0;
 
-  /*if (Serial.availableForWrite()==64) {
-    Serial.println(F("Weapon Mode Activated"));
-    }*/
   tLastActive = millis();
   BoxState = 'w';
 }
@@ -46,15 +43,15 @@ void setWeaponResistanceMode() {
   StopADC();
   setCableTestMode();
   StopADC();
-  
+
   FoilADC.setTrim(ChanArray[4].getTrim());  //Use calibration value for BB channel since it's the B return line
   EpeeADC.setTrim(ChanArray[4].getTrim());  //Use calibration value for BB channel since it's the B return line
 
   lineAGauge.setOffOn(true);
   lineBGauge.setOffOn(false);
   lineCGauge.setOffOn(true);
-    
-  ActiveCh=&(FoilADC);
+
+  ActiveCh = &(FoilADC);
   //ActiveCh->setADCChannelActive();
 
   BoxState = 'r';
@@ -67,7 +64,8 @@ void setCableTestMode() {
   PCMSK0 &= ~(1 << weaponState.foilInterruptBit);
 
   //bitClear(PCIFR, PCIF0); //Enable interrupts
-  bitClear(PCICR, PCIE0); //Disable pin change interrupts  
+  bitClear(PCICR, PCIE0); //Disable pin change interrupts
+  //noTone(BUZZER_PIN); //Turn off the buzzer
 
   StopADC();
 
@@ -88,10 +86,10 @@ void setCableTestMode() {
   PORTB &= ~(1 << bananaC.stateBit);
 
   SPI.beginTransaction(MUX_SPI_SETTINGS);
-  for (byte k=0; k<7;k++) {
+  for (byte k = 0; k < 7; k++) {
     bitClear(PORTD, MUX_LATCH); //equivalent to digitalWrite(4, LOW); Toggle the SPI
-    SPI.transfer((1<<k)); //cycle through all outputs to allow values to stabilize
-    delayMicroseconds(250); 
+    SPI.transfer((1 << k)); //cycle through all outputs to allow values to stabilize
+    delayMicroseconds(250);
     bitSet(PORTD, MUX_LATCH);
   }
   SPI.endTransaction();
@@ -108,7 +106,7 @@ void setCableTestMode() {
   InitializeADC();
   loadCalibrationData();
 
-  ActiveCh=ChanArray[0].nextChannel;
+  ActiveCh = ChanArray[0].nextChannel;
   //ChanArray[0].setADCChannelActive();
   BoxState = 'c';
   tLastActive = millis();
@@ -120,9 +118,9 @@ void updateCableState() {
   uint16_t statusCheck;
   //static long tLastConnect = 0;
   //long tNow = millis();
-  static uint16_t priorStatus=0;
+  static uint16_t priorStatus = 0;
 
-  if (ChanArray[0].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+  if (ChanArray[0].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     cableState.ohm_AA = ChanArray[0].getValue();
     cableState.ohm_AAMax = ChanArray[0].getDecayMaxValue();
   }
@@ -131,7 +129,7 @@ void updateCableState() {
     cableState.ohm_AAMax = OPEN_CIRCUIT_VALUE;
   }
 
-  if (ChanArray[4].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+  if (ChanArray[4].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     cableState.ohm_BB = ChanArray[4].getValue();
     cableState.ohm_BBMax = ChanArray[4].getDecayMaxValue();
   }
@@ -140,7 +138,7 @@ void updateCableState() {
     cableState.ohm_BBMax = OPEN_CIRCUIT_VALUE;
   }
 
-  if (ChanArray[8].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+  if (ChanArray[8].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     cableState.ohm_CC = ChanArray[8].getValue();
     cableState.ohm_CCMax = ChanArray[8].getDecayMaxValue();
   }
@@ -152,11 +150,11 @@ void updateCableState() {
   cableState.line_AB = ChanArray[1].decay_min;
   cableState.line_AC = ChanArray[2].decay_min;
   cableState.line_BA = ChanArray[3].decay_min;
-  
-  cableState.line_BC = ChanArray[5].decay_min;  
+
+  cableState.line_BC = ChanArray[5].decay_min;
   cableState.line_CA = ChanArray[6].decay_min;
   cableState.line_CB = ChanArray[7].decay_min;
-  
+
 
   bitWrite(cableState.statusWord, BITAA, cableState.ohm_AAMax > HIGH_RESISTANCE_THRESHOLD);
   bitWrite(cableState.statusWord, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
@@ -169,9 +167,9 @@ void updateCableState() {
   bitWrite(cableState.statusWord, BITCA, cableState.line_CA < cableShortThreshold);
   bitWrite(cableState.statusWord, BITCB, cableState.line_CB < cableShortThreshold);
 
-  if (priorStatus!=cableState.statusWord) {
-    tLastActive=millis();
-    priorStatus=cableState.statusWord;
+  if (priorStatus != cableState.statusWord) {
+    tLastActive = millis();
+    priorStatus = cableState.statusWord;
   }
 
   if (cableState.cableDC) {
@@ -181,12 +179,12 @@ void updateCableState() {
   }
 
   cableState.cableDC = false;
-  
-  statusCheck = ~((1<<BITAA) | (1 << BITBB) | (1 << BITCC));
+
+  statusCheck = ~((1 << BITAA) | (1 << BITBB) | (1 << BITCC));
   if (cableState.ohm_AA >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_BB >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_CC >= OPEN_CIRCUIT_VALUE &&
-      ((cableState.statusWord & statusCheck)==0) ) //Make sure other bits are clean
+      ((cableState.statusWord & statusCheck) == 0) ) //Make sure other bits are clean
   {
     if ((millis() - cableState.tLastConnect) > idleDisconnectTime) {
       cableState.cableDC = true;
@@ -196,22 +194,22 @@ void updateCableState() {
     cableState.tLastConnect = millis();
     cableState.cableDC = false;
   }
-  
+
   statusCheck = ((1 << BITBB) | (1 << BITCC));
-  if ( (cableState.statusWord & ~(1<<BITAA)) ==statusCheck) {
+  if ( (cableState.statusWord & ~(1 << BITAA)) == statusCheck) {
     if ((cableState.ohm_AA < OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC >= OPEN_CIRCUIT_VALUE)) ) {
       cableState.lameMode = true;
     }
   } else {
     cableState.lameMode = false;
-  }  
+  }
 
 }
 
 void setWeaponInterrupts() {
 
   StopADC();
-  noInterrupts(); //Disable interrupts while messing with pins
+  //noInterrupts(); //Disable interrupts while messing with pins
 
   bitClear(PORTB, bananaB.stateBit); //Set B low
 
@@ -230,7 +228,7 @@ void setWeaponInterrupts() {
   //PCIFR |= (1 << PCIF0); //Enable interrupts
   PCICR |= (1 << PCIE0);
 
-  interrupts();
+  //interrupts();
 }
 
 
@@ -249,34 +247,38 @@ void setBoxMode(char mode) {
 }
 
 void updateWeaponResistance() {
-  long t_now=millis();
+  long t_now = millis();
 
-  if (FoilADC.getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+  if (FoilADC.getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     weaponState.ohm_Foil = FoilADC.getValue();
     weaponState.ohm_FoilMax = FoilADC.getDecayMaxValue();
-    weaponState.tLastConnect=t_now;
-    weaponState.cableDC=false;
+    weaponState.tLastConnect = t_now;
+    weaponState.cableDC = false;
+    //tone(BUZZER_PORT,BUZZER_FREQ);
   } else {
-    weaponState.ohm_Foil=OPEN_CIRCUIT_VALUE;
+    weaponState.ohm_Foil = OPEN_CIRCUIT_VALUE;
   }
-  if (EpeeADC.getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+  if (EpeeADC.getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     weaponState.ohm_Epee = EpeeADC.getValue();
     weaponState.ohm_EpeeMax = EpeeADC.getDecayMaxValue();
-    weaponState.tLastConnect=t_now;
-    weaponState.cableDC=false;
+    weaponState.tLastConnect = t_now;
+    weaponState.cableDC = false;
+    //tone(BUZZER_PORT,BUZZER_FREQ);
   } else {
-    weaponState.ohm_Epee=OPEN_CIRCUIT_VALUE;
+    weaponState.ohm_Epee = OPEN_CIRCUIT_VALUE;
   }
 
-  if ( (weaponState.ohm_Epee==OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil==OPEN_CIRCUIT_VALUE) ) {
-    if ((t_now-weaponState.tLastConnect)>idleDisconnectTime) {
-      weaponState.cableDC=true;
+  if ( (weaponState.ohm_Epee == OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil == OPEN_CIRCUIT_VALUE) ) {
+    //bitClear(PORTB,BUZZER_PORT); //Turn off the buzzer
+    //noTone(BUZZER_PIN);
+    if ((t_now - weaponState.tLastConnect) > idleDisconnectTime) {
+      weaponState.cableDC = true;
     }
   }
 
 }
 
-void updateWeaponState() {
+bool updateWeaponState() {
   //Update this code to use the A, B, C line displays
   // A = red/Epee
   // B = yellow/ Intermittent
@@ -288,6 +290,7 @@ void updateWeaponState() {
   byte state = BANANA_DIG_IN;
   bool foilState = ((state & bananaC.digitalInMask) > 0); //Inputs are low, pulled H by line B
   bool epeeState = ((state & bananaA.digitalInMask) > 0); //Inputs are low, pulled H by line B
+  bool lightsChanged = false;
 
   numSamples++;
 
@@ -302,6 +305,7 @@ void updateWeaponState() {
       lineBGauge.setOffOn(true);
       //lcd.setCursor(0, 1);
       //lcd.print(F("  Foil Hit!  "));
+      lightsChanged = true;
     }
   }
 
@@ -309,12 +313,10 @@ void updateWeaponState() {
     //Serial.println(t_now);
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
       weaponState.epeeOn = epeeState;
-      //epeeLED.setOffOn(epeeState);
       lineAGauge.setOffOn(epeeState);
-      //weaponState.tFoilTrigger=t_now;
       weaponState.tEpeeInterOn = t_now;
-      //epeeInterLED.setOffOn(true);
       lineBGauge.setOffOn(true);
+      lightsChanged = true;
       //lcd.setCursor(0, 1);
       //lcd.print(F("  Epee Hit!  "));
     }
@@ -324,11 +326,12 @@ void updateWeaponState() {
     if (((t_now - weaponState.tFoilInterOn) > weaponStateHoldTime) &&
         ((t_now - weaponState.tEpeeInterOn) > weaponStateHoldTime)) {
       lineBGauge.setOffOn(false);
+      lightsChanged = true;
       //lcd.setCursor(0, 1);
       //lcd.print(F("                "));
     }
   }
-
+  return lightsChanged;
   //long toc=micros();
 
   //Serial.print("Loop time= ");Serial.print(toc-tic);Serial.println(" us");
@@ -336,7 +339,7 @@ void updateWeaponState() {
 
 void checkButtonState() {
   long t_now = millis();
-  bool newState=bitRead(PINE,PINE6);
+  bool newState = bitRead(PINE, PINE6);
   static long tButtonPress = 0;
   static bool buttonState = LOW;
   static long tSwitch = 0;
@@ -362,9 +365,9 @@ void checkButtonState() {
         }
         tSwitch = millis();
       }
-    } 
+    }
     tButtonPress = t_now;
-    buttonState=newState;
+    buttonState = newState;
   }
 
   if (buttonState == HIGH) { //Button press goes high
@@ -400,59 +403,47 @@ void setPowerOff() {
   CheckBatteryStatus();
   displayBatteryStatus();
   delay(2000);
-  bitClear(PORTD, PORTD7); //Turn the box off
+  bitClear(PORTD, POWER_CONTROL); //Turn the box off
 }
 
 void CheckBatteryStatus() {
   byte oldADMUX = ADMUX;
+  byte oldADCSRB=ADCSRB;
   byte lowADC = 0;
-  word highADC = 0;
+  int highADC = 0;
   int batteryCnts = 0;
   bool ADCinterruptFlag = bitRead(ADCSRA, ADIE);
 
-  if (ADCinterruptFlag) {
-    ADCSRA &= ~(1 << ADIE); //Disable interrupts (leave ADC running)
-  }
+  bitClear(ADCSRA,ADIE); //Disable interrupts (leave ADC running)
   bitClear(ADCSRA, ADATE); //Disable auto-trigger
   //Serial.print(F("Analog Read = ")); Serial.println(analogRead(A3));
 
-  while (bit_is_set(ADCSRA, ADSC));  //Let any conversion complete
-  
-  ADMUX = (B11100100); //Select ADC4 for battery voltage
-  delayMicroseconds(500); //Allow Sample and Hold capacitor to charge
-  
-  for (int k=0; k<ADC_STABLE_CYCLES; k++) {
-    bitSet(ADCSRA, ADSC);
-    while (bitRead(ADCSRA,ADSC)) {
-      delayMicroseconds(25);
-    }
-    //delayMicroseconds(500);
-    //delayMicroseconds(25);
-    lowADC = ADCL;
-    highADC = ADCH;
-  }
+  while (bitRead(ADCSRA, ADSC)) {};  //Let any conversion complete, discard the result
+ 
+  ADMUX = (B11100000)+4; //Select ADC4 for battery voltage
+  delay(5); //Allow Sample and Hold capacitor to charge
 
+  batteryCnts = 0;
+  for (int j = 0; j < ADC_Channel::NUM_AVE; j++) {
+      bitSet(ADCSRA, ADSC);
+      while (bitRead(ADCSRA, ADSC)) {
+      }
+      lowADC = (ADCL >> 6); //Need to left shift by 6 places
+      highADC=ADCH;
+    batteryCnts += (highADC << 2) + lowADC;
+  }
+  batteryCnts = (batteryCnts >> ADC_Channel::NUM_AVE_POW2);
   
-  //Serial.print(highADC); Serial.print(" "); Serial.print(lowADC);
-  batteryCnts = (highADC << 2) | (lowADC >> 6);
-  //batteryCnts = ((int)highADC<<8)|(lowADC);
-  
-  //lowADC=ADCL;
-  //highADC=ADCH;
-  //batteryCnts=ADCH;
-  //batteryCnts=analogRead(A3); //Not sure why analogRead works when other code doesn't
-  //Serial.print(F("Battery counts = ")); Serial.println(batteryCnts);
   batteryVoltage = 2.0 * (float(batteryCnts) * 2.56 / 1023); //Assuming internal reference
   //batteryVoltage = 2.0 * (float(batteryCnts) * 2.56 / 256); //Assuming internal reference
-  //Serial.print(F("Battery (V) = ")); Serial.println(batteryVoltage);
-  //Serial.print(F("Analog Read = ")); Serial.println(analogRead(A3));
 
+  ADCSRB=oldADCSRB; //Reset the ADCSRB register
   ADMUX = oldADMUX; //Reset ADMUX
 
   bitWrite(ADCSRA, ADIE, ADCinterruptFlag); //Reset interrupt flag
 
-  if (BoxState == 'c') {
-    delayMicroseconds(150); //Allow to stabilize
+  if ((BoxState == 'c') || (BoxState == 'r')) {
+    delayMicroseconds(500); //Allow to stabilize
     bitSet(ADCSRA, ADSC); //Re-start the scanning
   }
 }
