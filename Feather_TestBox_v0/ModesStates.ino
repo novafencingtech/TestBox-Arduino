@@ -1,3 +1,19 @@
+void BlinkLEDThenPowerOff() {
+  digitalWrite(LED2_PIN,LOW);
+  for (int k=0;k<10;k++) {
+      digitalWrite(LED2_PIN,HIGH);
+      delay(100);
+      digitalWrite(LED2_PIN,LOW);
+      delay(100);
+      digitalWrite(LED2_PIN,HIGH);
+      delay(100);
+      digitalWrite(LED2_PIN,LOW);
+      delay(700);
+  }
+  digitalWrite(POWER_CONTROL,LOW);
+}
+
+
 void setWeaponTestMode() {
   StopADC();
 
@@ -94,9 +110,9 @@ void updateCableState() {
     cableState.ohm_BBMax = OPEN_CIRCUIT_VALUE;
   }
 
-  if (ChanArray[5].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
-    cableState.ohm_CC = ChanArray[5].getValue();
-    cableState.ohm_CCMax = ChanArray[5].getDecayMaxValue();
+  if (ChanArray[8].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
+    cableState.ohm_CC = ChanArray[8].getValue();
+    cableState.ohm_CCMax = ChanArray[8].getDecayMaxValue();
   }
   else {
     cableState.ohm_CC = OPEN_CIRCUIT_VALUE;
@@ -121,8 +137,8 @@ void updateCableState() {
   bitWrite(cableState.statusByte, BITAC, cableState.line_AC < maxADCthreshold);
   bitWrite(cableState.statusByte, BITBA, cableState.line_BA < maxADCthreshold);
   bitWrite(cableState.statusByte, BITBC, cableState.line_BC < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITCA, cableState.line_BC < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITCB, cableState.line_BC < maxADCthreshold);
+  bitWrite(cableState.statusByte, BITCA, cableState.line_CA < maxADCthreshold);
+  bitWrite(cableState.statusByte, BITCB, cableState.line_CB < maxADCthreshold);
 
   if (priorStatus!=cableState.statusByte) {
     tLastActive=millis();

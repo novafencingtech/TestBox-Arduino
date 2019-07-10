@@ -8,7 +8,6 @@
 //#include <sdk_config.h>
 
 #include "Channel.h"
-#include "Init_ADC"
 #include "string.h"
 //#include "BluetoothSerial.h"
 
@@ -70,16 +69,16 @@ const uint8_t MUX_DATA = 7;
 
 //MUX is MSBFIRST, bit 0=NC, bits 1-3=source, bits 4-6=sink, bit 7=weapon
 const byte MUX_DISABLED=0x0;
-const byte MUX_CABLE_AA = B00010010;
-const byte MUX_CABLE_AB = B00100010;
-const byte MUX_CABLE_AC = B01000010;
-const byte MUX_CABLE_BA = B00010100;
-const byte MUX_CABLE_BB = B00100100;
-const byte MUX_CABLE_BC = B01000100;
-const byte MUX_CABLE_CA = B00011000;
-const byte MUX_CABLE_CB = B00101000;
-const byte MUX_CABLE_CC = B01001000;
-const byte MUX_WEAPON_MODE = B10101010; //Source=A & C, Sink=B, bit 7=Link
+const byte MUX_CABLE_AA = B00100010;
+const byte MUX_CABLE_AB = B01000010;
+const byte MUX_CABLE_AC = B10000010;
+const byte MUX_CABLE_BA = B00100100;
+const byte MUX_CABLE_BB = B01000100;
+const byte MUX_CABLE_BC = B10000100;
+const byte MUX_CABLE_CA = B00101000;
+const byte MUX_CABLE_CB = B01001000;
+const byte MUX_CABLE_CC = B10001000;
+const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 7=Link
 
 //Bit definitions for the status word
 const byte BITAA = 0;
@@ -93,9 +92,9 @@ const byte BITCB = 7;
 const byte BITCC = 8;
 
 //Pin defintions, as needed
-const byte POWER_CONTROL = 13;
+const byte POWER_CONTROL = 11;
 const byte DIAG_PORT = 25;
-const byte BUTTON_PIN = 14;
+const byte BUTTON_PIN = 27;
 const byte LED1_PIN = 17;
 const byte LED2_PIN = 19;
 
@@ -207,7 +206,7 @@ void SAADC_IRQHandler(void) {
 
   tempVal=0;
 
-  digitalWrite(DIAG_PORT,HIGH);
+  //digitalWrite(DIAG_PORT,HIGH);
 
   if (nrf_saadc_event_check(NRF_SAADC_EVENT_RESULTDONE)) {
     nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
@@ -257,7 +256,7 @@ void SAADC_IRQHandler(void) {
   nrf_saadc_buffer_init(ADC_Buffer1, 1);
   nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
 
-  digitalWrite(DIAG_PORT,LOW);
+  //digitalWrite(DIAG_PORT,LOW);
 }
 #ifdef __cplusplus
 }
@@ -274,8 +273,8 @@ void setup() {
   //CreateDisplay();
 
   //Hold the power on
-  //pinMode(POWER_CONTROL,OUTPUT);
-  //digitalWrite(POWER_CONTROL,HIGH);
+  pinMode(POWER_CONTROL,OUTPUT);
+  digitalWrite(POWER_CONTROL,HIGH);
 
   // Enable timing diagnostics
   pinMode(DIAG_PORT,OUTPUT);
@@ -320,6 +319,8 @@ void setup() {
     
   setBoxMode('c');  //Start the box
   Serial.println("Setup complete");
+  
+  //BlinkLEDThenPowerOff();
 }
 
 
@@ -459,7 +460,7 @@ void loop() {
   if (t_now - t_Serial_upd > tSerialRefresh) {
     writeSerialOutput(BoxState);
     t_Serial_upd = millis();
-    Serial.print("Timing (us) = ");Serial.println(timing_seg);
+    //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
 
   if (t_now - t_LCD_upd > tLCDRefresh) {
