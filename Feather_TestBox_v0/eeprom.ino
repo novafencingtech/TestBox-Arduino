@@ -17,6 +17,11 @@ void setEepromLocation() {
 
 void writeCalibrationData() {
   int loc;
+
+  //calFile.open(CAL_FILENAME, FILE_O_WRITE);
+
+
+  //calFile.close();
   /*
   if ((EEPROM.read(eepromAddr)==calibrationValid)) {
     EEPROM.write(eepromAddr,calibrationInvalid); //Mark old calibration as invalid

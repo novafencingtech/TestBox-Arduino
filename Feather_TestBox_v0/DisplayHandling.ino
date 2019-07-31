@@ -1,5 +1,5 @@
 
-bool CheckCableStatusByte(byte errorCheck){
+bool CheckCableStatusByte(uint16_t errorCheck){
   return ((cableState.statusByte & errorCheck)==errorCheck);
 }
 /*

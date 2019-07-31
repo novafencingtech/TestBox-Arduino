@@ -1,9 +1,21 @@
-//#include <EEPROM.h>
+
+
+#define ARM_ARCH_7EM //Target Cortex-M4F
+#define ARM_MATH_CM4 //Required for arm_math library
+#define __FPU_PRESENT 1
+
+#include <arm_math.h>
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <nrf52.h>
 #include <nrf_saadc.h>
 #include <avr/dtostrf.h>
+#include <Adafruit_LittleFS.h>
+#include <InternalFileSystem.h>
+
+using namespace Adafruit_LittleFS_Namespace;
+
 //#include <nrf_adc.h>
 //#include <sdk_config.h>
 
@@ -13,7 +25,7 @@
 
 #define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
-#define SERIAL_BUFFER_SIZE 128 //Length of serial buffer 
+//#define SERIAL_BUFFER_SIZE 128 //Length of serial buffer 
 #define ADC_BUFFER_SIZE 128                                 
 
 const uint8_t ADC_UNIT=0;
@@ -29,6 +41,25 @@ nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABL
                                         };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE];
 nrf_saadc_value_t ADC_Buffer2[ADC_BUFFER_SIZE];
+
+//Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
+// http://www.micromodeler.com/dsp/
+float LowPass8HzCoef[5] = {// Scaled for floating point
+    0.1340603846876515, 0.268120769375303, 0.1340603846876515, 0.6190201888761353, -0.15526172762674134// b0, b1, b2, a1, a2
+};
+float LowPass5HzCoef[5] = {// Scaled for floating point 
+    0.06745527388907192, 0.13491054777814385, 0.06745527388907192, 1.142980502539901, -0.41280159809618855// b0, b1, b2, a1, a2
+};
+float LowPass3HzCoef[5] = {// Scaled for floating point
+    0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
+};
+float LowPass1HzCoef[5] = {// Scaled for floating point
+    0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
+};
+float LowPass0p2HzCoef[5] = {// Scaled for floating point
+    0.00015514842347569914, 0.0003102968469513983, 0.00015514842347569914, 1.9644605802052322, -0.9650811738991351// b0, b1, b2, a1, a2
+};
+
 
 // Change the calibration valid flag when changing the format of the calibration data
 const byte calibrationValid = 0xA0; //Flags the last valid calibration
@@ -51,11 +82,12 @@ const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
 //const long tLCDIdleOff = 30000; //ms - Turn LCD off if idle for more than 1 min
-const int tSerialRefresh = 200; //ms - How often to send data over the serial port
+const int tSerialRefresh = 100; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 300; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
+const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4090;
@@ -93,7 +125,7 @@ const byte BITCC = 8;
 
 //Pin defintions, as needed
 const byte POWER_CONTROL = 11;
-const byte DIAG_PORT = 25;
+const byte DIAG_PIN = 25;
 const byte BUTTON_PIN = 27;
 const byte LED1_PIN = 17;
 const byte LED2_PIN = 19;
@@ -123,13 +155,19 @@ volatile long tIdle = 0;
 #define EEPROM_SIZE 128 //Size of the simulated eeprom in bytes
 int eepromAddr = 0; //Used to store the current address used by the eeprom
 const int eepromStorageSize = sizeof(int); //Size of stored values in bytes
+File settingsFile(InternalFS);
+File calFile(InternalFS);
+#define CAL_FILENAME "/ADC_Calibration.txt"
+#define SETTINGS_FILENAME "/Settings.txt"
+
+
 
 //ADC parameters
-ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC, Foil, Epee
+ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS]{0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC, Foil, Epee
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS]={1,2,3,4,5,6,7,8,0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(5);
 ADC_Channel EpeeADC(3);
-volatile ADC_Channel* ActiveCh;
+ADC_Channel* ActiveCh;
 
 //This struct is probably not needed for ESP32
 struct testbox_line {
@@ -160,6 +198,7 @@ struct CableData {
   bool error_msg = false;
   bool cableDC = true; //Cable disconnected flag
   bool lameMode = false;  //Lame mode flag
+  bool maskMode = false;  //Mask clip flag
   float ohm_AA = 0;
   float ohm_BB = 0;
   float ohm_CC = 0;
@@ -167,6 +206,13 @@ struct CableData {
   float ohm_BBMax = 0;
   float ohm_CCMax = 0;
   long tLastConnect = 0;
+
+  arm_biquad_casd_df1_inst_f32 LineALowPass;
+  float LineALPFState[4];
+  arm_biquad_casd_df1_inst_f32 LineBLowPass;
+  float LineBLPFState[4];
+  arm_biquad_casd_df1_inst_f32 LineCLowPass;
+  float LineCLPFState[4];
 };
 
 CableData cableState;
@@ -199,19 +245,22 @@ volatile weapon_test weaponState;
 extern "C" {
 #endif
 void SAADC_IRQHandler(void) {
-  //digitalWrite(DIAG_PORT,HIGH);
-  long tempVal=0;
+  //digitalWrite(DIAG_PIN,HIGH);
+  q31_t tempVal=0;
   long t_now = millis();
-  int ADCValue;  
+  int ADCValue;
+  float flVal=0.0;
+    
 
-  tempVal=0;
-
-  //digitalWrite(DIAG_PORT,HIGH);
+  tempVal=0;  
 
   if (nrf_saadc_event_check(NRF_SAADC_EVENT_RESULTDONE)) {
     nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
     ADCValue = *(nrf_saadc_buffer_pointer_get());
+  } else {
+    return; //This should never happen
   }
+  //digitalWrite(DIAG_PIN,HIGH);
   
   if ( (ActiveCh->ch_label[0] == 'A') || (ActiveCh->ch_label[0] == 'E') ) {
     numSamples++;  //Indicates a full scan was performed
@@ -219,12 +268,27 @@ void SAADC_IRQHandler(void) {
   }
   
   ActiveCh->lastValue=ADCValue;
-  //Smoothing equivalent to ((lastValue*(2^n-1))+newValue)/2^n
-  // This approximates a moving average, but uses only bit-shifts
-  tempVal=(ActiveCh->averageVal<<(ActiveCh->NUM_AVE_POW2));
-  tempVal=tempVal-ActiveCh->averageVal;
-  tempVal+=ADCValue;
-  ActiveCh->averageVal=(tempVal>>(ActiveCh->NUM_AVE_POW2));
+  switch (BoxState) {
+    case 'c':
+      ActiveCh->sampleBuffer[ActiveCh->sampleIndex]=(long) (ADCValue<<8); //Convert to Q1.31 format with a long cast and bit shift
+      ActiveCh->sampleIndex++;
+      if (ActiveCh->sampleIndex>=ActiveCh->FIR_BLOCK_SIZE) {
+        //digitalWrite(DIAG_PIN,HIGH);
+        arm_fir_decimate_fast_q31(&(ActiveCh->FIR_filter),ActiveCh->sampleBuffer, &(ActiveCh->filterValue),ActiveCh->FIR_BLOCK_SIZE);
+        ActiveCh->filterValue=(ActiveCh->filterValue>>8);
+        ActiveCh->valueReady=true;
+        ActiveCh->sampleIndex=0;
+      }
+      break;
+  }
+  
+  if ((t_now-ActiveCh->t_max)>tMaxHold) {
+    ActiveCh->decay_max=0;
+  }
+  
+  if ((t_now-ActiveCh->t_min)>tMaxHold) {
+    ActiveCh->decay_min=4096;
+  }
   
   if (ADCValue > ActiveCh->decay_max) {
     ActiveCh->maxval = ADCValue;
@@ -249,14 +313,14 @@ void SAADC_IRQHandler(void) {
     //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
     NRF_SAADC->CH[ADC_UNIT].PSELP=ActiveCh->AIn;
 
-    nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
-    
+    nrf_saadc_task_trigger(NRF_SAADC_TASK_START);    
   }
-    //Reset the buffer and trigger sampling  
+  
+  //Reset the buffer and trigger sampling  
   nrf_saadc_buffer_init(ADC_Buffer1, 1);
   nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
 
-  //digitalWrite(DIAG_PORT,LOW);
+  //digitalWrite(DIAG_PIN,LOW);
 }
 #ifdef __cplusplus
 }
@@ -277,8 +341,8 @@ void setup() {
   digitalWrite(POWER_CONTROL,HIGH);
 
   // Enable timing diagnostics
-  pinMode(DIAG_PORT,OUTPUT);
-  digitalWrite(DIAG_PORT,LOW);
+  pinMode(DIAG_PIN,OUTPUT);
+  digitalWrite(DIAG_PIN,LOW);
   pinMode(LED1_PIN,OUTPUT);
   digitalWrite(LED1_PIN,HIGH);
   pinMode(LED2_PIN,OUTPUT);
@@ -304,11 +368,12 @@ void setup() {
   //while (true) {}
 
   //Enable button interrupts
-  //pinMode(BUTTON_PIN,INPUT);
+  pinMode(BUTTON_PIN,INPUT);
   
   //
   //SerialBT.begin("ESP32test"); //Bluetooth device name
   Serial.begin(115200);
+  InternalFS.begin();
   
 
   //Initialize the various channel settings
@@ -376,27 +441,22 @@ void loop() {
   static bool idleLEDIsOn = false;
   static long tIdleLEDOn = 0;
   static bool bLCDOff=false;
+  bool updateReady=false;
 
   //bitWrite(PORTD,PORTD3,!bitRead(PORTD,PORTD3));
 
-  //checkButtonState(); //Handle button pushes for mode states
-
-  if (t_now - t_LCD_upd > tLCDRefresh) {
-    force_update = true;
-  }
-  if (t_now - t_LED_upd > tLEDRefresh) {
-    force_update = true;
-  }
+  checkButtonState(); //Handle button pushes for mode states
 
   switch (BoxState) {
     case 'c':
-      if (force_update) {
-        tic=micros();
-        for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
-          ChanArray[k].updateVals();
-        }
+      updateReady=true;
+      for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+         if (!ChanArray[k].valueReady) {
+          updateReady=false;
+         }
+      }
+      if (updateReady) {
         updateCableState();
-        force_update = false;
         toc=micros();
         timing_seg=toc-tic;
       }

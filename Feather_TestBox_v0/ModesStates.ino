@@ -55,7 +55,6 @@ void setCableTestMode() {
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
   digitalWrite(MUX_LATCH,HIGH);
 
-
   StopADC();
 
   //bananaA.analogIn->maxval = 0;
@@ -87,13 +86,15 @@ void setCableTestMode() {
 }
 
 void updateCableState() {
-  byte statusCheck;
+  uint16_t statusCheck;
   //static long tLastConnect = 0;
   //long tNow = millis();
-  static byte priorStatus=0;
+  static uint16_t priorStatus=0;
+  float tempValue=0;
 
   if (ChanArray[0].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
-    cableState.ohm_AA = ChanArray[0].getValue();
+    tempValue = ChanArray[0].getValue();
+    arm_biquad_cascade_df1_f32(&(cableState.LineALowPass),&tempValue,&(cableState.ohm_AA),1);
     cableState.ohm_AAMax = ChanArray[0].getDecayMaxValue();
   }
   else {
@@ -102,7 +103,8 @@ void updateCableState() {
   }
 
   if (ChanArray[4].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
-    cableState.ohm_BB = ChanArray[4].getValue();
+    tempValue = ChanArray[4].getValue();
+    arm_biquad_cascade_df1_f32(&(cableState.LineBLowPass),&tempValue,&(cableState.ohm_BB),1);
     cableState.ohm_BBMax = ChanArray[4].getDecayMaxValue();
   }
   else {
@@ -111,7 +113,8 @@ void updateCableState() {
   }
 
   if (ChanArray[8].getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
-    cableState.ohm_CC = ChanArray[8].getValue();
+    tempValue = ChanArray[8].getValue();
+    arm_biquad_cascade_df1_f32(&(cableState.LineALowPass),&tempValue,&(cableState.ohm_CC),1);
     cableState.ohm_CCMax = ChanArray[8].getDecayMaxValue();
   }
   else {
@@ -127,7 +130,11 @@ void updateCableState() {
   cableState.line_BC = ChanArray[5].getRawValue();
   cableState.line_CA = ChanArray[6].getRawValue();
   cableState.line_CB = ChanArray[7].getRawValue();
-  cableState.line_CC = ChanArray[8].getRawValue();  
+  cableState.line_CC = ChanArray[8].getRawValue();
+
+  for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
+    ChanArray[k].valueReady=false;
+  }
 
   bitWrite(cableState.statusByte, BITAA, cableState.ohm_AAMax > HIGH_RESISTANCE_THRESHOLD);
   bitWrite(cableState.statusByte, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
@@ -153,6 +160,7 @@ void updateCableState() {
 
   cableState.cableDC = false;
 
+  //Check if only testing a lame (line C-C only)
   if (cableState.ohm_AA >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_BB >= OPEN_CIRCUIT_VALUE &&
       cableState.ohm_CC >= OPEN_CIRCUIT_VALUE &&
@@ -163,20 +171,33 @@ void updateCableState() {
     if ((millis() - cableState.tLastConnect) > idleDisconnectTime) {
       cableState.cableDC = true;
       cableState.lameMode = false;
+      cableState.maskMode = false;
     }
   } else {
     cableState.tLastConnect = millis();
     cableState.cableDC = false;
   }
-  
-  statusCheck = ((1 << BITBB) | (1 << BITCC));
-  if ( (cableState.statusByte & ~(1<<BITAA)) ==statusCheck) {
-    if ((cableState.ohm_AA < OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC >= OPEN_CIRCUIT_VALUE)) ) {
+
+  //Check if only testing a mask cord (line A-A only)
+  statusCheck = ((1 << BITAA) | (1 << BITBB));
+  if ( (cableState.statusByte & ~(1<<BITCC)) ==statusCheck) {
+    if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC < OPEN_CIRCUIT_VALUE)) ) {
       cableState.lameMode = true;
+      cableState.maskMode = false;
     }
   } else {
     cableState.lameMode = false;
   }  
+
+  statusCheck = ((1 << BITBB) | (1 << BITCC));
+  if ( (cableState.statusByte & ~(1<<BITAA)) ==statusCheck) {
+    if ((cableState.ohm_AA < OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC >= OPEN_CIRCUIT_VALUE)) ) {
+      cableState.lameMode = false;
+      cableState.maskMode = true;
+    }
+  } else {
+    cableState.maskMode = false;
+  } 
 
 }
 

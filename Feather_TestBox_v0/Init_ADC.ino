@@ -79,15 +79,17 @@ void InitializeChannels() {
     ChanArray[k].ADC_Scan = true;
   }
   ActiveCh = ChanArray; //Pointer to the first channel
-
-
-  
+    
   for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
     Serial.print("Channel ");Serial.print(k);Serial.print("=");Serial.print((long)&(ChanArray[k]),HEX);
     Serial.print("\tGPIO =");Serial.print(ChanArray[k].AIn);
     Serial.print("\tNext=");Serial.println((long)ChanArray[k].nextChannel,HEX);
   }
 
+  //Initialize the cable Low Pass Filters
+    arm_biquad_cascade_df1_init_f32(&(cableState.LineALowPass),1,LowPass5HzCoef,cableState.LineALPFState);
+    arm_biquad_cascade_df1_init_f32(&(cableState.LineBLowPass),1,LowPass5HzCoef,cableState.LineBLPFState);
+    arm_biquad_cascade_df1_init_f32(&(cableState.LineCLowPass),1,LowPass5HzCoef,cableState.LineCLPFState);
   /*bananaA.directionBit = DDB4;
   bananaA.stateBit = PORTB4;
   bananaA.digitalInMask = (1 << PINB4);
@@ -143,10 +145,10 @@ void calibrateSystem() {
           while (digitalRead(BUTTON_PIN) == LOW) {}; //Wait until button pressed
 
           ave_data = 0;
-          for (int j = 0; j < ADC_Channel::NUM_AVE; j++) {
+          for (int j = 0; j < ADC_Channel::FIR_BLOCK_SIZE; j++) {
             ave_data+=analogRead(ChanArray[k].AIn);
           }
-          adc_val = (ave_data >> ADC_Channel::NUM_AVE_POW2);
+          adc_val = (ave_data/ADC_Channel::FIR_BLOCK_SIZE);
 
           snprintf(buf, 16, "Cal %c: %u", ChanArray[k].ch_label[0], adc_val);
           Serial.println(buf);
