@@ -1,0 +1,14 @@
+1) Copy "libarm_cortexM4l_math.a" and "libarm_cortexM4lf_math.a" to the board manager path in the following location:
+\Arduino15\packages\adafruit\hardware\nrf52\0.11.1\variants\feather_nrf52832
+
+2)  Edit the "platform.txt" located in:
+\Arduino15\packages\adafruit\hardware\nrf52\0.11.1\
+
+Change the section labeled to:
+## Combine gc-sections, archives, and objects
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}"  "-L{build.path}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} "-L{build.core.path}/linker" "-L{build.variant.path}" "-T{build.ldscript}" "-Wl,-Map,{build.path}/{build.project_name}.map" {compiler.ldflags} -o "{build.path}/{build.project_name}.elf" {object_files} -Wl,--start-group -lm "{build.path}/{archive_file}" "-larm_cortexM4lf_math" -Wl,--end-group
+
+The actual change adds:
+"-L{build.variant.path}" "-larm_cortexM4lf_math"
+
+which is the path for the variant library and the library name to the linker.  
