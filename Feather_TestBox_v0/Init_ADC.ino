@@ -46,24 +46,30 @@ void InitializeChannels() {
   
   snprintf(ChanArray[1].ch_label,4," AB");
   ChanArray[1].muxSetting = MUX_CABLE_AB;
+  ChanArray[1].setRangeHigh();
   
   snprintf(ChanArray[2].ch_label,4," AC");
   ChanArray[2].muxSetting = MUX_CABLE_AC;
+  ChanArray[2].setRangeHigh();
   
   snprintf(ChanArray[3].ch_label,4," BA");
   ChanArray[3].muxSetting = MUX_CABLE_BA;
+  ChanArray[3].setRangeHigh();
   
   snprintf(ChanArray[4].ch_label,4,"BBB");
   ChanArray[4].muxSetting = MUX_CABLE_BB;
   
   snprintf(ChanArray[5].ch_label,4," BC");
   ChanArray[5].muxSetting = MUX_CABLE_BC;
+  ChanArray[5].setRangeHigh();
   
   snprintf(ChanArray[6].ch_label,4," CA");
   ChanArray[6].muxSetting = MUX_CABLE_CA;
+  ChanArray[6].setRangeHigh();
   
   snprintf(ChanArray[7].ch_label,4," CB");
   ChanArray[7].muxSetting = MUX_CABLE_CB;
+  ChanArray[7].setRangeHigh();
   
   snprintf(ChanArray[8].ch_label,4,"CCC");
   ChanArray[8].muxSetting = MUX_CABLE_CC;

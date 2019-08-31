@@ -4,8 +4,8 @@ class ADC_Channel
 */
 #include "Channel.h"
 
-const float ADC_Channel::HIGH_GAIN= 4.0f;
-const float ADC_Channel::LOW_GAIN= 0.011160714f; // Assuming 2.50Vref, 1kOhm resistor, G=20, 4095 cnts/2.4V G=1/4; 0.6Vref
+const float ADC_Channel::HIGH_GAIN= 0.234375f;  // Assuming 2.50Vref, 1kOhm resistor, G=1, 4095 cnts/2.4V G=1/4; 0.6Vref
+const float ADC_Channel::LOW_GAIN= 0.011160714f; // Assuming 2.50Vref, 1kOhm resistor, G=21, 4095 cnts/2.4V G=1/4; 0.6Vref
 q31_t ADC_Channel::DECI_FILTER[NUM_DECIMATION_TAPS]={21315851,55216453,109109079,178053560,248292458,301254934,320998979,
                               301254934,248292458,178053560,109109079,55216453,21315851};
 //const q31_t ADC_Channel::EXP_DECAY[16]={26828,21965,17983,14724,12055,9870,8080,6616,5417,4435,3631,2973,2434,1993,1631,128};
@@ -99,11 +99,11 @@ int ADC_Channel::getDecayMaxRawValue() {
 
 
 void ADC_Channel::setRangeHigh() {
-
+  _gain=HIGH_GAIN;
 }
 
 void ADC_Channel::setRangeLow() {
-
+  _gain=LOW_GAIN;
 }
 
 bool ADC_Channel::isHighRange(){
