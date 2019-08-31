@@ -21,6 +21,9 @@ void setWeaponTestMode() {
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
   digitalWrite(MUX_LATCH,HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
 
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+
   setWeaponInterrupts();
 
   //weaponState.foilOn = ~((BANANA_DIG_IN & bananaC.digitalInMask) > 0);
@@ -44,34 +47,16 @@ void setWeaponResistanceMode() {
 }*/
 
 void setCableTestMode() {
-  //Disable weapon interrupts
-  //PCMSK0 &= ~(1 << weaponState.epeeInterruptBit);
-  //PCMSK0 &= ~(1 << weaponState.foilInterruptBit);
-
-  //bitClear(PCIFR, PCIF0); //Enable interrupts
-  //bitClear(PCICR, PCIE0); //Disable pin change interrupts
+  //nrfx_gpiote_in_event_disable(LineADetect);
+  //nrfx_gpiote_in_event_disable(LineCDetect);
+  detachInterrupt(LineADetect);
+  detachInterrupt(LineCDetect);
 
   digitalWrite(MUX_LATCH,LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
   digitalWrite(MUX_LATCH,HIGH);
 
   StopADC();
-
-  //bananaA.analogIn->maxval = 0;
-  //bananaB.analogIn->maxval = 0;
-  //bananaC.analogIn->maxval = 0;
-
-  //noInterrupts();
-
-  //Set to inputs
-  //DDRB &= ~(1 << bananaA.directionBit);
-  //DDRB &= ~(1 << bananaB.directionBit);
-  //DDRB &= ~(1 << bananaC.directionBit);
-
-  //Pull all outputs low
-  //PORTB &= ~(1 << bananaA.stateBit);
-  //PORTB &= ~(1 << bananaB.stateBit);
-  //PORTB &= ~(1 << bananaC.stateBit);
 
   // Re-initialize the ADC
   InitializeADC();
@@ -133,6 +118,7 @@ void updateCableState() {
   cableState.line_CC = ChanArray[8].getRawValue();
 
   for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
+    cableState.cableOhm[k]=ChanArray[k].getValue();
     ChanArray[k].valueReady=false;
   }
 
@@ -140,12 +126,12 @@ void updateCableState() {
   bitWrite(cableState.statusByte, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
   bitWrite(cableState.statusByte, BITCC, cableState.ohm_CCMax > HIGH_RESISTANCE_THRESHOLD);
 
-  bitWrite(cableState.statusByte, BITAB, cableState.line_AB < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITAC, cableState.line_AC < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITBA, cableState.line_BA < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITBC, cableState.line_BC < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITCA, cableState.line_CA < maxADCthreshold);
-  bitWrite(cableState.statusByte, BITCB, cableState.line_CB < maxADCthreshold);
+  bitWrite(cableState.statusByte, BITAB, cableState.line_AB < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITAC, cableState.line_AC < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITBA, cableState.line_BA < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITBC, cableState.line_BC < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITCA, cableState.line_CA < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITCB, cableState.line_CB < shortADCthreshold);
 
   if (priorStatus!=cableState.statusByte) {
     tLastActive=millis();
@@ -204,27 +190,18 @@ void updateCableState() {
 void setWeaponInterrupts() {
 
   StopADC();
-  /*
-  noInterrupts(); //Disable interrupts while messing with pins
 
-  bitClear(PORTB, bananaB.stateBit); //Set B low
+  /*if (!nrfx_gpiote_is_init()) {
+    nrfx_gpiote_init();
+  }*/
 
-  bitClear(DDRB, bananaA.directionBit); //Set A as input
-  bitSet(DDRB, bananaB.directionBit); //Set B as output
-  bitClear(DDRB, bananaC.directionBit); //Set C as input
+  attachInterrupt(LineADetect,&ISR_EpeeHitDetect,CHANGE);
+  attachInterrupt(LineCDetect,&ISR_EpeeHitDetect,CHANGE);
+  //nrfx_gpiote_in_init(LineADetect, &weaponPinConfig,&ISR_EpeeHitDetect);
+  //nrfx_gpiote_in_init(LineCDetect, &weaponPinConfig,&ISR_EpeeHitDetect);
+  //nrfx_gpiote_in_event_enable(LineADetect,true); 
+  //nrfx_gpiote_in_event_enable(LineCDetect,true); 
 
-  //All lines have pull down resistors
-  bitClear(PORTB, bananaA.stateBit); //Disable pull-up
-  bitSet(PORTB, bananaB.stateBit); //Set B High
-  bitClear(PORTB, bananaC.stateBit); //Disable pull-up
-
-  PCMSK0 |= (1 << weaponState.epeeInterruptBit);
-  PCMSK0 |= (1 << weaponState.foilInterruptBit);
-
-  //PCIFR |= (1 << PCIF0); //Enable interrupts
-  PCICR |= (1 << PCIE0);
-
-  interrupts();*/
 }
 
 
@@ -270,7 +247,7 @@ void updateWeaponResistance() {
   }*/
 
 }
-/*
+
 void updateWeaponState() {
   //Update this code to use the A, B, C line displays
   // A = red/Epee
@@ -280,54 +257,34 @@ void updateWeaponState() {
   long t_now = millis();
   //long tic=micros();
 
-  byte state = BANANA_DIG_IN;
-  bool foilState = ((state & bananaC.digitalInMask) > 0); //Inputs are low, pulled H by line B
-  bool epeeState = ((state & bananaA.digitalInMask) > 0); //Inputs are low, pulled H by line B
+  bool epeeState = nrf_gpio_pin_read(LineADetect); //Inputs are low, pulled H by line B
+  bool foilState = nrf_gpio_pin_read(LineCDetect); //Inputs are low, pulled H by line B
 
   numSamples++;
 
   if (foilState != weaponState.foilOn) {
-    //Serial.println(t_now);
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
       weaponState.foilOn = foilState;
-      //foilLED.setOffOn(foilState);
-      lineCGauge.setOffOn(foilState);
-      //weaponState.tFoilTrigger=t_now;
       weaponState.tFoilInterOn = t_now;
-      lineBGauge.setOffOn(true);
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("  Foil Hit!  "));
     }
   }
 
   if (epeeState != weaponState.epeeOn) {
-    //Serial.println(t_now);
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
       weaponState.epeeOn = epeeState;
-      //epeeLED.setOffOn(epeeState);
-      lineAGauge.setOffOn(epeeState);
-      //weaponState.tFoilTrigger=t_now;
       weaponState.tEpeeInterOn = t_now;
-      //epeeInterLED.setOffOn(true);
-      lineBGauge.setOffOn(true);
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("  Epee Hit!  "));
     }
   }
 
-  if (lineBGauge.isOn()) {
+  /*if (lineBGauge.isOn()) {
     if (((t_now - weaponState.tFoilInterOn) > weaponStateHoldTime) &&
         ((t_now - weaponState.tEpeeInterOn) > weaponStateHoldTime)) {
-      lineBGauge.setOffOn(false);
+      //lineBGauge.setOffOn(false);
       //lcd.setCursor(0, 1);
       //lcd.print(F("                "));
     }
-  }
-
-  //long toc=micros();
-
-  //Serial.print("Loop time= ");Serial.print(toc-tic);Serial.println(" us");
-}*/
+  }*/
+}
 
 void checkButtonState() {
   long t_now = millis();

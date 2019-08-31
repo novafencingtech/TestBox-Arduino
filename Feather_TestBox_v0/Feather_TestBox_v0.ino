@@ -13,6 +13,7 @@
 #include <avr/dtostrf.h>
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
+#include <nrfx_gpiote.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -70,6 +71,7 @@ const byte calibrationRetries = 3; // Exit after this many retries
 
 // Pile of various parameters and constants for the box to use
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
+const int shortADCthreshold = 3000; //ADC values below this will show as a short 
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 const long powerOffTimeOut = 180000; //Time before switching to idle mode for scanning (in ms);
 const int idleDisconnectTime = 5000; //Time before switching to idle mode for scanning (in ms);
@@ -79,10 +81,11 @@ const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a 
 const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
+const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
 //const long tLCDIdleOff = 30000; //ms - Turn LCD off if idle for more than 1 min
-const int tSerialRefresh = 100; //ms - How often to send data over the serial port
+const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 300; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
@@ -111,6 +114,18 @@ const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
 const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 7=Link
+
+
+const uint32_t LineADetect=5;
+const uint32_t LineCDetect=29;
+nrfx_gpiote_in_config_t weaponPinConfig={
+        .sense = NRF_GPIOTE_POLARITY_TOGGLE,
+        .pull = NRF_GPIO_PIN_NOPULL,  
+        .is_watcher = false,                    
+        .hi_accuracy = true,                    
+        .skip_gpio_setup = false
+        };
+
 
 //Bit definitions for the status word
 const byte BITAA = 0;
@@ -161,7 +176,6 @@ File calFile(InternalFS);
 #define SETTINGS_FILENAME "/Settings.txt"
 
 
-
 //ADC parameters
 ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS]{0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC, Foil, Epee
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS]={1,2,3,4,5,6,7,8,0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
@@ -206,6 +220,7 @@ struct CableData {
   float ohm_BBMax = 0;
   float ohm_CCMax = 0;
   long tLastConnect = 0;
+  float cableOhm[9];
 
   arm_biquad_casd_df1_inst_f32 LineALowPass;
   float LineALPFState[4];
@@ -334,11 +349,13 @@ void setup() {
   //Activate display
   delay(250); //Hold for half second to power on
   //Initialize the display
-  //CreateDisplay();
+  InitializeDisplay();
+  
 
   //Hold the power on
   pinMode(POWER_CONTROL,OUTPUT);
   digitalWrite(POWER_CONTROL,HIGH);
+  delay(500);
 
   // Enable timing diagnostics
   pinMode(DIAG_PIN,OUTPUT);
@@ -381,6 +398,7 @@ void setup() {
   
   InitializeChannels();
   InitializeADC();
+
     
   setBoxMode('c');  //Start the box
   Serial.println("Setup complete");
@@ -392,47 +410,45 @@ void setup() {
 
 // Pin change interrupt handler.  Used for weapon test mode.
 // New function needed for ESP32
-/*
-ISR(PCINT0_vect) {
+
+//void ISR_EpeeHitDetect(nrfx_gpiote_pin_t pin, nrf_gpiote_polarity_t action) {
+void ISR_EpeeHitDetect() {
   long t_now = millis();
-  byte newPins = BANANA_DIG_IN;
   static long t_prev = 0;
-  static byte prevPins = 0;
   byte changed = 0;
-  byte state = 0;
+  byte state = nrf_gpio_pin_read(LineADetect);
+  byte pin=LineADetect;
 
-  changed = (prevPins ^ newPins);
-
-  if (changed & bananaA.digitalInMask) {
-    tLastActive = t_now;
-    state = (newPins & bananaA.digitalInMask) > 0;
+  tLastActive = t_now;
     if ((t_now - t_prev) > weaponEpeeDebounce) {
       //Serial.print("Epee Trigger t="); Serial.println(t_now);
       t_prev = t_now;
       weaponState.update_flag = true;
       weaponState.tEpeeTrigger = t_now;
     }
-  }
-  //Serial.println(changed);
-  state = (newPins & bananaC.digitalInMask) > 0;
-  //Serial.println(state);
-  if (changed & bananaC.digitalInMask) {
-    tLastActive = t_now;
-    if ((t_now - t_prev) > weaponFoilDebounce) {
+ }
+
+void ISR_FoilHitDetect() {
+  long t_now = millis();
+  static long t_prev = 0;
+  byte changed = 0;
+  byte state = nrf_gpio_pin_read(LineCDetect);
+
+  tLastActive = t_now;
+  if ((t_now - t_prev) > weaponFoilDebounce) {
       //Serial.println("Foil Trigger");Serial.println(t_now);
       t_prev = t_now;
       weaponState.update_flag = true;
       weaponState.tFoilTrigger = t_now;
     }
-  }
-  prevPins = newPins;
-}*/
+}
 
 void loop() {
   // put your main code here, to run repeatedly:
   long t_now = millis();
   static long t_LCD_upd = 0;
   static long t_LED_upd = 0;
+  static long t_OLED_upd = 0;
   static long t_LED_reset = 0;
   static long t_Serial_upd = 0;
   static long t_Battery_Check = 0;
@@ -459,6 +475,7 @@ void loop() {
         updateCableState();
         toc=micros();
         timing_seg=toc-tic;
+        //updateOLED(BoxState);
       }
       break;
     case 'r':
@@ -522,7 +539,13 @@ void loop() {
     t_Serial_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
-
+  if (t_now - t_OLED_upd > tOLEDRefresh) {
+    //digitalWrite(DIAG_PIN,HIGH);
+    updateOLED(BoxState);
+    //digitalWrite(DIAG_PIN,LOW);
+    t_OLED_upd = millis();
+    //Serial.print("Timing (us) = ");Serial.println(timing_seg);
+  }
   if (t_now - t_LCD_upd > tLCDRefresh) {
     // Display function would go here
     digitalWrite(LED1_PIN,!digitalRead(LED1_PIN));
