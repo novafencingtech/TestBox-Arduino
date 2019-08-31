@@ -21,8 +21,8 @@ void setWeaponTestMode() {
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
   digitalWrite(MUX_LATCH,HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
 
-  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
-  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
 
   setWeaponInterrupts();
 
@@ -257,8 +257,8 @@ void updateWeaponState() {
   long t_now = millis();
   //long tic=micros();
 
-  bool epeeState = nrf_gpio_pin_read(LineADetect); //Inputs are low, pulled H by line B
-  bool foilState = nrf_gpio_pin_read(LineCDetect); //Inputs are low, pulled H by line B
+  bool epeeState = !nrf_gpio_pin_read(LineADetect); //Inputs are HIGH, pulled LOW by line B
+  bool foilState = !nrf_gpio_pin_read(LineCDetect); //Inputs are HIGH, pulled LOW by line B
 
   numSamples++;
 

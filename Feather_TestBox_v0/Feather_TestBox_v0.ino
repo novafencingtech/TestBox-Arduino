@@ -113,7 +113,7 @@ const byte MUX_CABLE_BC = B10000100;
 const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
-const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 7=Link
+const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 4=Link
 
 
 const uint32_t LineADetect=5;
