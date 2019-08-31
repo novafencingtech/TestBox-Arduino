@@ -196,7 +196,7 @@ void setWeaponInterrupts() {
   }*/
 
   attachInterrupt(LineADetect,&ISR_EpeeHitDetect,CHANGE);
-  attachInterrupt(LineCDetect,&ISR_EpeeHitDetect,CHANGE);
+  attachInterrupt(LineCDetect,&ISR_FoilHitDetect,CHANGE);
   //nrfx_gpiote_in_init(LineADetect, &weaponPinConfig,&ISR_EpeeHitDetect);
   //nrfx_gpiote_in_init(LineCDetect, &weaponPinConfig,&ISR_EpeeHitDetect);
   //nrfx_gpiote_in_event_enable(LineADetect,true); 

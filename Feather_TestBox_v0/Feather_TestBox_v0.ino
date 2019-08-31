@@ -421,7 +421,7 @@ void ISR_EpeeHitDetect() {
 
   tLastActive = t_now;
     if ((t_now - t_prev) > weaponEpeeDebounce) {
-      //Serial.print("Epee Trigger t="); Serial.println(t_now);
+      Serial.print("Epee Trigger t="); Serial.println(t_now);
       t_prev = t_now;
       weaponState.update_flag = true;
       weaponState.tEpeeTrigger = t_now;
@@ -436,7 +436,7 @@ void ISR_FoilHitDetect() {
 
   tLastActive = t_now;
   if ((t_now - t_prev) > weaponFoilDebounce) {
-      //Serial.println("Foil Trigger");Serial.println(t_now);
+      Serial.println("Foil Trigger");Serial.println(t_now);
       t_prev = t_now;
       weaponState.update_flag = true;
       weaponState.tFoilTrigger = t_now;
@@ -486,7 +486,7 @@ void loop() {
       updateWeaponResistance();
       break;
     case 'w':
-      //updateWeaponState();
+      updateWeaponState();
       break;
     case 's':
       break;
