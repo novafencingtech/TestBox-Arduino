@@ -1,4 +1,3 @@
-
 // Screen dimensions
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 128 // Change this to 96 for 1.27" OLED.
