@@ -242,6 +242,7 @@ void InitializeDisplay()
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   tft.println("Welcome to TTtarm");
+  
 }
 /*
   void updateCableLCD() {
@@ -381,7 +382,7 @@ void displayBatteryStatus() {
 }
 int grahamToBrian(float g) {
   if (g < 0.0) g = 0.0;
-  return ((int) (g* 10.0+.5));
+  return ((int) (g * 10.0 + .5));
 }
 int gv(String s) {
   //arduino does not support strings in switch statements
@@ -396,12 +397,14 @@ int gv(String s) {
   if (s == "CC") return grahamToBrian(cableState.ohm_CC);
 }
 String oldFault;
+int foilIndicator, epeeIndicator;
+bool intermittent;
 void labelFault(String s) {
-  if (oldFault==s) return; //no change
-  oldFault=s;
-  tft.fillRect(0,0, 115, 20, BLACK); //clear label area
-  tft.setCursor(2,2);
-  if (s=="Cable") { //no fault
+  if (oldFault == s) return; //no change
+  oldFault = s;
+  tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
+  tft.setCursor(2, 2);
+  if (s == "Cable") { //no fault
     tft.setTextColor(GREEN, BLACK);
     tft.println("Cable");
     return;
@@ -417,11 +420,12 @@ void graph2(String s) {
   barGraph(65, 8, gv(s), oldB, 100, 50, s);
 }
 void graph3(String s) {
-  barGraph(100, 8,gv(s), oldC, 100, 50, s);
+  barGraph(100, 8, gv(s), oldC, 100, 50, s);
 }
 
 void updateOLED(char Mode) {
   static int i = 0, val, oldMode = 'z';
+  bool inter;
   bool ABcross = CheckCableStatusByte((1 << BITAB));
   bool ACcross = CheckCableStatusByte((1 << BITAC));
   bool BAcross = CheckCableStatusByte((1 << BITBA));
@@ -432,26 +436,30 @@ void updateOLED(char Mode) {
   bool BCshort = (CheckCableStatusByte((1 << BITBC)) || CheckCableStatusByte((1 << BITCB))) && ((!CheckCableStatusByte((1 << BITBB))) || (!CheckCableStatusByte((1 << BITCC))));
   bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
 
-  tft.setCursor(0, 0);
-  tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   if (Mode != oldMode) {
     oldMode = Mode;
+    tft.fillRect(0, 0, 128, 128, BLACK);
+    tft.setCursor(0, 0);
+    tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+
     switch (Mode) {
       case 'c':
-        tft.fillRect(0, 0, 128, 128, BLACK);
-        oldFault="";
-        tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2); tft.print("Cable");
-        oldA=oldB=oldC=320;
-        totalTime=0ul; timeSamples=0ul;
+        oldFault = "";
+        tft.print("Cable");
+        oldA = oldB = oldC = 320;
+        totalTime = 0ul; timeSamples = 0ul;
         break;
       case 'w':
+        foilIndicator = epeeIndicator = BLACK;
+        intermittent = false;
+        tft.print("Weapon");
       case 'r':
         break;
     }
   }
   switch (Mode) {
     case 'c':
-      startTime=micros();
+      startTime = micros();
       if (ABshort) //AB short
         if (BCshort) {//if AB and BC then AC has to be shorted
           //A - B - C short
@@ -563,11 +571,42 @@ void updateOLED(char Mode) {
             graph3("CC");
           }
 
-      endTime=micros();
-      if (startTime<endTime) { totalTime+=(endTime-startTime); timeSamples+=1ul;}
+      endTime = micros();
+      if (startTime < endTime) {
+        totalTime += (endTime - startTime);
+        timeSamples += 1ul;
+      }
 
       break;
     case 'w':
+      if (weaponState.foilOn) {
+        if (foilIndicator != RED) {
+          tft.fillRect(0, 20, 40, 8, RED);
+          foilIndicator = RED;
+        }
+      }
+      else if (foilIndicator != BLACK) {
+        tft.fillRect(0, 20, 40, 8, BLACK);
+        foilIndicator = BLACK;
+      }
+      if (weaponState.epeeOn) {
+        if (epeeIndicator != GREEN) {
+          tft.fillRect(80, 20, 40, 8, GREEN);
+          epeeIndicator = GREEN;
+        }
+      }
+      else if (epeeIndicator != BLACK) {
+        tft.fillRect(80, 20, 40, 8, BLACK);
+        epeeIndicator = BLACK;
+      }
+
+      inter = (weaponState.tFoilInterOn || weaponState.tEpeeInterOn);
+      if (inter != intermittent) {
+        tft.fillRect(40, 20, 40, 8, inter ? YELLOW : BLACK);
+        Serial.print("Intermittent set to "); Serial.println(inter ? "YELLOW" : "BLACK");
+      }
+      intermittent = inter;
+      break;
     case 'r':
       break;
   }
@@ -648,9 +687,9 @@ void writeSerialOutput(char Mode) {
       snprintf(tempString1, tempBufferSize, ",CB,%d", cableState.line_CB);
       strncat(outputString, tempString1, bufferSize);
       snprintf(tempString1, tempBufferSize, ",CC,%d", cableState.line_CC);
-      strncat(outputString, tempString1, bufferSize); 
-      if (timeSamples>0ul) {
-        snprintf(tempString1, tempBufferSize, ",DTime, %ul", (totalTime/timeSamples)/1000ul);
+      strncat(outputString, tempString1, bufferSize);
+      if (timeSamples > 0ul) {
+        snprintf(tempString1, tempBufferSize, ",DTime, %ul", (totalTime / timeSamples) / 1000ul);
         strncat(outputString, tempString1, bufferSize);
       }
       strncat(outputString, "\r\n", bufferSize);
@@ -689,7 +728,7 @@ void writeSerialOutput(char Mode) {
       break;
   }
 
-  Serial.write(outputString);Serial.println(totalTime/timeSamples);
+  Serial.write(outputString); Serial.println(totalTime / timeSamples);
 
   /*if (SerialBT.available()){
     SerialBT.print(outputString);
