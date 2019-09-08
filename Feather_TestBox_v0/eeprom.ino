@@ -51,7 +51,6 @@ void writeCalibrationData() {
   }
 
   Serial.println("Done writing Calibration Data");
-  delay(5000);
 }
 
 
@@ -81,7 +80,7 @@ void loadCalibrationData() {
     }
     file.close();
   } else Serial.println("Can't open Calibration Data File");
-  delay(5000);
+
   /*
     //If we don't have valid calibration re-check the location
     if (!(EEPROM.read(eepromAddr)==calibrationValid)) {

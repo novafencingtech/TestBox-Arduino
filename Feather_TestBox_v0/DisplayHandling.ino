@@ -39,6 +39,10 @@ Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PI
 bool CheckCableStatusByte(uint16_t errorCheck) {
   return ((cableState.statusByte & errorCheck) == errorCheck);
 }
+int cableOrangeThresh = 150; //threshold from red to organge for cables in tenths of an ohm, 150=15.0 ohms
+int cableGreenThresh = 50;   //threshaold from orange to green for cables in tenths of an ohm, 50=5.0 ohms
+int weaponOrangeThresh = 50; //threshold from red to organge for cables in tenths of an ohm, 50=5.0 ohms
+int weaponGreenThresh = 20;   //threshaold from orange to green for cables in tenths of an ohm, 20=2.0 ohms
 int slowShift = 0;         //counts refreshs to avoid fast scale shifts
 int oldScale = 200;        //max value of full graph for last refresh
 int oldVal = 0;            //prior value (global so we don't have to pass by ref everywhere)
@@ -63,13 +67,17 @@ int scaleWidth(int val) {  //tenths don't divide by 4 very well
   }
 }
 
-void printVal(int x, int y, int valColor, String lab, int val) {
+void printVal(int x, int y, int valColor, char *lab, int val) {
   tft.setCursor(y, x);
   tft.setTextColor(YELLOW, BLACK);
   tft.print(lab); tft.print("="); //display connection string
   tft.setTextColor(valColor, BLACK);  //set the text color to right color, black background
   //Print ohms in a 4 character space
   //"XXXX", "XXX ", "XX  " or "X.XX"
+  if (val == 990) {
+    tft.print("OPEN");
+    return;
+  }
   tft.print(val / 10); //display whole ohms
   if (val > 10000) return;  //if the value is >1000 ohms, no space
   if (val > 1000) {  //f the value is >100 ohms
@@ -88,28 +96,27 @@ void printVal(int x, int y, int valColor, String lab, int val) {
   return;
 }
 
-// barGraph(X, H, oldVal, newVal, oldVal, oThresh, gThresh)
+// barGraph(X, H, oldVal, newVal, oldVal)
 //  X = top lime
 //  H = height of bar
 //  oldVal = last value in tenths of an ohm
 //  newVal = current value
-//  oThresh = threshold for Orange color
-//  gThresh = threshold for Green color
 // with 128 pixel wide screen, show 32 ohms * 4 pixels/ohm
-void barGraph(int X, int H, int newVal, int &oldVal, int oThresh, int gThresh, String conn) {
+void barGraph(int X, int H, int newVal, int &oldVal, char *conn) {
   int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;
-  if (newVal > oThresh) {  //if the new value is greater than the orange threshold
+  if (newVal > cableOrangeThresh) {  //if the new value is greater than the orange threshold
     bc = RED; //then its a red bar
-    if (oldVal <= oThresh) newColor = true;  //did we change color?
+    if (oldVal <= cableOrangeThresh) newColor = true;  //did we change color?
   }
-  else if (newVal <= gThresh) {  //if new value is less than the green threshold
+  else if (newVal <= cableGreenThresh) {  //if new value is less than the green threshold
     bc = GREEN;  //then its a green bar
-    if (oldVal > gThresh) newColor = true;  //did we change color
+    if (oldVal > cableGreenThresh) newColor = true;  //did we change color
   }
-  else if ((oldVal < oThresh) || (oldVal >= gThresh)) newColor = true;  //orange, but not if the prior value wasn't orange
+  else if ((oldVal < cableOrangeThresh) || (oldVal >= cableGreenThresh)) newColor = true;  //orange, but not if the prior value wasn't orange
   printVal(X, 0, bc, conn, newVal);
   if (newVal > 320) {
     tft.fillRect(0, X + 16, 128, H, BLACK);
+    oldVal = newVal;
     return; // no bar if beyond 32 ohms
   }
   rOld = 320 - oldVal; //row of prior value
@@ -126,91 +133,92 @@ void barGraph(int X, int H, int newVal, int &oldVal, int oThresh, int gThresh, S
   oldVal = newVal;  //and we're done, save old value
 }
 
-int ValColor(int val, int oThresh, int gThresh) {
-  if (val > oThresh) return RED;
-  if (val > gThresh) return ORANGE;
+int ValColor(int val) {
+  if (val > weaponOrangeThresh) return RED;
+  if (val > weaponGreenThresh) return ORANGE;
   return GREEN;
 }
-//Line Graph helper.  Line graphs are vertical lines from the old value to the new value
-//This draws a line in the right color(s)
-//It assumes that the endpoints (start/end row values) are sorted
-// col = column to draw
-// topY = row of top of line
-// bottomY = row of bottom of line
-// oY = row where Orange starts
-// gY = row where Green starts
-void drawColumn(int col, int topY, int bottomY, int oY, int gY) {
-  int startColor, endColor;
-  if (topY > 27) tft.drawFastVLine(col, 27, topY - 1, BLACK); //clear above start of line
-  startColor = RED;
-  if (topY > oY) startColor = ORANGE;
-  if (topY > gY) startColor = GREEN;
-  endColor = RED;
-  if (bottomY > oY) endColor = ORANGE;
-  if (bottomY > gY) endColor = GREEN;
-  if (startColor == endColor) {  //check if this is a zero length line
-    if (topY == bottomY) tft.drawPixel(col, topY, startColor); //draw a pixel)
-
-    else tft.drawFastVLine(col, topY, bottomY - topY, startColor);  //no, single color line
-  }
-  else if ((startColor == RED) && (endColor == GREEN)) { //do we pass through both thresholds?
-    tft.drawFastVLine(col, topY, oY - topY, RED);  //draw red from current point to orange threshold
-    tft.drawFastVLine(col, oY, gY - oY, ORANGE);  //draw orange from orange threshold to green threshold
-    tft.drawFastVLine(col, gY, bottomY - gY, GREEN);  // draw green from green threshold to prior point
-  }
-  else {  //passes through one threshold
-    if (startColor == RED) { //starts in the rea
-      tft.drawFastVLine(col, topY, oY - topY, RED);  //draw red from current point to orange threshold
-      tft.drawFastVLine(col, oY, bottomY - oY, ORANGE);  //draw orange from current orange threshold to prior point
-
-    }
-    else {  //starts in orange
-      tft.drawFastVLine(col, topY, gY - topY, ORANGE);  //draw orange from start point to green threshold
-      tft.drawFastVLine(col, gY, bottomY - gY, GREEN);  //draw green from green threshold to prior point
-
-    }
-  }
-  if (bottomY < 127) tft.drawFastVLine(col, bottomY + 1, 126 - bottomY, BLACK);  //clear from prior point to bottom
-
+void drawVLine(int col, int startRow, int endRow, int color) {
+  int sRow = min(max(27,startRow), 127);
+  int eRow = min(max(27,endRow), 127);
+  if (sRow==eRow) tft.drawPixel(col, sRow, color);
+  else tft.drawFastVLine(col, sRow, eRow-sRow, color);
+  String s="???";
+  if (color==RED) s="RED";
+  if (color==ORANGE) s="ORANGE";
+  if (color==GREEN) s="GREEN";
+  if (color==BLACK) s="BLACK";
+//  if (grahamToBrian(cableState.ohm_AA) > 18) { Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
-//Helper for Line Graphs
-//draws a column.
-//  col = column where line is drawn
-//  val = resistance of current value in tenths of an ohm
-//  oldVal = resistance of prior value in tenths of an ohm
-//  vMax = scale (value of top of graph -1)
-//  vRatio = tenths of an ohm per pixel
-//  oY = row value where line turns to orange
-//  gY = rowe value where lime turns to green
-int drawGraphColumn(int col, int val, int vMax, int vRatio, int oY, int oG) {
-  int yVal, oldY;
-
-  if (val >= vMax) val = vMax - 1;  //clamp to vMax-1
-  yVal = 127 - (val / vRatio);  //Convert resistance to row #
-  oldY = 127 - (oldVal / vRatio);  //same for prior row
-
-  if (oldY > yVal) drawColumn(col, yVal, oldY, oY, oG);  // line goes down
-  else drawColumn(col, oldY, yVal, oY, oG);  //line goes up
-
+void drawColumn(int col, int val) {
+  //0-9.9 ohm, rows 27-127
+  int valRow=127-min(val,99);  //convert ohms in tenths to row
+  int oldRow=127-min(oldVal,99);  //same with old val
+  int topRow, botRow, orangeRow, greenRow;
+  //sort ends so we're always drawing from top to bottom
+  if (valRow>oldRow) {
+    topRow = oldRow;
+    botRow = valRow;
+  } else {
+    topRow=valRow;
+    botRow=oldRow;
+  }
+//  if (grahamToBrian(cableState.ohm_AA) > 18) { Serial.print("vline ");Serial.print(grahamToBrian(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
+  orangeRow = 127-weaponOrangeThresh;  //first line of orange
+  greenRow = 127-weaponGreenThresh;  //first line of green
+  tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
+  drawVLine(col, 28, topRow-1, BLACK);  //clear out above topRow
+  if (topRow>77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
+  if (topRow>107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
+  if (topRow<orangeRow) {  //some red
+    drawVLine(col, topRow, min(botRow, orangeRow-1), RED);
+    if (botRow>=orangeRow) {
+      if (botRow>=greenRow) { //extends to green
+        drawVLine(col, orangeRow, greenRow-1, ORANGE); //complete orange section
+        drawVLine(col, greenRow, botRow, GREEN);
+      } else { //ends in orange
+        drawVLine(col, orangeRow, botRow, ORANGE);
+      }
+    }
+  } else {  //no red
+    if (topRow<greenRow) { //some orange
+      drawVLine(col, topRow, min(botRow, greenRow-1), ORANGE);
+      if (botRow>greenRow) { //extends to green
+        drawVLine(col, greenRow, botRow, GREEN);
+      }
+    } else { //green only
+       drawVLine(col, topRow, botRow, GREEN);
+    }
+  }
+  if (botRow<127) { //fill black to bottom
+    drawVLine(col, botRow+1, 127, BLACK);
+    if (botRow<77) tft.drawPixel(col, 77, WHITE);  //restore 5 ohm line
+    if (botRow<107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
+    tft.drawPixel(col, 127, WHITE); //restore 0 ohm line
+  }
+  if (col<127) { tft.drawFastVLine(col+1, max(valRow-1, 28), 2, CYAN); }  //show where we are as 2x1 cyan line at col+1
 }
+
 //Draw a static line graph from an array
 //  rData = array with resistance values in tenths of an ohm
 //  oThresh = resistance of Orange threshold im tenths of an ohm
 //  gThresh = resistance of Green threshold in tenths of an ohm
-void LineGraph(int rData[127], int oThresh, int gThresh) {
-  int i, val, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
-  val = 0;
-  for (i = 0; i < 128; i++) if (rData[i] > val) val = rData[i]; //find biggest value
+void LineGraph(int rData[127]) {
+  int i, val, maxVal, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
+  maxVal = 0;
+  for (i = 0; i < 128; i++) if ((rData[i] > val) && (rData[i] != 990)) maxVal = rData[i]; //find biggest value
   // We reserve 28 rows for text, leaving 100 rows for graph
   // Graphs are scaled to the max resistance in the array
   //    Max R  Precision (1 pixel)
+  //      10    .1 ohm
   //      20   .25 ohm
   //     100    1 ohm
   //     500    5 ohm
   startTime = micros();
-  vMax = 200;  // assume 20 ohm scale
-  if (val > 200) vMax = 1000;  //possible 100 scale
-  if (val > 1000) vMax = 5000;  //nope, it's 1000 ohm scale
+  vMax = 100;  // assume 10 ohm scale
+  if (maxVal > 100) vMax = 500;  //possible 20 ohm scale
+  if (maxVal > 200) vMax = 1000;  //possible 100 scale
+  if (maxVal > 1000) vMax = 5000;  //nope, it's 500 ohm scale
   if (vMax != oldScale) {  //don't change scale fast
     if (slowShift++ < SLOWCOUNT) {
       vMax = oldScale;  //use the old scale for a while
@@ -221,12 +229,13 @@ void LineGraph(int rData[127], int oThresh, int gThresh) {
     }
   } else slowShift = 0;  //stay in your lane
   vRatio = vMax / 100;  //tenths of an ohm per row
-  oY = 127 - (oThresh / vRatio);  //calculate row # of orange threshold
-  gY = 127 - (gThresh / vRatio);  // same for green threshold
+  oY = 100 - (weaponOrangeThresh / vRatio);  //calculate row # of orange threshold
+  gY = 100 - (weaponGreenThresh / vRatio);  // same for green threshold
   oldVal = rData[0]; //force first column to be a point
   for (i = 0; i < 128; i++) {
     val = rData[i];
-    drawGraphColumn(i, val, vMax, vRatio, oY, gY);
+    if (val == 990) val = maxVal; //if not connected, use max value in array
+    drawColumn(i, val);
     oldVal = val;
   }
   endTime = micros();
@@ -242,7 +251,7 @@ void InitializeDisplay()
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   tft.println("Welcome to TTtarm");
-  
+
 }
 /*
   void updateCableLCD() {
@@ -384,7 +393,7 @@ int grahamToBrian(float g) {
   if (g < 0.0) g = 0.0;
   return ((int) (g * 10.0 + .5));
 }
-int gv(String s) {
+int gv(char *s) {
   //arduino does not support strings in switch statements
   if (s == "AA") return grahamToBrian(cableState.ohm_AA);
   if (s == "AB") return grahamToBrian(cableState.ohm_AA);
@@ -396,10 +405,8 @@ int gv(String s) {
   if (s == "CB") return grahamToBrian(cableState.ohm_CC);
   if (s == "CC") return grahamToBrian(cableState.ohm_CC);
 }
-String oldFault;
-int foilIndicator, epeeIndicator;
-bool intermittent;
-void labelFault(String s) {
+char *oldFault;
+void labelFault(char *s) {
   if (oldFault == s) return; //no change
   oldFault = s;
   tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
@@ -413,18 +420,28 @@ void labelFault(String s) {
   tft.println(s);
 }
 static int oldA = 0, oldB = 0, oldC = 0;
-void graph1(String s) {
-  barGraph(30, 8, gv(s), oldA, 100, 50, s);
+#define ABAR 25
+#define BBAR 60
+#define CBAR 95
+void graph1(char *s) {
+  barGraph(ABAR, 8, gv(s), oldA, s);
 }
-void graph2(String s) {
-  barGraph(65, 8, gv(s), oldB, 100, 50, s);
+void graph2(char *s) {
+  barGraph(BBAR, 8, gv(s), oldB, s);
 }
-void graph3(String s) {
-  barGraph(100, 8, gv(s), oldC, 100, 50, s);
+void graph3(char *s) {
+  barGraph(CBAR, 8, gv(s), oldC, s);
 }
 
 void updateOLED(char Mode) {
   static int i = 0, val, oldMode = 'z';
+  static bool oldFoil = false;
+  static bool oldEpee = false;
+  static bool assumeFoil = false;
+  static bool assumeEpee = false;
+  static bool assumeNoConnect = false;
+  static int foilIndicator, epeeIndicator,foilInterIndicator, epeeInterIndicator;
+  static unsigned long sTime; //start time of last seen foil/epee connection
   bool inter;
   bool ABcross = CheckCableStatusByte((1 << BITAB));
   bool ACcross = CheckCableStatusByte((1 << BITAC));
@@ -448,11 +465,36 @@ void updateOLED(char Mode) {
         tft.print("Cable");
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
+        tft.drawFastVLine(127, 31, 96, CYAN);
+        tft.drawFastVLine(95, 31, 96, CYAN);
+        tft.drawFastVLine(63, 31, 96, CYAN);
+        tft.drawFastVLine(31, 31, 96, CYAN);
+        //tft.fillRect(0, X + 16, 128, H, BLACK);
+        //Height of bar is 8, height of textsize(2) is 14, 1 pix between text and bar, 1 pix between text/bar and line
+        tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
+        tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
+        tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
+        tft.setTextSize(1);
+        tft.setCursor(31 - 14, 120);
+        tft.print("15");
+        tft.setCursor(63 - 14, 120);
+        tft.print("10");
+        tft.setCursor(95 - 8, 120);
+        tft.print("5");
+        tft.setCursor(127 - 8, 120);
+        tft.print("0");
+        tft.setTextSize(2);
         break;
       case 'w':
-        foilIndicator = epeeIndicator = BLACK;
-        intermittent = false;
+        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
+        assumeFoil=assumeEpee=assumeNoConnect = false;
+        oldVal = 990;
+        i = 0;
         tft.print("Weapon");
+        tft.drawFastHLine(0, 27, 128, WHITE);
+        tft.drawFastHLine(0, 77, 128, WHITE);
+        tft.drawFastHLine(0, 107, 128, WHITE);
+        tft.drawFastHLine(0, 127, 128, WHITE);
       case 'r':
         break;
     }
@@ -581,31 +623,121 @@ void updateOLED(char Mode) {
     case 'w':
       if (weaponState.foilOn) {
         if (foilIndicator != RED) {
-          tft.fillRect(0, 20, 40, 8, RED);
+          tft.fillRect(0, 19, 20, 8, RED);
           foilIndicator = RED;
         }
       }
       else if (foilIndicator != BLACK) {
-        tft.fillRect(0, 20, 40, 8, BLACK);
+        tft.fillRect(0, 19, 20, 8, BLACK);
         foilIndicator = BLACK;
+      }
+      if (weaponState.tFoilInterOn) {
+        if (foilInterIndicator != YELLOW) {
+          tft.fillRect(20, 19, 20, 8, YELLOW);
+          foilInterIndicator = YELLOW;
+        }
+      }
+      else if (foilInterIndicator != BLACK) {
+        tft.fillRect(20, 19, 20, 8, BLACK);
+        foilInterIndicator = BLACK;
       }
       if (weaponState.epeeOn) {
         if (epeeIndicator != GREEN) {
-          tft.fillRect(80, 20, 40, 8, GREEN);
+          tft.fillRect(70, 19, 20, 8, GREEN);
           epeeIndicator = GREEN;
         }
       }
       else if (epeeIndicator != BLACK) {
-        tft.fillRect(80, 20, 40, 8, BLACK);
+        tft.fillRect(70, 19, 20, 8, BLACK);
         epeeIndicator = BLACK;
       }
-
-      inter = (weaponState.tFoilInterOn || weaponState.tEpeeInterOn);
-      if (inter != intermittent) {
-        tft.fillRect(40, 20, 40, 8, inter ? YELLOW : BLACK);
-        Serial.print("Intermittent set to "); Serial.println(inter ? "YELLOW" : "BLACK");
+      if (weaponState.tEpeeInterOn) {
+        if (epeeInterIndicator != YELLOW) {
+          tft.fillRect(90, 19, 20, 8, YELLOW);
+          epeeInterIndicator = YELLOW;
+        }
       }
-      intermittent = inter;
+      else if (epeeInterIndicator != BLACK) {
+        tft.fillRect(90, 19, 20, 8, BLACK);
+        epeeInterIndicator = BLACK;
+      }
+//weaponState.epeeOn=true;
+      tft.setTextSize(2);
+      tft.setTextColor(YELLOW, BLACK);
+      tft.setCursor(0, 0);
+      if (weaponState.foilOn) {
+        if (weaponState.epeeOn) {
+          if ((oldFoil != weaponState.foilOn) || (oldEpee != weaponState.epeeOn)) {
+            tft.fillRect(0, 27, 128, 100, BLACK);
+            tft.print("Weapon     ");
+            tft.setTextColor(RED, BLACK);
+            tft.print("Grnd");
+            oldA = oldB = 320;
+            assumeFoil=false;
+            assumeEpee=false;
+            assumeNoConnect=true; //always reset to no connect as soon as short is lifted.  Only happens if both AB and BC lift at the same time
+          }
+          barGraph(ABAR, 8, grahamToBrian(weaponState.ohm_Epee), oldA, "AB");
+          barGraph(BBAR, 8, grahamToBrian(weaponState.ohm_Foil), oldB, "BC");
+        }
+        else {
+          if (!oldFoil)  {
+            tft.fillRect(0, 28, 128, 100, BLACK);
+            tft.print("Foil       ");
+            i = 0; oldVal = 0;
+            assumeFoil = true;
+            assumeEpee = false;
+            assumeNoConnect = false;
+          }
+          val = min(99, grahamToBrian(weaponState.ohm_Foil));
+          drawColumn(i, val);
+          printVal(0, 50, YELLOW, "", val);
+          oldVal = val;
+          if (++i >= 128) i = 0;
+          sTime=millis(); //keep reseting every time we see it enabled
+        }
+      }
+      else if (weaponState.epeeOn) {
+        if (!oldEpee) {
+          tft.fillRect(0, 28, 128, 100, BLACK);
+          tft.print("Epee       ");
+          i = 0; oldVal = 0;
+          assumeEpee = true;
+          assumeFoil = false;
+          assumeNoConnect = false;
+        }
+        val = min(99, grahamToBrian(cableState.ohm_AA));//weaponState.ohm_Epee));
+        drawColumn(i, val);
+        printVal(0, 50, YELLOW, "", val);
+        oldVal = val;
+        if (++i >= 128) i = 0;
+        sTime=millis(); //keep reseting every time we see it enabled
+      }
+      else {  //no connect
+         if (assumeFoil) {
+            val = min(99, grahamToBrian(weaponState.ohm_Foil));
+            drawColumn(i, val);
+            oldVal = val;
+            if (++i >= 128) i = 0;
+            if ((millis()-sTime) > 5000ul) { assumeFoil = false; assumeNoConnect = true; }
+          }
+        else if (assumeEpee) {
+          val = min(99, grahamToBrian(weaponState.ohm_Epee));
+          drawColumn(i, val);
+          oldVal = val;
+          if (++i >= 128) i = 0;
+          if ((millis()-sTime) > 5000ul) { assumeEpee = false; assumeNoConnect = true; }
+         }  else if (assumeNoConnect) { //last cycle was foil or epee or ground
+          tft.fillRect(0,28, 128, 100, BLACK);
+          tft.setCursor(0,0);
+          tft.setTextColor(YELLOW, BLACK);
+          tft.print("Weapon     ");
+          assumeNoConnect = false;  //only reset once
+        }
+
+      }
+      oldFoil = weaponState.foilOn;
+      oldEpee = weaponState.epeeOn;
       break;
     case 'r':
       break;
