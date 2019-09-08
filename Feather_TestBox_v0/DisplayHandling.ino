@@ -706,7 +706,7 @@ void updateOLED(char Mode) {
           assumeFoil = false;
           assumeNoConnect = false;
         }
-        val = min(99, grahamToBrian(cableState.ohm_AA));//weaponState.ohm_Epee));
+        val = min(99, grahamToBrian(weaponState.ohm_Epee));
         drawColumn(i, val);
         printVal(0, 50, YELLOW, "", val);
         oldVal = val;
