@@ -22,6 +22,7 @@ using namespace Adafruit_LittleFS_Namespace;
 
 #include "Channel.h"
 #include "string.h"
+#include "CaptureBuffer.h"
 //#include "BluetoothSerial.h"
 
 #define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
@@ -78,6 +79,8 @@ const int idleDisconnectTime = 5000; //Time before switching to idle mode for sc
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
+static constexpr int usFoilDebounce = weaponFoilDebounce*1000; //Foil debounce in us
+static constexpr int usEpeeDebounce = weaponEpeeDebounce*1000; //Foil debounce in us
 const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
@@ -184,17 +187,16 @@ ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, 
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
-ADC_Channel WeaponAC(3);
+ADC_Channel WeaponAC(5);
 ADC_Channel* ActiveCh;
 
 //Buffers for high-speed capture
 #define PRE_TRIGGER_SIZE 20
-#define NUM_RING_BUFFERS 6
-#define ADC_CAPTURE_LEN 108 //128-PreTrigger
-nrf_saadc_value_t ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
-nrf_saadc_value_t ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
-nrf_saadc_value_t ADC_CaptureBuffer[ADC_CAPTURE_LEN]; //Buffer for ADC sample reads
-nrf_saadc_value_t *preTrigBuffer;
+#define ADC_CAPTURE_LEN 256 //128-PreTrigger
+//Declare arrays here so that we can use pointers internally to channels
+int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
+int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
+int ADC_CaptureBuffer[ADC_CAPTURE_LEN]; //Buffer for ADC sample reads
 
 /*  DELETE ME
 //This struct is probably not needed for ESP32
@@ -311,12 +313,6 @@ void SAADC_IRQHandler(void) {
     ActiveCh->valueReady = true;
     ActiveCh->sampleCount = 0;
   }
-  switch (BoxState) {
-    case 'c':
-      break;
-    case 'w':
-      ActiveCh->activeBuffer[bufferIndex]=ADCValue;
-  }
 
   if ((t_now - ActiveCh->t_max) > tMaxHold) {
     ActiveCh->decay_max = 0;
@@ -336,6 +332,13 @@ void SAADC_IRQHandler(void) {
     ActiveCh->minval = ADCValue;
     ActiveCh->decay_min = ADCValue;
     ActiveCh->t_min = t_now;
+  }
+
+  if (ActiveCh->bufferEnabled) {
+    ActiveCh->hsBuffer.AddSample(ADCValue);
+    if (ActiveCh->hsBuffer.CheckTrigger(ADCValue)) {
+          
+    }
   }
 
   //Load the next channel

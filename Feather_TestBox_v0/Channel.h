@@ -6,6 +6,7 @@
 #define Channel_h
 
 #include "Arduino.h"
+#include "CaptureBuffer.h"
 
 #ifndef arm_math_h
   #define ARM_MATH_CM4
@@ -68,16 +69,9 @@ class ADC_Channel
     q31_t FIRState[STATE_LENGTH];
     q31_t filterValue=0;
 
-    bool captureEnabled=false;
-    bool captureActive=false;
-    bool captureDone=false;
-    int bufferIndex=0;
-    int *captureBuffer;
-    int *trigBuffer[2];
-    long triggerTime=0;
-    
-    
-    
+    bool bufferEnabled=false;
+    CaptureBuffer hsBuffer;
+        
     volatile long t_max = 0;
     volatile long t_min = 0;
 

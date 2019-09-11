@@ -74,39 +74,42 @@ void InitializeChannels() {
   snprintf(ChanArray[8].ch_label,4,"CCC");
   ChanArray[8].muxSetting = MUX_CABLE_CC;
 
-  FoilADC.muxSetting=(MUX_CABLE_BC | B10000000);
-  snprintf(FoilADC.ch_label,4,"FBC");
-  
-  EpeeADC.muxSetting=(MUX_CABLE_AB | B10000000);
+  EpeeADC.muxSetting=MUX_WEAPON_AB;
   snprintf(EpeeADC.ch_label,4,"EAB");
+  EpeeADC.nextChannel=&FoilADC;
+  EpeeADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigEpee[0][0]),&(ADC_PreTrigEpee[1][0]),PRE_TRIGGER_SIZE);
+  EpeeADC.hsBuffer.setTrigger(maxADCthreshold,false); //If signal drops belows this value, AB is connected.  
+  EpeeADC.bufferEnabled=true;
+  
+  FoilADC.muxSetting=MUX_WEAPON_CB;
+  snprintf(FoilADC.ch_label,4,"FBC");
+  FoilADC.nextChannel=&WeaponAC;
+  FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigFoil[0][0]),&(ADC_PreTrigFoil[1][0]),PRE_TRIGGER_SIZE);
+  FoilADC.hsBuffer.setTrigger(maxADCthreshold,true); //If signal goes above this the circuit is effectively open
+  FoilADC.bufferEnabled=true;
+  
+  WeaponAC.muxSetting=MUX_WEAPON_AC;
+  snprintf(WeaponAC.ch_label,4,"WAC");
+  WeaponAC.nextChannel=&EpeeADC;
+  WeaponAC.setRangeHigh();
+  
   
   for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {
     ChanArray[k].nextChannel = &(ChanArray[ChannelScanOrder[k]]);
     ChanArray[k].ADC_Scan = true;
   }
   ActiveCh = ChanArray; //Pointer to the first channel
-    
+  /*  
   for (int k=0;k<NUM_ADC_SCAN_CHANNELS;k++) {
     Serial.print("Channel ");Serial.print(k);Serial.print("=");Serial.print((long)&(ChanArray[k]),HEX);
     Serial.print("\tGPIO =");Serial.print(ChanArray[k].AIn);
     Serial.print("\tNext=");Serial.println((long)ChanArray[k].nextChannel,HEX);
-  }
+  }*/
 
   //Initialize the cable Low Pass Filters
     arm_biquad_cascade_df1_init_f32(&(cableState.LineALowPass),1,LowPass5HzCoef,cableState.LineALPFState);
     arm_biquad_cascade_df1_init_f32(&(cableState.LineBLowPass),1,LowPass5HzCoef,cableState.LineBLPFState);
     arm_biquad_cascade_df1_init_f32(&(cableState.LineCLowPass),1,LowPass5HzCoef,cableState.LineCLPFState);
-  /*bananaA.directionBit = DDB4;
-  bananaA.stateBit = PORTB4;
-  bananaA.digitalInMask = (1 << PINB4);
-
-  bananaB.directionBit = DDB5;
-  bananaB.stateBit = PORTB5;
-  bananaB.digitalInMask = (1 << PINB5);
-
-  bananaC.directionBit = DDB6;
-  bananaC.stateBit = PORTB6;
-  bananaC.digitalInMask = (1 << PINB6);*/
 }
 
 
