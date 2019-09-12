@@ -35,7 +35,7 @@ void setWeaponTestMode() {
   tLastActive = millis();
   BoxState = 'w';
 }
-/*
+
 void setWeaponResistanceMode() {
   setCableTestMode();
   StopADC();
@@ -44,7 +44,7 @@ void setWeaponResistanceMode() {
   BoxState = 'r';
   StartADC();
 
-}*/
+}
 
 void setCableTestMode() {
   //nrfx_gpiote_in_event_disable(LineADetect);
@@ -214,7 +214,7 @@ void setBoxMode(char mode) {
       setWeaponTestMode();
       break;
     case 'r':
-      //setWeaponResistanceMode();
+      setWeaponResistanceMode();
       break;
   }
 }
@@ -222,7 +222,7 @@ void setBoxMode(char mode) {
 
 void updateWeaponResistance() {
   long t_now=millis();
-/*
+
   if (FoilADC.getRawValue()<CABLE_DISCONNECT_THRESHOLD) {
     weaponState.ohm_Foil = FoilADC.getValue();
     weaponState.ohm_FoilMax = FoilADC.getDecayMaxValue();
@@ -240,15 +240,57 @@ void updateWeaponResistance() {
     weaponState.ohm_Epee=OPEN_CIRCUIT_VALUE;
   }
 
+  weaponState.ohm01Epee=weaponState.ohm_Epee*10;
+  weaponState.ohm01Foil=weaponState.ohm_Foil*10;
+
   if ( (weaponState.ohm_Epee==OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil==OPEN_CIRCUIT_VALUE) ) {
     if ((t_now-weaponState.tLastConnect)>idleDisconnectTime) {
       weaponState.cableDC=true;
     }
-  }*/
+  }
 
 }
 
 void updateWeaponState() {
+  //Update this code to use the A, B, C line displays
+  // A = red/Epee
+  // B = yellow/ Intermittent
+  // C = green / Foil
+
+  long t_now = millis();
+  static bool oldEpeeState=false;
+  static bool oldFoilState=false;
+
+  bool epeeState = EpeeADC.hsBuffer.CheckTriggerLastSample(); 
+  bool foilState = FoilADC.hsBuffer.CheckTriggerLastSample();   
+
+  if (foilState != weaponState.foilOn) {
+    if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
+      weaponState.foilOn = foilState;
+      weaponState.tFoilInterOn = t_now;
+      weaponState.foilInterOn = true;
+    }
+  }
+
+  if (epeeState != weaponState.epeeOn) {
+    if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
+      weaponState.epeeOn = epeeState;
+      weaponState.tEpeeInterOn = t_now;
+      weaponState.epeeInterOn = true;
+    }
+  }
+
+  if ( (weaponState.epeeInterOn) &&  ((t_now-weaponState.tEpeeInterOn)>weaponState.tLightChange) ) {
+    weaponState.epeeInterOn=false;
+  }
+  if ( (weaponState.foilInterOn) &&  ((t_now-weaponState.tFoilInterOn)>weaponState.tLightChange) ) {
+    weaponState.foilInterOn=false;
+  }
+  
+}
+
+
+void updateWeaponStateDigital() {
   //Update this code to use the A, B, C line displays
   // A = red/Epee
   // B = yellow/ Intermittent
@@ -303,7 +345,7 @@ void checkButtonState() {
       if (((t_now - tButtonPress) > weaponFoilDebounce) && (t_now - tSwitch) > tModeSwitchLockOut) {
         switch (BoxState) {
           case 'c':
-            setBoxMode('w');
+            setBoxMode('r');
             break;
           case 'r':
             setBoxMode('w');

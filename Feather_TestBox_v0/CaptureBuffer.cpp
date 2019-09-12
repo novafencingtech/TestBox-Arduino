@@ -32,11 +32,28 @@ bool CaptureBuffer::CheckTrigger(int val) {
   return ( ((val > _trigValue) && (_trigHigh)) || ((val < _trigValue) && !(_trigHigh)) );
 }
 
+bool CaptureBuffer::CheckTriggerLastSample() {
+  return ( ((_lastValue > _trigValue) && (_trigHigh)) || ((_lastValue < _trigValue) && !(_trigHigh)) );
+}
+
+long CaptureBuffer::getLastStateChange() {
+  return _tStateChange;
+}
+
 long CaptureBuffer::getLastTriggerMs() {
   return _trigTime_ms;
 }
 
 void CaptureBuffer::AddSample(int value) {
+  _lastValue=value;
+  static bool oldTriggerState=false;
+  bool triggerValue=CheckTrigger(value);
+
+  if (triggerValue!=oldTriggerState) {
+    _tStateChange=millis();
+    oldTriggerState=triggerValue;
+  }
+  
   switch (triggerState) {
   case 'i': //Trigger initiated but not confirmed
   case 'w': // Waiting for trigger
@@ -46,7 +63,7 @@ void CaptureBuffer::AddSample(int value) {
         _ptIndx = 0;
         _tBufNum = _tBufNum ^ 0x1; //XOR to toggle between buffer 0 and buffer 1
       }
-      if (CheckTrigger(value)) {
+      if (triggerValue) {
         if ( (triggerState == 'i') && ((micros() - _trigTime) > _trigDebounce) ) { // If trigger confirmed goto trigger mode
           _capIndx = _preTrigSize + _ptIndx;
           triggerState = 't';

@@ -620,7 +620,7 @@ void updateOLED(char Mode) {
       }
 
       break;
-    case 'w':
+    case 'r':
       if (weaponState.foilOn) {
         if (foilIndicator != RED) {
           tft.fillRect(0, 19, 20, 8, RED);
@@ -706,7 +706,7 @@ void updateOLED(char Mode) {
           assumeFoil = false;
           assumeNoConnect = false;
         }
-        val = min(99, grahamToBrian(weaponState.ohm_Epee));
+        val = min(99, weaponState.ohm01Epee);
         drawColumn(i, val);
         printVal(0, 50, YELLOW, "", val);
         oldVal = val;
@@ -715,14 +715,14 @@ void updateOLED(char Mode) {
       }
       else {  //no connect
          if (assumeFoil) {
-            val = min(99, grahamToBrian(weaponState.ohm_Foil));
+            val = min(99, weaponState.ohm01Foil);
             drawColumn(i, val);
             oldVal = val;
             if (++i >= 128) i = 0;
             if ((millis()-sTime) > 5000ul) { assumeFoil = false; assumeNoConnect = true; }
           }
         else if (assumeEpee) {
-          val = min(99, grahamToBrian(weaponState.ohm_Epee));
+          val = min(99, weaponState.ohm01Epee);
           drawColumn(i, val);
           oldVal = val;
           if (++i >= 128) i = 0;
@@ -739,7 +739,7 @@ void updateOLED(char Mode) {
       oldFoil = weaponState.foilOn;
       oldEpee = weaponState.epeeOn;
       break;
-    case 'r':
+    case 'w':
       break;
   }
 }

@@ -250,9 +250,11 @@ CableData cableState;
 
 struct weapon_test {
   bool epeeOn = false;
+  bool epeeInterOn = false;
   long tEpeeTrigger = 0;
   long tEpeeInterOn = 0;
   bool foilOn = false;
+  bool foilInterOn = false;
   long tFoilTrigger = 0;
   long tFoilInterOn = 0;
   bool lineAC = false;
@@ -261,7 +263,9 @@ struct weapon_test {
   long tLightChange = 1000; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
+  int ohm01Foil=0;
   float ohm_Epee = 0;
+  int ohm01Epee=0;
   float ohm_FoilMax = 0;
   float ohm_EpeeMax = 0;
   long tLastConnect = 0;
@@ -337,7 +341,12 @@ void SAADC_IRQHandler(void) {
   if (ActiveCh->bufferEnabled) {
     ActiveCh->hsBuffer.AddSample(ADCValue);
     if (ActiveCh->hsBuffer.CheckTrigger(ADCValue)) {
-          
+      if (ActiveCh==&EpeeADC) {
+        ISR_EpeeHitDetect();
+      }
+      if (ActiveCh==&FoilADC) {
+        ISR_FoilHitDetect();
+      }
     }
   }
 
@@ -439,13 +448,13 @@ void setup() {
 void ISR_EpeeHitDetect() {
   long t_now = millis();
   static long t_prev = 0;
-  byte changed = 0;
-  byte state = nrf_gpio_pin_read(LineADetect);
-  byte pin = LineADetect;
+  //byte changed = 0;
+  //byte state = nrf_gpio_pin_read(LineADetect);
+  //byte pin = LineADetect;
 
   tLastActive = t_now;
   if ((t_now - t_prev) > weaponEpeeDebounce) {
-    Serial.print("Epee Trigger t="); Serial.println(t_now);
+    //Serial.print("Epee Trigger t="); Serial.println(t_now);
     t_prev = t_now;
     weaponState.update_flag = true;
     weaponState.tEpeeTrigger = t_now;
@@ -455,12 +464,12 @@ void ISR_EpeeHitDetect() {
 void ISR_FoilHitDetect() {
   long t_now = millis();
   static long t_prev = 0;
-  byte changed = 0;
-  byte state = nrf_gpio_pin_read(LineCDetect);
+  //byte changed = 0;
+  //byte state = nrf_gpio_pin_read(LineCDetect);
 
   tLastActive = t_now;
   if ((t_now - t_prev) > weaponFoilDebounce) {
-    Serial.println("Foil Trigger"); Serial.println(t_now);
+    //Serial.println("Foil Trigger"); Serial.println(t_now);
     t_prev = t_now;
     weaponState.update_flag = true;
     weaponState.tFoilTrigger = t_now;
@@ -503,14 +512,13 @@ void loop() {
       }
       break;
     case 'r':
-      if (force_update) {
-        FoilADC.updateVals();
-        EpeeADC.updateVals();
-      }
+      //FoilADC.updateVals();
+      //EpeeADC.updateVals();
       updateWeaponResistance();
+      updateWeaponState();
       break;
     case 'w':
-      updateWeaponState();
+      updateWeaponStateDigital();
       break;
     case 's':
       break;

@@ -14,10 +14,11 @@ class CaptureBuffer
     bool CaptureDone();
     void ResetTrigger();
     bool CheckTrigger(int val);
+    bool CheckTriggerLastSample();
     void setTrigger(int value, bool TriggerHigh);
     void setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
     long getLastTriggerMs();
-    
+    long getLastStateChange();
 
   private:
     void FinalizeBuffer();
@@ -32,7 +33,9 @@ class CaptureBuffer
     
     int _preTrigSize;
     int _capBufSize;
-
+    int _lastValue;
+    
+    long _tStateChange=0;
     long _trigTime=0;  //Time in us
     long _trigTime_ms=0;
     int _trigValue;
