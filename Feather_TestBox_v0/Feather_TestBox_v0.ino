@@ -263,9 +263,9 @@ struct weapon_test {
   long tLightChange = 1000; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
-  int ohm01Foil=0;
+  int ohm10xFoil=0;
   float ohm_Epee = 0;
-  int ohm01Epee=0;
+  int ohm10xEpee=0;
   float ohm_FoilMax = 0;
   float ohm_EpeeMax = 0;
   long tLastConnect = 0;

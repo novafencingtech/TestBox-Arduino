@@ -677,8 +677,8 @@ void updateOLED(char Mode) {
             assumeEpee=false;
             assumeNoConnect=true; //always reset to no connect as soon as short is lifted.  Only happens if both AB and BC lift at the same time
           }
-          barGraph(ABAR, 8, grahamToBrian(weaponState.ohm_Epee), oldA, "AB");
-          barGraph(BBAR, 8, grahamToBrian(weaponState.ohm_Foil), oldB, "BC");
+          barGraph(ABAR, 8, weaponState.ohm10xEpee, oldA, "AB");
+          barGraph(BBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
         }
         else {
           if (!oldFoil)  {
@@ -689,7 +689,7 @@ void updateOLED(char Mode) {
             assumeEpee = false;
             assumeNoConnect = false;
           }
-          val = min(99, grahamToBrian(weaponState.ohm_Foil));
+          val = min(99, weaponState.ohm10xFoil);
           drawColumn(i, val);
           printVal(0, 50, YELLOW, "", val);
           oldVal = val;
@@ -706,7 +706,7 @@ void updateOLED(char Mode) {
           assumeFoil = false;
           assumeNoConnect = false;
         }
-        val = min(99, weaponState.ohm01Epee);
+        val = min(99, weaponState.ohm10xEpee);
         drawColumn(i, val);
         printVal(0, 50, YELLOW, "", val);
         oldVal = val;
@@ -715,14 +715,14 @@ void updateOLED(char Mode) {
       }
       else {  //no connect
          if (assumeFoil) {
-            val = min(99, weaponState.ohm01Foil);
+            val = min(99, weaponState.ohm10xFoil);
             drawColumn(i, val);
             oldVal = val;
             if (++i >= 128) i = 0;
             if ((millis()-sTime) > 5000ul) { assumeFoil = false; assumeNoConnect = true; }
           }
         else if (assumeEpee) {
-          val = min(99, weaponState.ohm01Epee);
+          val = min(99, weaponState.ohm10xEpee);
           drawColumn(i, val);
           oldVal = val;
           if (++i >= 128) i = 0;
