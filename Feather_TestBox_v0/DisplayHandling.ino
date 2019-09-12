@@ -632,7 +632,7 @@ void updateOLED(char Mode) {
         tft.fillRect(0, 19, 20, 7, BLACK);
         foilIndicator = BLACK;
       }
-      if (weaponState.tFoilInterOn) {
+      if (weaponState.foilInterOn) {
         if (foilInterIndicator != YELLOW) {
           tft.fillRect(20, 19, 20, 7, YELLOW);
           foilInterIndicator = YELLOW;
@@ -652,7 +652,7 @@ void updateOLED(char Mode) {
         tft.fillRect(70, 19, 20, 7, BLACK);
         epeeIndicator = BLACK;
       }
-      if (weaponState.tEpeeInterOn) {
+      if (weaponState.epeeInterOn) {
         if (epeeInterIndicator != YELLOW) {
           tft.fillRect(90, 19, 20, 7, YELLOW);
           epeeInterIndicator = YELLOW;

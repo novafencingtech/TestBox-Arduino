@@ -271,6 +271,7 @@ void updateWeaponState() {
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
       weaponState.foilInterOn = true;
+      //Serial.println("Foil trigger");
     }
   }
 
@@ -279,11 +280,13 @@ void updateWeaponState() {
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
       weaponState.epeeInterOn = true;
+      //Serial.println("Epee trigger");
     }
   }
 
   if ( (weaponState.epeeInterOn) &&  ((t_now-weaponState.tEpeeInterOn)>weaponState.tLightChange) ) {
     weaponState.epeeInterOn=false;
+    //Serial.println("Epee trigger");
   }
   if ( (weaponState.foilInterOn) &&  ((t_now-weaponState.tFoilInterOn)>weaponState.tLightChange) ) {
     weaponState.foilInterOn=false;

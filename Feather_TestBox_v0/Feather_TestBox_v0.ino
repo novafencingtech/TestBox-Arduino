@@ -260,7 +260,7 @@ struct weapon_test {
   bool lineAC = false;
   //byte epeeInterruptBit = PCINT4;
   //byte foilInterruptBit = PCINT6;
-  long tLightChange = 1000; //ms -- time for the intermittent LED to be on
+  long tLightChange = 300; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
   int ohm10xFoil=0;
