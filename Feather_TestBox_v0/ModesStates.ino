@@ -374,10 +374,7 @@ void checkButtonState() {
           //lcd.clear();
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
-          tft.setCursor(2, 2);
-          tft.setTextColor(CYAN, BLACK);
-          tft.print("Calibration");
-          calibrationMode = true;
+           calibrationMode = true;
         }
       }
       if (calibrationMode) {

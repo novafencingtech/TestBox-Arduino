@@ -41,6 +41,7 @@ void writeCalibrationData() {
   }
   if ( file.open(FILENAME, FILE_O_WRITE) )
   {
+    file.seek(0);
     p = 0;
     buf[p++] = NUM_CAL_CHANNELS;
     Serial.println("Write Calibration Data");
@@ -49,14 +50,19 @@ void writeCalibrationData() {
       buf[p++] = lowByte(CalChannel->getTrim());
       buf[p++] = highByte(CalChannel->getTrim());
     }
-    file.write(buf, 1 + (NUM_CAL_CHANNELS * 2));
+    int fsiz = 1 + (NUM_CAL_CHANNELS * 2);
+    int actual=file.write(buf, fsiz);
     file.close();
+    if (actual!=fsiz) {
+      Serial.print("Error writing calibration Data, tried ");Serial.print(fsiz);Serial.print(" but got ");Serial.println(actual);
+      tft.print("Error Writing File "); tft.println(actual);
+    }
+    else Serial.print("Done writing Calibration Data ");Serial.println(fsiz);
   } else
   {
     Serial.println("Failed to open Calibration File");
+    tft.println("Error Opening File");
   }
-
-  Serial.println("Done writing Calibration Data");
 }
 
 
