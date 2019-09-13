@@ -197,10 +197,6 @@ void setWeaponInterrupts() {
 
   attachInterrupt(LineADetect,&ISR_EpeeHitDetect,CHANGE);
   attachInterrupt(LineCDetect,&ISR_FoilHitDetect,CHANGE);
-  //nrfx_gpiote_in_init(LineADetect, &weaponPinConfig,&ISR_EpeeHitDetect);
-  //nrfx_gpiote_in_init(LineCDetect, &weaponPinConfig,&ISR_EpeeHitDetect);
-  //nrfx_gpiote_in_event_enable(LineADetect,true); 
-  //nrfx_gpiote_in_event_enable(LineCDetect,true); 
 
 }
 
@@ -313,6 +309,7 @@ void updateWeaponStateDigital() {
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
+      weaponState.foilInterOn = true;
     }
   }
 
@@ -320,17 +317,17 @@ void updateWeaponStateDigital() {
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
+      weaponState.epeeInterOn = true;
     }
   }
 
-  /*if (lineBGauge.isOn()) {
-    if (((t_now - weaponState.tFoilInterOn) > weaponStateHoldTime) &&
-        ((t_now - weaponState.tEpeeInterOn) > weaponStateHoldTime)) {
-      //lineBGauge.setOffOn(false);
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("                "));
-    }
-  }*/
+  if ( (weaponState.epeeInterOn) &&  ((t_now-weaponState.tEpeeInterOn)>weaponState.tLightChange) ) {
+    weaponState.epeeInterOn=false;
+    //Serial.println("Epee trigger");
+  }
+  if ( (weaponState.foilInterOn) &&  ((t_now-weaponState.tFoilInterOn)>weaponState.tLightChange) ) {
+    weaponState.foilInterOn=false;
+  }
 }
 
 void checkButtonState() {
@@ -394,7 +391,7 @@ void checkButtonState() {
 
 
 void setPowerOff() {
-  setBoxMode('w');
+  //setBoxMode('w');
   /*lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("  Good bye  "));

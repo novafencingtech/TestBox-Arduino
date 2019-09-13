@@ -27,7 +27,7 @@ using namespace Adafruit_LittleFS_Namespace;
 
 #define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
-//#define SERIAL_BUFFER_SIZE 128 //Length of serial buffer
+#define SERIAL_OUTPUT_BUFFER_SIZE 256 //Length of serial buffer
 #define ADC_BUFFER_SIZE 8
 
 const uint8_t ADC_UNIT = 0;
@@ -169,7 +169,7 @@ volatile char BoxState = 'w'; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s
 
 
 //Serial buffer string
-char outputString[SERIAL_BUFFER_SIZE];
+char outputString[SERIAL_OUTPUT_BUFFER_SIZE];
 volatile long tIdle = 0;
 //BluetoothSerial SerialBT;
 
@@ -525,7 +525,7 @@ void loop() {
 
   //Automatic power off while idle
   if ((t_now - tLastActive) > powerOffTimeOut) {
-    //setPowerOff();
+    setPowerOff();
   }
 
   /*
@@ -566,13 +566,14 @@ void loop() {
     }*/
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
-    //writeSerialOutput(BoxState);
+    writeSerialOutput(BoxState);
     t_Serial_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
     updateOLED(BoxState);
+    displayBatteryStatus();
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);

@@ -260,19 +260,32 @@ void InitializeDisplay()
 void displayBatteryStatus() {
   char voltString[5] = "\0";
   char percString[5] = "\0";
-  float battPercent = 0;
-
+  int battPercent = 0;
+  static const byte BattH=10;
+  static const byte BattW=10;
+  static const byte BattX0=128-BattW-1;
+  static const byte BattY0=0;
+  
   if (batteryVoltage > 3.4) {
-    battPercent = (batteryVoltage - 3.4) / (4.2 - 3.4) * 100;
+    battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
   }
+  tft.setTextSize(1);
+
+  tft.fillRect(BattX0,BattY0,BattH,BattW,GREEN);
+  tft.fillRect(BattX0-1,BattY0+3,1,4,GREEN);
+  tft.setCursor(BattX0+2,BattY0+1);
+  tft.print(battPercent,WHITE);
   /*
-    lcd.clear();
-    dtostrf(batteryVoltage,4,2,voltString);
-    dtostrf(battPercent,3,0,percString);
-    lcd.print(F("  Battery   "));
-    lcd.setCursor(0,1);
-    snprintf(lcdString2,16," %sV  %s%% ",voltString,percString);
-    lcd.print(lcdString2);*/
+  tft.drawFastHLine(BattX0, BattY0, BattW, WHITE); //Top
+  tft.drawFastHLine(BattX0, BattH, BattW, WHITE); //Bottom
+  tft.drawFastVLine(BattX0+BattW,0,BattH,WHITE); //Right
+  tft.drawFastHLine(BattX0-2,BattY0+4,2,WHITE);
+  tft.drawFastVLine(BattX0,BattY0,4,WHITE);
+  tft.drawFastHLine(BattX0-2,BattY0+4,2,WHITE);
+  tft.drawFastVLine(BattX0-2,BattY0+6,2,WHITE);
+  tft.drawFastHLine(BattX0-2,BattY0+6,2,WHITE);
+  tft.drawFastVLine(BattX0,BattY0+6,2,WHITE);
+  */
 }
 int grahamToBrian(float g) {
   if (g < 0.0) g = 0.0;
@@ -337,12 +350,16 @@ void updateOLED(char Mode) {
   bool BCshort = (CheckCableStatusByte((1 << BITBC)) || CheckCableStatusByte((1 << BITCB))) && ((!CheckCableStatusByte((1 << BITBB))) || (!CheckCableStatusByte((1 << BITCC))));
   bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
 
+  //Serial.println(Mode);
+  
   if (Mode != oldMode) {
+    //Serial.println("Setting new mode");
     oldMode = Mode;
     tft.fillRect(0, 0, 128, 128, BLACK);
     tft.setCursor(0, 0);
     tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
 
+    
     switch (Mode) {
       case 'c':
         oldFault = "";
@@ -367,7 +384,7 @@ void updateOLED(char Mode) {
         tft.print("5");
         tft.setCursor(127 - 8, 120);
         tft.print("0");
-        tft.setTextSize(2);
+        //tft.setTextSize(2);
         break;
       case 'r':
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
@@ -376,14 +393,21 @@ void updateOLED(char Mode) {
         oldEpee=false;
         oldFoil=false;
         i = 0;
+        tft.setTextSize(2);
         tft.print("Weapon");
+        break;
        case 'w':
+        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
+        lastConnection = first;
+        tft.setTextSize(2);
+        tft.print("WpnTest");
         break;
     }
   }
   switch (Mode) {
     case 'c':
       startTime = micros();
+      tft.setTextSize(2);
       if (ABshort) //AB short
         if (BCshort) {//if AB and BC then AC has to be shorted
           //A - B - C short
@@ -640,6 +664,46 @@ void updateOLED(char Mode) {
       
       break;
     case 'w':
+      if (weaponState.foilOn) {
+        if (foilIndicator != RED) {
+          tft.fillRect(0, 28, 50, 50, RED);
+          foilIndicator = RED;
+        }
+      }
+      else if (foilIndicator != BLACK) {
+        tft.fillRect(0, 28, 50, 50, BLACK);
+        foilIndicator = BLACK;
+      }
+      if (weaponState.foilInterOn) {
+        if (foilInterIndicator != YELLOW) {
+          tft.fillRect(0, 80, 50, 40, YELLOW);
+          foilInterIndicator = YELLOW;
+        }
+      }
+      else if (foilInterIndicator != BLACK) {
+        tft.fillRect(0, 80, 50, 40, BLACK);
+        foilInterIndicator = BLACK;
+      }
+      if (weaponState.epeeOn) {
+        if (epeeIndicator != GREEN) {
+          tft.fillRect(70, 28,128-50 ,50 , GREEN);
+          epeeIndicator = GREEN;
+        }
+      }
+      else if (epeeIndicator != BLACK) {
+        tft.fillRect(70, 28,128-50 ,50 , BLACK);
+        epeeIndicator = BLACK;
+      }
+      if (weaponState.epeeInterOn) {
+        if (epeeInterIndicator != YELLOW) {
+          tft.fillRect(70, 80, 128-50, 40, YELLOW);
+          epeeInterIndicator = YELLOW;
+        }
+      }
+      else if (epeeInterIndicator != BLACK) {
+        tft.fillRect(70, 80, 128-50, 40, BLACK);
+        epeeInterIndicator = BLACK;
+      }
       break;
   }
 }
@@ -760,7 +824,7 @@ void writeSerialOutput(char Mode) {
       break;
   }
 
-  Serial.write(outputString); Serial.println(totalTime / timeSamples);
+  Serial.write(outputString); //Serial.println(totalTime / timeSamples);
 
   /*if (SerialBT.available()){
     SerialBT.print(outputString);
