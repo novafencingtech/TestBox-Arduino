@@ -6,30 +6,35 @@ using namespace Adafruit_LittleFS_Namespace;
 #define FILENAME    "/calibration.txt"
 
 File file(InternalFS);
-int p = 0;
-uint8_t buf[100];
 bool isInitialized = false;
 
-void setEepromLocation() {
-  int k = 0;
-  /*
 
-    while (k<EEPROM.length()) {
-    if (EEPROM.read(k)==calibrationValid){
-      eepromAddr=k;
+
+ADC_Channel* getCalibrationChannel(int num) {
+  switch (num) {
+    case 0 ... (NUM_ADC_SCAN_CHANNELS-1):
+      return &(ChanArray[num]);
       break;
-    }
-    k+=eepromLocationStep;
-    }
-    if (k>=(EEPROM.length()-eepromLocationStep)) {
-    eepromAddr=0;
-    } */
-}
+    case NUM_ADC_SCAN_CHANNELS:
+      return &EpeeADC;
+      break;
+    case NUM_ADC_SCAN_CHANNELS+1:
+      return &FoilADC;
+      break;
+    case NUM_ADC_SCAN_CHANNELS+2:
+      return &WeaponAC;
+      break;
+  }
 
+}
 
 void writeCalibrationData() {
   int loc;
-  String content = "";
+  int p = 0;
+  uint8_t buf[100];
+  //String content = "";
+  ADC_Channel *CalChannel;
+  
   if (!isInitialized) {
     InternalFS.begin();
     isInitialized = true;
@@ -37,13 +42,14 @@ void writeCalibrationData() {
   if ( file.open(FILENAME, FILE_O_WRITE) )
   {
     p = 0;
-    buf[p++] = NUM_ADC_SCAN_CHANNELS;
+    buf[p++] = NUM_CAL_CHANNELS;
     Serial.println("Write Calibration Data");
-    for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
-      buf[p++] = lowByte(ChanArray[k].getTrim());
-      buf[p++] = highByte(ChanArray[k].getTrim());
+    for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
+      CalChannel=getCalibrationChannel(k);
+      buf[p++] = lowByte(CalChannel->getTrim());
+      buf[p++] = highByte(CalChannel->getTrim());
     }
-    file.write(buf, 1 + (NUM_ADC_SCAN_CHANNELS * 2));
+    file.write(buf, 1 + (NUM_CAL_CHANNELS * 2));
     file.close();
   } else
   {
@@ -59,49 +65,30 @@ void loadCalibrationData() {
   byte calData;
   int loc = 0;
   bool calValid = false;
+  int p = 0;
+  uint8_t buf[100];
+  ADC_Channel *CalChannel;
+  
   if (!isInitialized) {
     InternalFS.begin();
     isInitialized = true;
   }
   if (file.open(FILENAME, FILE_O_READ)) {
-    uint16_t cal;
+    int cal;
     int l = file.read(buf, 100);
     p = 0;
     Serial.print("Read Calibration, got "); Serial.print(buf[p]); Serial.println(" channels");
     int n = buf[p++];
-    for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+    for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
+      CalChannel=getCalibrationChannel(k);
       if (k<n) cal = buf[p++] | (buf[p++] >> 8); 
       else {
         Serial.println("Fewer calibrations in file than in code");
         cal=0;
       }
       if (cal >= calibrationErrorValue) cal = 0;
-      ChanArray[k].setTrim(cal);
+      CalChannel->setTrim(cal);
     }
     file.close();
   } else Serial.println("Can't open Calibration Data File");
-
-  /*
-    //If we don't have valid calibration re-check the location
-    if (!(EEPROM.read(eepromAddr)==calibrationValid)) {
-      setEepromLocation();
-    }
-
-    loc=eepromAddr;
-
-    calValid=(EEPROM.read(loc)==calibrationValid);
-
-    loc++; //Move to next location
-    for (int k=0;k<NUM_ADC_SCAN_CHANNELS; k++) {
-      if (calValid) {
-        calData=EEPROM.read(loc);
-        if (calData>calibrationErrorValue) {
-          calData=0;
-        }
-      } else {
-        calData=0;
-      }
-      ChanArray[k].setTrim(calData);
-      loc+=eepromStorageSize;
-    }  */
 }

@@ -74,7 +74,7 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
   tft.setTextColor(valColor, BLACK);  //set the text color to right color, black background
   //Print ohms in a 4 character space
   //"XXXX", "XXX ", "XX  " or "X.XX"
-  if (val == 990) {
+  if (val == 9999) {
     tft.print("OPEN");
     return;
   }
@@ -255,126 +255,7 @@ void InitializeDisplay()
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   tft.println("Welcome to TTtarm");
-
 }
-/*
-  void updateCableLCD() {
-  static byte priorStatus;
-  byte statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC));
-  char numString[OHM_FIELD_WIDTH+1]="";
-  //int strLen;
-
-  strcpy_P(lcdString2,PSTR(""));
-
-  strcpy_P(numString,PSTR(" -- "));
-  if (cableState.ohm_AA<OPEN_CIRCUIT_VALUE) {
-    dtostrf(cableState.ohm_AA,OHM_FIELD_WIDTH,2,numString);
-  }
-
-  strncat(lcdString2,numString,OHM_FIELD_WIDTH);
-  strncat_P(lcdString2,PSTR("  "),2);
-
-  strcpy_P(numString,PSTR(" -- "));
-  if (cableState.ohm_BB<OPEN_CIRCUIT_VALUE) {
-    dtostrf(cableState.ohm_BB,OHM_FIELD_WIDTH,2,numString);
-  }
-  strncat(lcdString2,numString,OHM_FIELD_WIDTH);
-  strncat_P(lcdString2,PSTR("  "),2);
-
-  strcpy_P(numString,PSTR(" -- "));
-  if (cableState.ohm_CC<OPEN_CIRCUIT_VALUE) {
-    dtostrf(cableState.ohm_CC,OHM_FIELD_WIDTH,2,numString);
-  }
-  strncat(lcdString2,numString,OHM_FIELD_WIDTH);
-
-  lcd.setCursor(0,1);
-  lcd.print(lcdString2);
-  //strcat(lcdString2,"\n");
-  //Serial.write(lcdString2);
-
-  if (cableState.statusByte==0) {
-    lcd.setCursor(0,0);
-    lcd.print(F("   Cable GOOD   "));
-    return;
-  }
-
-  if (!(cableState.statusByte==priorStatus)) {
-    priorStatus=cableState.statusByte;
-    tLastActive=millis();
-  }
-
-  //Clear all bits other than the main lines, check if they're all disconnected
-  if (cableState.cableDC) {
-      lcd.setCursor(0,0);
-      lcd.print(F("Cable disconnect"));
-      return;
-  }
-
-  if (cableState.lameMode) {
-    lcd.setCursor(0,0);
-    if (!bitRead(cableState.statusByte,BITAA)) {
-      lcd.print(F("    Lame Good   "));
-    } else {
-      lcd.print(F(" Bad spot/cable "));
-    }
-    return;
-  }
-
-  statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC));
-  if ((cableState.statusByte & statusCheck)>0) {
-    strcpy_P(lcdString1,PSTR(" Line "));
-    if bitRead(cableState.statusByte,BITAA) {
-      strncat_P(lcdString1,PSTR("A"),1);
-    }
-    if bitRead(cableState.statusByte,BITBB) {
-      strncat_P(lcdString1,PSTR("B"),1);
-    }
-    if bitRead(cableState.statusByte,BITCC) {
-      strncat_P(lcdString1,PSTR("C"),1);
-    }
-    strncat_P(lcdString1,PSTR(" high"),8);
-  }
-
-  statusCheck=( (1<<BITAB) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AB short"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITBC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line BC short"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITAC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AC short"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITAA)|(1<<BITBB)|(1<<BITAB) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AB cross"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITBB)|(1<<BITBC)|(1<<BITBC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line BC cross"),LCD_TEXT_COLS);
-  }
-  statusCheck=( (1<<BITAA)|(1<<BITCC)|(1<<BITAC) );
-  if (CheckCableStatusByte(statusCheck)) {
-    strncpy_P(lcdString1,PSTR("Line AC cross"),LCD_TEXT_COLS);
-  }
-  statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC)|(1<<BITAB)|(1<<BITBC));
-    if (CheckCableStatusByte(statusCheck)) {
-      strncpy(lcdString1,"BAD! A->B B->C  ",LCD_TEXT_COLS);
-    }
-  statusCheck=((1<<BITAA)|(1<<BITBB)|(1<<BITCC)|(1<<BITAC));
-    if (CheckCableStatusByte(statusCheck)) {
-      strncpy(lcdString1,"BAD! A->C  B->A",LCD_TEXT_COLS);
-    }
-
-  while (strlen(lcdString1)<LCD_TEXT_COLS) {
-    strcat(lcdString1," ");
-  }
-  lcd.setCursor(0,0);
-  lcd.print(lcdString1);
-  }*/
-
 
 void displayBatteryStatus() {
   char voltString[5] = "\0";
@@ -781,7 +662,7 @@ void writeSerialOutput(char Mode) {
   long t_now = millis();
   static long t_last_upd = 0;
   float EffSampleRate = 0;
-return;
+  //return;
 
   tempString1[0] = '\0'; //Reset the temp String
   tempString2[0] = '\0'; //Reset the temp String

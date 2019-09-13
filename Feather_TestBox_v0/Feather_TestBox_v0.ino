@@ -66,7 +66,7 @@ float LowPass0p2HzCoef[5] = {// Scaled for floating point
 // Change the calibration valid flag when changing the format of the calibration data
 const byte calibrationValid = 0xA0; //Flags the last valid calibration
 const byte calibrationInvalid = 0xEE; //Marks a calibration as invalid and moves to the next location (used for wear leveling)
-int eepromLocationStep  = 1 + sizeof(int) * (NUM_ADC_SCAN_CHANNELS + 2); //Step size in bytes between eeprom flags;
+//int eepromLocationStep  = 1 + sizeof(int) * (NUM_ADC_SCAN_CHANNELS + 2); //Step size in bytes between eeprom flags;
 const int calibrationErrorValue = 1000; //If calibration value exceeds, generate an error
 const byte calibrationRetries = 3; // Exit after this many retries
 
@@ -97,7 +97,7 @@ const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4090;
-const float OPEN_CIRCUIT_VALUE = 99.0;
+const float OPEN_CIRCUIT_VALUE = 999.9;
 
 //MUX Settings if needed
 const SPISettings OLED_SPI_SETTINGS(2000000, MSBFIRST, SPI_MODE0);
@@ -173,13 +173,11 @@ char outputString[SERIAL_BUFFER_SIZE];
 volatile long tIdle = 0;
 //BluetoothSerial SerialBT;
 
-#define EEPROM_SIZE 128 //Size of the simulated eeprom in bytes
-int eepromAddr = 0; //Used to store the current address used by the eeprom
-const int eepromStorageSize = sizeof(int); //Size of stored values in bytes
-File settingsFile(InternalFS);
-File calFile(InternalFS);
-#define CAL_FILENAME "/ADC_Calibration.txt"
-#define SETTINGS_FILENAME "/Settings.txt"
+
+//File settingsFile(InternalFS);
+//File calFile(InternalFS);
+//#define CAL_FILENAME "/ADC_Calibration.txt"
+//#define SETTINGS_FILENAME "/Settings.txt"
 
 
 //ADC parameters
@@ -189,6 +187,7 @@ ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
 ADC_Channel WeaponAC(5);
 ADC_Channel* ActiveCh;
+static constexpr byte NUM_CAL_CHANNELS=NUM_ADC_SCAN_CHANNELS+2;
 
 //Buffers for high-speed capture
 #define PRE_TRIGGER_SIZE 20
@@ -567,7 +566,7 @@ void loop() {
     }*/
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
-    writeSerialOutput(BoxState);
+    //writeSerialOutput(BoxState);
     t_Serial_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
