@@ -263,18 +263,18 @@ void displayBatteryStatus() {
   int battPercent = 0;
   static const byte BattH=10;
   static const byte BattW=10;
-  static const byte BattX0=128-BattW-1;
-  static const byte BattY0=0;
+  static const byte BattX0=128-BattW-4;
+  static const byte BattY0=1;
   
   if (batteryVoltage > 3.4) {
     battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
   }
   tft.setTextSize(1);
 
-  tft.fillRect(BattX0,BattY0,BattH,BattW,GREEN);
-  tft.fillRect(BattX0-1,BattY0+3,1,4,GREEN);
-  tft.setCursor(BattX0+2,BattY0+1);
-  tft.print(battPercent,WHITE);
+  tft.drawRect(BattX0-1,BattY0-1,BattH+2,BattW+2,WHITE);
+  tft.drawFastVLine(BattX0-2,BattY0+3,4,WHITE);
+  //tft.setCursor(BattX0+2,BattY0+1);
+  //tft.print(battPercent,WHITE);
   /*
   tft.drawFastHLine(BattX0, BattY0, BattW, WHITE); //Top
   tft.drawFastHLine(BattX0, BattH, BattW, WHITE); //Bottom
