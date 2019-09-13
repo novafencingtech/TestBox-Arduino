@@ -525,6 +525,7 @@ void loop() {
 
   //Automatic power off while idle
   if ((t_now - tLastActive) > powerOffTimeOut) {
+    Serial.println("Idle Power Off");
     setPowerOff();
   }
 

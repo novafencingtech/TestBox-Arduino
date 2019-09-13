@@ -78,6 +78,7 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
     tft.print("OPEN");
     return;
   }
+  if (val<0) val=0;
   tft.print(val / 10); //display whole ohms
   if (val > 10000) return;  //if the value is >1000 ohms, no space
   if (val > 1000) {  //f the value is >100 ohms
@@ -726,7 +727,7 @@ void writeSerialOutput(char Mode) {
   long t_now = millis();
   static long t_last_upd = 0;
   float EffSampleRate = 0;
-  //return;
+// return;
 
   tempString1[0] = '\0'; //Reset the temp String
   tempString2[0] = '\0'; //Reset the temp String

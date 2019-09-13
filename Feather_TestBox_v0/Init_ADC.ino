@@ -137,6 +137,7 @@ void calibrateSystem() {
     CalChan=getCalibrationChannel(k);
 
     tft.fillRect(0, 0, 128, 128, BLACK); //Clears the screen
+    tft.setTextSize(2); //Medium size text
 
     nrf_saadc_task_trigger(NRF_SAADC_TASK_STOP);
     //Set the proper channel MUX
@@ -159,7 +160,7 @@ void calibrateSystem() {
       tft.setTextColor(CYAN, BLACK);
       tft.println("  Connect ");
       tft.setTextColor(BLUE, BLACK);
-      tft.print("    ");
+      tft.print(k<(NUM_CAL_CHANNELS-2)? "Cable ": "Weapon ");
       tft.println(label);
       tft.setTextColor(CYAN, BLACK);
       tft.println("Press Btn");
@@ -233,7 +234,9 @@ void calibrateSystem() {
   while (digitalRead(BUTTON_PIN) == HIGH) {
     if ((millis() - tPress) > tPowerOffPress) {
       tft.setTextColor(RED, BLACK);
+      Serial.println("Discarding");
       tft.println("Discarding");
+      delay(5000); //let user see message
     }
     delay(100);
   }
@@ -241,9 +244,11 @@ void calibrateSystem() {
   if ((millis() - tPress) < tPowerOffPress) {
     writeCalibrationData();
     tft.setTextColor(GREEN, BLACK);
+    Serial.println("Saved");
     tft.println("Cal saved.");
-    delay(1000);
+    delay(5000);
   } else {
+    Serial.println("skipping");
     loadCalibrationData();
     delay(500);
   }
