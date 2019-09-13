@@ -272,7 +272,7 @@ void displayBatteryStatus() {
   tft.setTextSize(1);
 
   tft.drawRect(BattX0-1,BattY0-1,BattH+2,BattW+2,WHITE);
-  tft.drawFastVLine(BattX0-2,BattY0+3,4,WHITE);
+  tft.drawFastVLine(BattX0-2,BattY0+2,5,WHITE);
   //tft.setCursor(BattX0+2,BattY0+1);
   //tft.print(battPercent,WHITE);
   /*
