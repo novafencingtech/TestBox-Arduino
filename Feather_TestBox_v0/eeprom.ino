@@ -8,8 +8,6 @@ using namespace Adafruit_LittleFS_Namespace;
 File file(InternalFS);
 bool isInitialized = false;
 
-
-
 ADC_Channel* getCalibrationChannel(int num) {
   switch (num) {
     case 0 ... (NUM_ADC_SCAN_CHANNELS-1):

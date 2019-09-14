@@ -26,12 +26,6 @@ void setWeaponTestMode() {
 
   setWeaponInterrupts();
 
-  //weaponState.foilOn = ~((BANANA_DIG_IN & bananaC.digitalInMask) > 0);
-  //weaponState.epeeOn = ((BANANA_DIG_IN & bananaA.digitalInMask) == 0);
-  //weaponState.tFoilTrigger = 0;
-  //weaponState.update_flag = true;
-  //weaponState.tEpeeTrigger = 0;
-
   tLastActive = millis();
   BoxState = 'w';
 }
@@ -47,8 +41,6 @@ void setWeaponResistanceMode() {
 }
 
 void setCableTestMode() {
-  //nrfx_gpiote_in_event_disable(LineADetect);
-  //nrfx_gpiote_in_event_disable(LineCDetect);
   detachInterrupt(LineADetect);
   detachInterrupt(LineCDetect);
 
@@ -188,12 +180,7 @@ void updateCableState() {
 }
 
 void setWeaponInterrupts() {
-
   StopADC();
-
-  /*if (!nrfx_gpiote_is_init()) {
-    nrfx_gpiote_init();
-    }*/
 
   attachInterrupt(LineADetect, &ISR_EpeeHitDetect, CHANGE);
   attachInterrupt(LineCDetect, &ISR_FoilHitDetect, CHANGE);
@@ -212,9 +199,39 @@ void setBoxMode(char mode) {
     case 'r':
       setWeaponResistanceMode();
       break;
+    case 'i':
+      setIdleMode();
+      break;
   }
 }
 
+void setIdleMode() {
+  
+}
+
+void updateIdleMode() {  
+
+  for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+    while (!ChanArray[k].valueReady) {
+      delay(5);
+    }
+  }
+  updateCableState();
+
+  //if cableState
+
+
+  StopADC();
+
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
+
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+
+  setWeaponInterrupts();
+}
 
 void updateWeaponResistance() {
   long t_now = millis();
@@ -236,8 +253,8 @@ void updateWeaponResistance() {
     weaponState.ohm_Epee = OPEN_CIRCUIT_VALUE;
   }
 
-  weaponState.ohm10xEpee = weaponState.ohm_Epee * 10;
-  weaponState.ohm10xFoil = weaponState.ohm_Foil * 10;
+  weaponState.ohm10xEpee = int(weaponState.ohm_Epee * 10+0.5);
+  weaponState.ohm10xFoil = int(weaponState.ohm_Foil * 10+0.5);
 
   weaponState.lineAC = (WeaponAC.getRawValue() < shortADCthreshold);
 
@@ -404,9 +421,9 @@ void CheckBatteryStatus() {
   bool ADCActive = false;
   long ave_data = 0;
   int sampleCount = 0;
-  int adc_val=0;
-  byte numCycles=4;
-  byte oldAIn=0;
+  int adc_val = 0;
+  byte numCycles = 4;
+  byte oldAIn = 0;
   nrf_saadc_value_t *adcRead;
 
   switch (BoxState) {
@@ -414,7 +431,7 @@ void CheckBatteryStatus() {
     case 'r':
       ADCActive = true;
       StopADC();
-      oldAIn=NRF_SAADC->CH[ADC_UNIT].PSELP;
+      oldAIn = NRF_SAADC->CH[ADC_UNIT].PSELP;
       break;
     case 'w':
       ADCActive = false;
@@ -443,16 +460,13 @@ void CheckBatteryStatus() {
     }
   }
 
-  batteryCnts=ave_data/sampleCount;
+  batteryCnts = ave_data / sampleCount;
   if (ADCActive) {
-    NRF_SAADC->CH[ADC_UNIT].PSELP =oldAIn;
+    NRF_SAADC->CH[ADC_UNIT].PSELP = oldAIn;
     StartADC();
   }
 
   //Serial.print(F("Battery counts = ")); Serial.println(batteryCnts);
-  batteryVoltage = 2.0 * (float(batteryCnts) * 0.6*4 / 4095); //Assuming internal reference
-  //batteryVoltage = 2.0 * (float(batteryCnts) * 2.56 / 256); //Assuming internal reference
-  //Serial.print(F("Battery (V) = ")); Serial.println(batteryVoltage);
-  //Serial.print(F("Analog Read = ")); Serial.println(analogRead(A3));
+  batteryVoltage = 2.0 * (float(batteryCnts) * 0.6 * 4 / 4095); //Assuming internal reference
 
 }

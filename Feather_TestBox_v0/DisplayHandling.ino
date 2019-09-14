@@ -165,7 +165,7 @@ void drawColumn(int col, int val) {
     topRow=valRow;
     botRow=oldRow;
   }
-//  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(grahamToBrian(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
+//  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
   orangeRow = 127-weaponOrangeThresh;  //first line of orange
   greenRow = 127-weaponGreenThresh;  //first line of green
   tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
@@ -258,6 +258,10 @@ void InitializeDisplay()
   tft.println("Welcome to TTtarm");
 }
 
+void dimOLEDDisplay() {
+  static bool alreadyDimmed=false;
+}
+
 void displayBatteryStatus() {
   char voltString[5] = "\0";
   char percString[5] = "\0";
@@ -272,12 +276,12 @@ void displayBatteryStatus() {
   static const byte BattX0=128-BattW-1;
   static const byte BattY0=1;
   
-  if (batteryVoltage > 3.30) {
-    battPercent = int( (batteryVoltage - 3.30) / (4.2 - 3.30) * 100);
+  if (batteryVoltage > 3.4) {
+    battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
     battActive=true;
   } else {return;}
   tft.setTextSize(1);
-
+  
   if (!battActive) {
     tft.fillRect(BattX0-1,BattY0-1,128-BattX0+1,BattY0+1,BLACK);
     return;
@@ -287,6 +291,7 @@ void displayBatteryStatus() {
   if (battPercent >= 15 ) {fillColor = YELLOW;}
   if (battPercent >= 50 ) {fillColor = GREEN;}
   barW=min(BattW,(int) battPercent/BattW);
+  if (barW<0) {barW=0;}
 
   tft.drawRect(BattX0-1,BattY0-1,BattW+2,BattH+2,rectColor);
   tft.drawFastVLine(BattX0-2,BattY0+1,5,rectColor);
@@ -296,22 +301,31 @@ void displayBatteryStatus() {
   //tft.setTextColor(CYAN,BLACK);
   //tft.print(battPercent);
 }
-int grahamToBrian(float g) {
+int floatTo10xInt(float g) {
   if (g < 0.0) g = 0.0;
   return ((int) (g * 10.0 + .5));
 }
 int gv(char *s) {
   //arduino does not support strings in switch statements
-  if (s == "AA") return grahamToBrian(cableState.ohm_AA);
-  if (s == "AB") return grahamToBrian(cableState.ohm_AA);
-  if (s == "AC") return grahamToBrian(cableState.ohm_AA);
-  if (s == "BA") return grahamToBrian(cableState.ohm_BB);
-  if (s == "BB") return grahamToBrian(cableState.ohm_BB);
-  if (s == "BC") return grahamToBrian(cableState.ohm_BB);
-  if (s == "CA") return grahamToBrian(cableState.ohm_CC);
-  if (s == "CB") return grahamToBrian(cableState.ohm_CC);
-  if (s == "CC") return grahamToBrian(cableState.ohm_CC);
+  if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
+  if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
+  if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
+  for (int k=0; k<NUM_ADC_SCAN_CHANNELS; k++) {
+    if ((s[0]==ChanArray[k].ch_label[1]) && (s[1]==ChanArray[k].ch_label[2]) ) {
+        return floatTo10xInt(cableState.cableOhm[k]);
+      }
+    }  
+  /*if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
+  if (s == "AB") return floatTo10xInt(cableState.ohm_AA);
+  if (s == "AC") return floatTo10xInt(cableState.ohm_AA);
+  if (s == "BA") return floatTo10xInt(cableState.ohm_BB);
+  if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
+  if (s == "BC") return floatTo10xInt(cableState.ohm_BB);
+  if (s == "CA") return floatTo10xInt(cableState.ohm_CC);
+  if (s == "CB") return floatTo10xInt(cableState.ohm_CC);
+  if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
 }
+
 char *oldFault;
 void labelFault(char *s) {
   if (oldFault == s) return; //no change
@@ -411,6 +425,11 @@ void updateOLED(char Mode) {
         tft.setTextSize(2);
         tft.print("WpnTest");
         break;
+     case 'i':
+        tft.fillScreen(BLACK);
+        tft.setTextSize(2);
+        tft.setTextColor(BLUE,BLACK);
+        tft.print("Idle");        
     }
     displayBatteryStatus();
   }

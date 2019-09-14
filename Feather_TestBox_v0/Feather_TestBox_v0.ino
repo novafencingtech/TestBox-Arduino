@@ -85,9 +85,11 @@ const int t_Error_Display = 2000; //ms - How long to display error/debug message
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
+constexpr long tDimOLED = 30000; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
-//const long tLCDIdleOff = 30000; //ms - Turn LCD off if idle for more than 1 min
+const long tIdleModeOn = 60000; //ms - Switch to idle mode after 30s of in-activity.
+const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
@@ -243,6 +245,16 @@ struct CableData {
   float LineBLPFState[4];
   arm_biquad_casd_df1_inst_f32 LineCLowPass;
   float LineCLPFState[4];
+};
+
+struct IdleDataStruct {
+  uint16_t cableStatus;
+  bool foilActive=false;
+  bool epeeActive=false;
+};
+
+struct OLEDStatusStruct {
+  
 };
 
 CableData cableState;
@@ -524,6 +536,8 @@ void loop() {
       break;
     case 's':
       break;
+    case 'i':
+      break;
   }
 
   //Automatic power off while idle
@@ -532,39 +546,17 @@ void loop() {
     setPowerOff();
   }
 
-  /*
-    if ((t_now - tLastActive) > tLCDIdleOff) {
-    if ((cableState.cableDC) || (BoxState == 'w')) {
-      lcd.setBacklight(0); //Turn off the display
-      bLCDOff=true;
-      if ((t_now - tIdleLEDOn) > tIdleLEDBlink) {
-        tIdleLEDOn=millis();
-        if (!idleLEDIsOn) {
-          LED_block1[0] = ledColorBlue;
-          idleLEDIsOn=true;
-        } else {
-          LED_block1[0] = CRGB::Black;
-          idleLEDIsOn = false;
-        }
-        FastLED.show();
-      }
-    }
-    } else {
-      if (bLCDOff) {
-        lcd.setBacklight(1); //Turn backlight on
-      }
-      if (idleLEDIsOn) {
-        LED_block1[0] = CRGB::Black;
-        idleLEDIsOn = false;
-      }
-    }*/
+  
+  if ((t_now - tLastActive) > tIdleModeOn) {
+    setBoxMode('i');
+  }
   
     //if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > tBatteryInterval)) {
-    if ((t_now - t_Battery_Check) > tBatteryInterval) {
+  if ((t_now - t_Battery_Check) > tBatteryInterval) {
       CheckBatteryStatus();
       t_Battery_Check = millis();
       displayBatteryStatus();
-    }
+  }
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
     writeSerialOutput(BoxState);
@@ -573,8 +565,11 @@ void loop() {
   }
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
-    updateOLED(BoxState);
-    //displayBatteryStatus();
+    if ((t_now - tLastActive) > tDimOLED) {
+      dimOLEDDisplay(); 
+    } else {
+      updateOLED(BoxState);
+    }
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
