@@ -90,7 +90,7 @@ const long tBatteryInterval = 30000; //ms - Check battery every 30s
 //const long tLCDIdleOff = 30000; //ms - Turn LCD off if idle for more than 1 min
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
-const int tModeSwitchLockOut = 300; //ms - Used to prevent accidental double mode switches
+const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
@@ -431,6 +431,9 @@ void setup() {
   InitializeChannels();
   InitializeADC();
 
+  CheckBatteryStatus();
+  displayBatteryStatus();
+
 
   setBoxMode('c');  //Start the box
   Serial.println("Setup complete");
@@ -555,16 +558,13 @@ void loop() {
         idleLEDIsOn = false;
       }
     }*/
-  /*
-    if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > tBatteryInterval)) {
-    CheckBatteryStatus();
-    t_Battery_Check = millis();
-    if ((batteryVoltage < 3.5) && (batteryVoltage > 2.0)) {
-      lcd.setCursor(0, 0);
-      lcd.print(F("  Low Battery  "));
-      t_LCD_upd = millis() + 1000;
+  
+    //if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > tBatteryInterval)) {
+    if ((t_now - t_Battery_Check) > tBatteryInterval) {
+      CheckBatteryStatus();
+      t_Battery_Check = millis();
+      displayBatteryStatus();
     }
-    }*/
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
     writeSerialOutput(BoxState);
@@ -574,7 +574,7 @@ void loop() {
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
     updateOLED(BoxState);
-    displayBatteryStatus();
+    //displayBatteryStatus();
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);

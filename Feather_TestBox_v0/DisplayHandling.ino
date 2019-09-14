@@ -261,32 +261,40 @@ void InitializeDisplay()
 void displayBatteryStatus() {
   char voltString[5] = "\0";
   char percString[5] = "\0";
-  int battPercent = 0;
-  static const byte BattH=10;
+  int battPercent = 75;
+  int rectColor = WHITE;
+  int fillColor = WHITE;
+  byte barW;
+  bool battActive=false;
+  static const byte BattH=7;
   static const byte BattW=10;
-  static const byte BattX0=128-BattW-4;
+  //static const byte BattX0=113-BattW-1;
+  static const byte BattX0=128-BattW-1;
   static const byte BattY0=1;
   
-  if (batteryVoltage > 3.4) {
-    battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
-  }
+  if (batteryVoltage > 3.30) {
+    battPercent = int( (batteryVoltage - 3.30) / (4.2 - 3.30) * 100);
+    battActive=true;
+  } else {return;}
   tft.setTextSize(1);
 
-  tft.drawRect(BattX0-1,BattY0-1,BattH+2,BattW+2,WHITE);
-  tft.drawFastVLine(BattX0-2,BattY0+2,5,WHITE);
-  //tft.setCursor(BattX0+2,BattY0+1);
-  //tft.print(battPercent,WHITE);
-  /*
-  tft.drawFastHLine(BattX0, BattY0, BattW, WHITE); //Top
-  tft.drawFastHLine(BattX0, BattH, BattW, WHITE); //Bottom
-  tft.drawFastVLine(BattX0+BattW,0,BattH,WHITE); //Right
-  tft.drawFastHLine(BattX0-2,BattY0+4,2,WHITE);
-  tft.drawFastVLine(BattX0,BattY0,4,WHITE);
-  tft.drawFastHLine(BattX0-2,BattY0+4,2,WHITE);
-  tft.drawFastVLine(BattX0-2,BattY0+6,2,WHITE);
-  tft.drawFastHLine(BattX0-2,BattY0+6,2,WHITE);
-  tft.drawFastVLine(BattX0,BattY0+6,2,WHITE);
-  */
+  if (!battActive) {
+    tft.fillRect(BattX0-1,BattY0-1,128-BattX0+1,BattY0+1,BLACK);
+    return;
+  }
+
+  if (battPercent <= 15 ) {fillColor = RED; rectColor=RED;}
+  if (battPercent >= 15 ) {fillColor = YELLOW;}
+  if (battPercent >= 50 ) {fillColor = GREEN;}
+  barW=min(BattW,(int) battPercent/BattW);
+
+  tft.drawRect(BattX0-1,BattY0-1,BattW+2,BattH+2,rectColor);
+  tft.drawFastVLine(BattX0-2,BattY0+1,5,rectColor);
+  tft.fillRect(BattX0+(BattW-barW),BattY0,barW,BattH,fillColor);
+  tft.setCursor(BattX0+BattW+3,BattY0);
+  //tft.setTextSize(1);
+  //tft.setTextColor(CYAN,BLACK);
+  //tft.print(battPercent);
 }
 int grahamToBrian(float g) {
   if (g < 0.0) g = 0.0;
@@ -404,6 +412,7 @@ void updateOLED(char Mode) {
         tft.print("WpnTest");
         break;
     }
+    displayBatteryStatus();
   }
   switch (Mode) {
     case 'c':
