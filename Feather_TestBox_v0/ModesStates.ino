@@ -26,7 +26,7 @@ void setWeaponTestMode() {
 
   setWeaponInterrupts();
 
-  tLastActive = millis();
+  //tLastActive = millis();
   BoxState = 'w';
 }
 
@@ -43,6 +43,8 @@ void setWeaponResistanceMode() {
 void setCableTestMode() {
   detachInterrupt(LineADetect);
   detachInterrupt(LineCDetect);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
@@ -57,7 +59,7 @@ void setCableTestMode() {
   ActiveCh = &(ChanArray[0]);
 
   BoxState = 'c';
-  tLastActive = millis();
+  //tLastActive = millis();
   //updateCableState();
   StartADC();
 }
@@ -180,11 +182,8 @@ void updateCableState() {
 }
 
 void setWeaponInterrupts() {
-  StopADC();
-
   attachInterrupt(LineADetect, &ISR_EpeeHitDetect, CHANGE);
   attachInterrupt(LineCDetect, &ISR_FoilHitDetect, CHANGE);
-
 }
 
 
@@ -206,10 +205,34 @@ void setBoxMode(char mode) {
 }
 
 void setIdleMode() {
-  
+  updateIdleMode();
+  BoxState = 'i';
 }
 
 void updateIdleMode() {  
+  detachInterrupt(LineADetect);
+  detachInterrupt(LineCDetect);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL,NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL,NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
+
+  for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+    ChanArray[k].valueReady=false;
+    ChanArray[k].sampleCount=0;
+  }
+
+  ActiveCh = ChanArray;
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
+  //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
+  NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
+
+  StartADC();
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     while (!ChanArray[k].valueReady) {
@@ -218,10 +241,13 @@ void updateIdleMode() {
   }
   updateCableState();
 
-  //if cableState
-
+  if (!cableState.cableDC) {
+    setBoxMode('c');
+    return;
+  }
 
   StopADC();
+  while(nrf_saadc_busy_check()) {};
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
@@ -261,6 +287,7 @@ void updateWeaponResistance() {
   if ( (weaponState.ohm_Epee == OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil == OPEN_CIRCUIT_VALUE) ) {
     if ((t_now - weaponState.tLastConnect) > idleDisconnectTime) {
       weaponState.cableDC = true;
+      //Serial.println("No weapon connected");
     }
   }
 
@@ -280,7 +307,10 @@ void updateWeaponState() {
   bool foilState = FoilADC.hsBuffer.CheckTriggerLastSample();
 
   if (foilState != weaponState.foilOn) {
+    //Serial.println("Foil trigger");
+    //tLastActive=t_now;
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
+      tLastActive=t_now;
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
       weaponState.foilInterOn = true;
@@ -289,7 +319,10 @@ void updateWeaponState() {
   }
 
   if (epeeState != weaponState.epeeOn) {
+    //Serial.println("Epee trigger");
+    //tLastActive=t_now;
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
+      tLastActive=t_now;
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
       weaponState.epeeInterOn = true;
@@ -406,12 +439,11 @@ void checkButtonState() {
 
 void setPowerOff() {
   //setBoxMode('w');
-  /*lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(F("  Good bye  "));
-    delay(500);
-    CheckBatteryStatus();
-    displayBatteryStatus();*/
+  tft.fillScreen(BLACK);
+  tft.setCursor(25,50);
+  tft.setTextSize(3);
+  tft.setTextColor(CYAN);
+  tft.print("Good-bye");
   delay(2000);
   digitalWrite(POWER_CONTROL, LOW); //Turn the box off*/
 }

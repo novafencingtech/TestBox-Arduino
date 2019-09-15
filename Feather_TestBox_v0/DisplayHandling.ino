@@ -259,7 +259,10 @@ void InitializeDisplay()
 }
 
 void dimOLEDDisplay() {
-  static bool alreadyDimmed=false;
+  //static bool alreadyDimmed=false;
+
+  //Fill the rest of the display with black leaving only the top bar.  
+  tft.fillRect(0, 17, 128, 128-17, BLACK);
 }
 
 void displayBatteryStatus() {
@@ -378,9 +381,11 @@ void updateOLED(char Mode) {
   if (Mode != oldMode) {
     //Serial.println("Setting new mode");
     oldMode = Mode;
-    tft.fillRect(0, 0, 128, 128, BLACK);
-    tft.setCursor(0, 0);
-    tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+    if (Mode!='d') {      
+      tft.fillRect(0, 0, 128, 128, BLACK);
+      tft.setCursor(0, 0);
+      tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+    }
 
     
     switch (Mode) {
@@ -433,6 +438,7 @@ void updateOLED(char Mode) {
     }
     displayBatteryStatus();
   }
+
   switch (Mode) {
     case 'c':
       startTime = micros();
@@ -556,7 +562,7 @@ void updateOLED(char Mode) {
 
       break;
     case 'r':
-      if (!weaponState.foilOn) {
+      if (weaponState.foilOn) {
         if (foilIndicator != RED) {
           tft.fillRect(0, 19, 20, 7, RED);
           foilIndicator = RED;
@@ -599,7 +605,7 @@ void updateOLED(char Mode) {
       tft.setTextSize(2);
       tft.setTextColor(YELLOW,BLACK);
       tft.setCursor(0, 0);
-      if (!weaponState.foilOn) {
+      if (weaponState.foilOn) {
         if (weaponState.epeeOn) {  //short
           if ((oldFoil != weaponState.foilOn) || (oldEpee != weaponState.epeeOn)) {
             tft.fillRect(0, 27, 128, 100, BLACK); 
@@ -614,7 +620,7 @@ void updateOLED(char Mode) {
           barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
         }
         else {
-          if (oldFoil || lastConnection!=foil)  {
+          if (!oldFoil || lastConnection!=foil)  {
             tft.fillRect(0, 28, 128, 100, BLACK);
             tft.setCursor(0,0);
             tft.print("Foil     ");
@@ -669,10 +675,11 @@ void updateOLED(char Mode) {
             oldVal = val;
             if (++i >= 128) i = 0;
             if ((millis()-sTime) > 5000ul) { lastConnection=none; }
+            break;
           case first:
           case none:
           case shorted: 
-            if(!oldFoil || oldEpee) {
+            if(oldFoil || oldEpee) {
                tft.fillRect(0,28, 128, 100, BLACK);
                tft.setCursor(0,0);
                tft.setTextColor(YELLOW, BLACK);
@@ -686,7 +693,6 @@ void updateOLED(char Mode) {
             }
             break;   
         }
-
       }
       oldFoil = weaponState.foilOn;
       oldEpee = weaponState.epeeOn;
@@ -850,6 +856,7 @@ void writeSerialOutput(char Mode) {
       dtostrf(weaponState.ohm_Epee, 5, 2, tempString1);
       dtostrf(weaponState.ohm_Foil, 5, 2, tempString2);
       strncat(outputString, tempString1, bufferSize); strncat(outputString, ",F,", bufferSize); strncat(outputString, tempString2, bufferSize);
+      strncat(outputString, "\r\n", bufferSize);
       break;
   }
 

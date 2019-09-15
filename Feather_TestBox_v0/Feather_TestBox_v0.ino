@@ -85,10 +85,10 @@ const int t_Error_Display = 2000; //ms - How long to display error/debug message
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
-constexpr long tDimOLED = 30000; //ms - How often to refresh the OLED display
+constexpr long tDimOLED = 20000; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 30000; //ms - Check battery every 30s
-const long tIdleModeOn = 60000; //ms - Switch to idle mode after 30s of in-activity.
+const long tIdleModeOn = 15000; //ms - Switch to idle mode after 30s of in-activity.
 const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
@@ -405,9 +405,9 @@ void setup() {
   pinMode(DIAG_PIN, OUTPUT);
   digitalWrite(DIAG_PIN, LOW);
   pinMode(LED1_PIN, OUTPUT);
-  digitalWrite(LED1_PIN, HIGH);
+  digitalWrite(LED1_PIN, LOW);
   pinMode(LED2_PIN, OUTPUT);
-  digitalWrite(LED2_PIN, HIGH);
+  digitalWrite(LED2_PIN, LOW);
 
   //EEPROM.begin(EEPROM_SIZE);
 
@@ -467,6 +467,7 @@ void ISR_EpeeHitDetect() {
   //byte pin = LineADetect;
 
   tLastActive = t_now;
+  //Serial.println("Epee hit");
   if ((t_now - t_prev) > weaponEpeeDebounce) {
     //Serial.print("Epee Trigger t="); Serial.println(t_now);
     t_prev = t_now;
@@ -493,8 +494,6 @@ void ISR_FoilHitDetect() {
 void loop() {
   // put your main code here, to run repeatedly:
   long t_now = millis();
-  static long t_LCD_upd = 0;
-  static long t_LED_upd = 0;
   static long t_OLED_upd = 0;
   static long t_LED_reset = 0;
   static long t_Serial_upd = 0;
@@ -537,6 +536,8 @@ void loop() {
     case 's':
       break;
     case 'i':
+      updateIdleMode();
+      delay(100);
       break;
   }
 
@@ -547,15 +548,29 @@ void loop() {
   }
 
   
-  if ((t_now - tLastActive) > tIdleModeOn) {
-    setBoxMode('i');
+  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState!='i') ) {
+    if ((BoxState=='c') && (cableState.cableDC)) {setBoxMode('i'); }
+    if ((BoxState=='r') && (weaponState.cableDC)) {setBoxMode('i');}
+    if ((BoxState=='w') && (!weaponState.foilOn) && (!weaponState.epeeOn)) {setBoxMode('i');}
+    //Serial.println("Setting idle mode");      
+  } else {
+    if (BoxState=='i') {
+      if (!cableState.cableDC) {
+        setBoxMode('c');
+      } else {
+        if ((t_now - tLastActive) < tIdleModeOn) {
+          setBoxMode('r'); 
+        }
+      }      
+    }
   }
   
-    //if (((t_now - t_Battery_Check) > tBatteryInterval) && ((t_now - tLastActive) > tBatteryInterval)) {
   if ((t_now - t_Battery_Check) > tBatteryInterval) {
+     digitalWrite(LED1_PIN, HIGH);
       CheckBatteryStatus();
       t_Battery_Check = millis();
       displayBatteryStatus();
+      digitalWrite(LED1_PIN, LOW);
   }
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
@@ -565,19 +580,14 @@ void loop() {
   }
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
-    if ((t_now - tLastActive) > tDimOLED) {
-      dimOLEDDisplay(); 
+    if ( ((t_now - tLastActive) > tDimOLED) && (BoxState!='i') ) {
+      dimOLEDDisplay();
+      updateOLED('d');
     } else {
       updateOLED(BoxState);
     }
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
-  }
-  if (t_now - t_LCD_upd > tLCDRefresh) {
-    // Display function would go here
-    digitalWrite(LED1_PIN, !digitalRead(LED1_PIN));
-    //updateLCDDisplay(BoxState);
-    t_LCD_upd = millis();
   }
 }

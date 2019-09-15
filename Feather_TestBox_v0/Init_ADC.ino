@@ -85,7 +85,7 @@ void InitializeChannels() {
   snprintf(FoilADC.ch_label, 4, "FBC");
   FoilADC.nextChannel = &WeaponAC;
   FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer, ADC_CAPTURE_LEN, &(ADC_PreTrigFoil[0][0]), &(ADC_PreTrigFoil[1][0]), PRE_TRIGGER_SIZE);
-  FoilADC.hsBuffer.setTrigger(maxADCthreshold, true); //If signal goes above this the circuit is effectively open
+  FoilADC.hsBuffer.setTrigger(maxADCthreshold, false); //If signal goes above this the circuit is effectively open
   FoilADC.bufferEnabled = true;
 
   WeaponAC.muxSetting = MUX_WEAPON_AC;

@@ -29,11 +29,13 @@ void CaptureBuffer::setTrigger(int value, bool TriggerHigh, long debounce) { //d
 }
 
 bool CaptureBuffer::CheckTrigger(int val) {
-  return ( ((val > _trigValue) && (_trigHigh)) || ((val < _trigValue) && !(_trigHigh)) );
+  if (_trigHigh) {return (val>_trigValue);}
+  return (val<_trigValue);
 }
 
 bool CaptureBuffer::CheckTriggerLastSample() {
-  return ( ((_lastValue > _trigValue) && (_trigHigh)) || ((_lastValue < _trigValue) && !(_trigHigh)) );
+  if (_trigHigh) {return (_lastValue>_trigValue);}
+  return (_lastValue<_trigValue);
 }
 
 long CaptureBuffer::getLastStateChange() {
