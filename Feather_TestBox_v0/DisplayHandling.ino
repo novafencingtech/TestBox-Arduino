@@ -412,7 +412,6 @@ void updateOLED(char Mode) {
         tft.print("5");
         tft.setCursor(127 - 8, 120);
         tft.print("0");
-        //tft.setTextSize(2);
         break;
       case 'r':
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
@@ -435,6 +434,7 @@ void updateOLED(char Mode) {
         tft.setTextSize(2);
         tft.setTextColor(BLUE,BLACK);
         tft.print("Idle");        
+        //tft.fillScreen(BLACK);
     }
     displayBatteryStatus();
   }

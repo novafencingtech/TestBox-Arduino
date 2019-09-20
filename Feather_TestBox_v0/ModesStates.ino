@@ -68,7 +68,7 @@ void updateCableState() {
   uint16_t statusCheck;
   //static long tLastConnect = 0;
   //long tNow = millis();
-  static uint16_t priorStatus = 0;
+  static uint16_t priorStatus = (1 << BITAA) || (1 << BITBB) || (1 << BITBB);
   float tempValue = 0;
 
   if (ChanArray[0].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
@@ -120,19 +120,21 @@ void updateCableState() {
   bitWrite(cableState.statusByte, BITBB, cableState.ohm_BBMax > HIGH_RESISTANCE_THRESHOLD);
   bitWrite(cableState.statusByte, BITCC, cableState.ohm_CCMax > HIGH_RESISTANCE_THRESHOLD);
 
-  bitWrite(cableState.statusByte, BITAB, cableState.line_AB < shortADCthreshold);
+  bitWrite(cableState.statusByte, BITAB, (cableState.line_AB < shortADCthreshold));
   bitWrite(cableState.statusByte, BITAC, cableState.line_AC < shortADCthreshold);
   bitWrite(cableState.statusByte, BITBA, cableState.line_BA < shortADCthreshold);
   bitWrite(cableState.statusByte, BITBC, cableState.line_BC < shortADCthreshold);
   bitWrite(cableState.statusByte, BITCA, cableState.line_CA < shortADCthreshold);
   bitWrite(cableState.statusByte, BITCB, cableState.line_CB < shortADCthreshold);
 
+  //Serial.println(cableState.line_AB);
   if (priorStatus != cableState.statusByte) {
     tLastActive = millis();
     priorStatus = cableState.statusByte;
   }
 
   if (cableState.cableDC) {
+    //Serial.println("Disconnected");
     for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
       ChanArray[k].resetMinMaxValues();
     }
@@ -149,11 +151,13 @@ void updateCableState() {
       !bitRead(cableState.statusByte, BITBC) )
   {
     if ((millis() - cableState.tLastConnect) > idleDisconnectTime) {
+      //Serial.println("Disconnected");
       cableState.cableDC = true;
       cableState.lameMode = false;
       cableState.maskMode = false;
     }
   } else {
+    //Serial.println("Connected");
     cableState.tLastConnect = millis();
     cableState.cableDC = false;
   }
@@ -209,22 +213,23 @@ void setIdleMode() {
   BoxState = 'i';
 }
 
-void updateIdleMode() {  
+void updateIdleMode() {
   detachInterrupt(LineADetect);
   detachInterrupt(LineCDetect);
-  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL,NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
-  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL,NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
   digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
-    ChanArray[k].valueReady=false;
-    ChanArray[k].sampleCount=0;
+    ChanArray[k].valueReady = false;
+    ChanArray[k].sampleCount = 0;
   }
 
-  ActiveCh = ChanArray;
+  ActiveCh = &(ChanArray[0]);
+  Serial.println(ActiveCh->ch_label);
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
   //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
@@ -232,22 +237,27 @@ void updateIdleMode() {
   //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
   NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
 
+  delay(1);
+
   StartADC();
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
-    while (!ChanArray[k].valueReady) {
-      delay(5);
+    while (!(ChanArray[k].valueReady)) {
     }
+    ChanArray[k].valueReady = false;
   }
   updateCableState();
 
+
   if (!cableState.cableDC) {
+    Serial.println("Cable connected");
+    writeSerialOutput('c');
     setBoxMode('c');
     return;
   }
 
   StopADC();
-  while(nrf_saadc_busy_check()) {};
+  while (nrf_saadc_busy_check()) {};
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
@@ -279,8 +289,8 @@ void updateWeaponResistance() {
     weaponState.ohm_Epee = OPEN_CIRCUIT_VALUE;
   }
 
-  weaponState.ohm10xEpee = int(weaponState.ohm_Epee * 10+0.5);
-  weaponState.ohm10xFoil = int(weaponState.ohm_Foil * 10+0.5);
+  weaponState.ohm10xEpee = int(weaponState.ohm_Epee * 10 + 0.5);
+  weaponState.ohm10xFoil = int(weaponState.ohm_Foil * 10 + 0.5);
 
   weaponState.lineAC = (WeaponAC.getRawValue() < shortADCthreshold);
 
@@ -310,7 +320,7 @@ void updateWeaponState() {
     //Serial.println("Foil trigger");
     //tLastActive=t_now;
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
-      tLastActive=t_now;
+      tLastActive = t_now;
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
       weaponState.foilInterOn = true;
@@ -322,7 +332,7 @@ void updateWeaponState() {
     //Serial.println("Epee trigger");
     //tLastActive=t_now;
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
-      tLastActive=t_now;
+      tLastActive = t_now;
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
       weaponState.epeeInterOn = true;
@@ -440,7 +450,7 @@ void checkButtonState() {
 void setPowerOff() {
   //setBoxMode('w');
   tft.fillScreen(BLACK);
-  tft.setCursor(25,50);
+  tft.setCursor(25, 50);
   tft.setTextSize(3);
   tft.setTextColor(CYAN);
   tft.print("Good-bye");

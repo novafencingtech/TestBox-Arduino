@@ -74,7 +74,7 @@ const byte calibrationRetries = 3; // Exit after this many retries
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
-const long powerOffTimeOut = 180000; //Time before switching to idle mode for scanning (in ms);
+constexpr long powerOffTimeOut = 1L*60L*1000L; //Time before switching to idle mode for scanning (in ms);
 const int idleDisconnectTime = 5000; //Time before switching to idle mode for scanning (in ms);
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
@@ -98,7 +98,7 @@ const int tIdleLEDBlink = 750; //ms
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
-const int CABLE_DISCONNECT_THRESHOLD = 4090;
+const int CABLE_DISCONNECT_THRESHOLD = 4000;
 const float OPEN_CIRCUIT_VALUE = 999.9;
 
 //MUX Settings if needed
@@ -215,7 +215,7 @@ testbox_line bananaC;*/
 
 //Struct defining the cable/lame properties
 struct CableData {
-  uint16_t statusByte = 0;
+  uint16_t statusByte = (1<<BITAA)||(1<BITBB)||(1<BITCC);
   int line_AA = 4095;
   int line_AB = 4095;
   int line_AC = 4095;
@@ -230,12 +230,12 @@ struct CableData {
   bool cableDC = true; //Cable disconnected flag
   bool lameMode = false;  //Lame mode flag
   bool maskMode = false;  //Mask clip flag
-  float ohm_AA = 0;
-  float ohm_BB = 0;
-  float ohm_CC = 0;
-  float ohm_AAMax = 0;
-  float ohm_BBMax = 0;
-  float ohm_CCMax = 0;
+  float ohm_AA = OPEN_CIRCUIT_VALUE;
+  float ohm_BB = OPEN_CIRCUIT_VALUE;
+  float ohm_CC = OPEN_CIRCUIT_VALUE;
+  float ohm_AAMax = OPEN_CIRCUIT_VALUE;
+  float ohm_BBMax = OPEN_CIRCUIT_VALUE;
+  float ohm_CCMax = OPEN_CIRCUIT_VALUE;
   long tLastConnect = 0;
   float cableOhm[9];
 
@@ -280,7 +280,7 @@ struct weapon_test {
   float ohm_FoilMax = 0;
   float ohm_EpeeMax = 0;
   long tLastConnect = 0;
-  bool cableDC = false;
+  bool cableDC = true;
   
   arm_biquad_casd_df1_inst_f32 EpeeLowPass;
   float EpeeLPFState[4];
@@ -395,6 +395,9 @@ void setup() {
   //Initialize the display
   InitializeDisplay();
 
+  //Required to fix FPU prevent sleep bug
+  NVIC_SetPriority(FPU_IRQn, 100);
+  NVIC_EnableIRQ(FPU_IRQn);
 
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
@@ -446,13 +449,28 @@ void setup() {
   CheckBatteryStatus();
   displayBatteryStatus();
 
-
-  setBoxMode('c');  //Start the box
+  InitializeCableData();
+  cableState.cableDC=true;
+  cableState.tLastConnect=-1*(idleDisconnectTime);
+  tLastActive= -1*(tIdleModeOn+1); //Put the box into idle mode initially
+  
+  setBoxMode('i');  //Start the box
   Serial.println("Setup complete");
 
   //BlinkLEDThenPowerOff();
 }
 
+//Used to clear FPU interrupt so sleep works
+#define FPU_EXCEPTION_MASK 0x0000009F
+void FPU_IRQHandler(void)
+{
+    uint32_t *fpscr = (uint32_t *)(FPU->FPCAR+0x40);
+    (void)__get_FPSCR();
+
+    *fpscr = *fpscr & ~(FPU_EXCEPTION_MASK);
+
+    //Serial.println("FPU event");
+}
 
 
 // Pin change interrupt handler.  Used for weapon test mode.
@@ -536,8 +554,11 @@ void loop() {
     case 's':
       break;
     case 'i':
+      Serial.println("Idle mode");
+      //tft.fillScreen(BLACK);
       updateIdleMode();
-      delay(100);
+      //tft.fillScreen(BLACK);
+      delay(tIdleWakeUpInterval);
       break;
   }
 
@@ -556,6 +577,7 @@ void loop() {
   } else {
     if (BoxState=='i') {
       if (!cableState.cableDC) {
+        //Serial.println("Wake up!");
         setBoxMode('c');
       } else {
         if ((t_now - tLastActive) < tIdleModeOn) {

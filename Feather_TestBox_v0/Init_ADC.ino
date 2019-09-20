@@ -33,6 +33,29 @@ void StartADC() {
   //Serial.println("ADC Started");
 }
 
+void InitializeCableData(){
+  ActiveCh = &(ChanArray[0]);
+  //Serial.println(ActiveCh->ch_label);
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
+  //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
+
+  StartADC();
+
+  for (int m=0; m<20; m++) {
+    for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+      while (!(ChanArray[k].valueReady)) {
+      }      
+      ChanArray[k].valueReady=false;
+    }
+    updateCableState();
+  }
+
+  StopADC();
+}
+
 void StopADC() {
   NVIC_DisableIRQ(ADC_IRQn);
   nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
