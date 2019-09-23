@@ -33,7 +33,7 @@ void StartADC() {
   //Serial.println("ADC Started");
 }
 
-void InitializeCableData(){
+void InitializeCableData() {
   ActiveCh = &(ChanArray[0]);
   //Serial.println(ActiveCh->ch_label);
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
@@ -44,16 +44,45 @@ void InitializeCableData(){
 
   StartADC();
 
-  for (int m=0; m<20; m++) {
+  for (int m = 0; m < 20; m++) {
     for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
       while (!(ChanArray[k].valueReady)) {
-      }      
-      ChanArray[k].valueReady=false;
+      }
+      ChanArray[k].valueReady = false;
     }
     updateCableState();
   }
 
   StopADC();
+
+  cableState.cableDC = true;
+  cableState.tLastConnect = -1 * (idleDisconnectTime);
+}
+
+void InitializeWeaponData() {
+  ActiveCh = &(FoilADC);
+  //Serial.println(ActiveCh->ch_label);
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
+  //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
+
+  StartADC();
+
+  for (int m = 0; m < 20; m++) {
+    while ( (!FoilADC.valueReady) && (!EpeeADC.valueReady) ) {
+    }
+    FoilADC.valueReady = false;
+    EpeeADC.valueReady=false;
+    updateWeaponResistance();
+    updateWeaponState();
+  }
+
+  StopADC();
+
+  weaponState.cableDC = true;
+  weaponState.tLastConnect = -1 * (idleDisconnectTime);
 }
 
 void StopADC() {
@@ -146,10 +175,10 @@ void calibrateSystem() {
   char buf[32];
   char label[8];
   int numCycles = 64;
-  int sampleCount=0;
+  int sampleCount = 0;
   ADC_Channel *CalChan;
   nrf_saadc_value_t *adcRead;
-  long tic,toc;
+  long tic, toc;
 
   setCableTestMode();
   StopADC();
@@ -157,7 +186,7 @@ void calibrateSystem() {
   //nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE);
 
   for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
-    CalChan=getCalibrationChannel(k);
+    CalChan = getCalibrationChannel(k);
 
     tft.fillRect(0, 0, 128, 128, BLACK); //Clears the screen
     tft.setTextSize(2); //Medium size text
@@ -183,38 +212,38 @@ void calibrateSystem() {
       tft.setTextColor(CYAN, BLACK);
       tft.println("  Connect ");
       tft.setTextColor(BLUE, BLACK);
-      tft.print(k<(NUM_CAL_CHANNELS-2)? "Cable ": "Weapon ");
+      tft.print(k < (NUM_CAL_CHANNELS - 2) ? "Cable " : "Weapon ");
       tft.println(label);
       tft.setTextColor(CYAN, BLACK);
       tft.println("Press Btn");
 
-      
+
       while (digitalRead(BUTTON_PIN) == LOW) {}; //Wait until button pressed
 
       NRF_SAADC->CH[ADC_UNIT].PSELP = CalChan->AIn;
       nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
       ave_data = 0;
-      sampleCount=0;
-      tic=micros();
+      sampleCount = 0;
+      tic = micros();
       for (int j = 0; j < numCycles; j++) {
         nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE);
         nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
         nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
         nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
         while (!nrf_saadc_event_check(NRF_SAADC_EVENT_END)) {
-          nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);        
+          nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
           while (nrf_saadc_busy_check()) {}
-        }        
-        adcRead=nrf_saadc_buffer_pointer_get();
-        for (int m=0; m<nrf_saadc_amount_get(); m++) {
-          adc_val=adcRead[m];
-          ave_data+=adc_val;
+        }
+        adcRead = nrf_saadc_buffer_pointer_get();
+        for (int m = 0; m < nrf_saadc_amount_get(); m++) {
+          adc_val = adcRead[m];
+          ave_data += adc_val;
           //Serial.println(m);
           sampleCount++;
-        }                        
+        }
       }
-      toc=micros();
-      Serial.print("Samples= "); Serial.print(sampleCount);Serial.print(" | "); Serial.print(toc-tic); Serial.println("us");
+      toc = micros();
+      Serial.print("Samples= "); Serial.print(sampleCount); Serial.print(" | "); Serial.print(toc - tic); Serial.println("us");
       adc_val = (ave_data / sampleCount);
 
       //snprintf(buf, 16, "Cal value: %u", adc_val);

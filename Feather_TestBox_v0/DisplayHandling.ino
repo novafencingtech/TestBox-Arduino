@@ -78,7 +78,7 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
     tft.print("OPEN");
     return;
   }
-  if (val<0) val=0;
+  if (val < 0) val = 0;
   tft.print(val / 10); //display whole ohms
   if (val > 10000) return;  //if the value is >1000 ohms, no space
   if (val > 1000) {  //f the value is >100 ohms
@@ -141,67 +141,68 @@ int ValColor(int val) {
   return GREEN;
 }
 void drawVLine(int col, int startRow, int endRow, int color) {
-  int sRow = min(max(27,startRow), 127);
-  int eRow = min(max(27,endRow), 127);
-  if (sRow==eRow) tft.drawPixel(col, sRow, color);
-  else tft.drawFastVLine(col, sRow, eRow-sRow+1, color);
-  String s="???";
-  if (color==RED) s="RED";
-  if (color==ORANGE) s="ORANGE";
-  if (color==GREEN) s="GREEN";
-  if (color==BLACK) s="BLACK";
-//  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
+  int sRow = min(max(27, startRow), 127);
+  int eRow = min(max(27, endRow), 127);
+  if (sRow == eRow) tft.drawPixel(col, sRow, color);
+  else tft.drawFastVLine(col, sRow, eRow - sRow + 1, color);
+  String s = "???";
+  if (color == RED) s = "RED";
+  if (color == ORANGE) s = "ORANGE";
+  if (color == GREEN) s = "GREEN";
+  if (color == BLACK) s = "BLACK";
+  //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
 void drawColumn(int col, int val) {
   //0-9.9 ohm, rows 27-127
-  int valRow=127-min(val,99);  //convert ohms in tenths to row
-  int oldRow=127-min(oldVal,99);  //same with old val
+  int valRow = 127 - min(val, 99); //convert ohms in tenths to row
+  int oldRow = 127 - min(oldVal, 99); //same with old val
   int topRow, botRow, orangeRow, greenRow;
   //sort ends so we're always drawing from top to bottom
-  if (valRow>oldRow) {
+  if (valRow > oldRow) {
     topRow = oldRow;
     botRow = valRow;
   } else {
-    topRow=valRow;
-    botRow=oldRow;
+    topRow = valRow;
+    botRow = oldRow;
   }
-//  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
-  orangeRow = 127-weaponOrangeThresh;  //first line of orange
-  greenRow = 127-weaponGreenThresh;  //first line of green
+  //  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
+  orangeRow = 127 - weaponOrangeThresh; //first line of orange
+  greenRow = 127 - weaponGreenThresh; //first line of green
   tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
-  drawVLine(col, 28, topRow-1, BLACK);  //clear out above topRow
-  if (topRow>77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
-  if (topRow>107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
-  if (topRow<orangeRow) {  //some red
-    drawVLine(col, topRow, min(botRow, orangeRow-1), RED);
-    if (botRow>=orangeRow) {
-      if (botRow>=greenRow) { //extends to green
-        drawVLine(col, orangeRow, greenRow-1, ORANGE); //complete orange section
+  drawVLine(col, 28, topRow - 1, BLACK); //clear out above topRow
+  if (topRow > 77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
+  if (topRow > 107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
+  if (topRow < orangeRow) { //some red
+    drawVLine(col, topRow, min(botRow, orangeRow - 1), RED);
+    if (botRow >= orangeRow) {
+      if (botRow >= greenRow) { //extends to green
+        drawVLine(col, orangeRow, greenRow - 1, ORANGE); //complete orange section
         drawVLine(col, greenRow, botRow, GREEN);
       } else { //ends in orange
         drawVLine(col, orangeRow, botRow, ORANGE);
       }
     }
   } else {  //no red
-    if (topRow<greenRow) { //some orange
-      drawVLine(col, topRow, min(botRow, greenRow-1), ORANGE);
-      if (botRow>greenRow) { //extends to green
+    if (topRow < greenRow) { //some orange
+      drawVLine(col, topRow, min(botRow, greenRow - 1), ORANGE);
+      if (botRow > greenRow) { //extends to green
         drawVLine(col, greenRow, botRow, GREEN);
       }
     } else { //green only
-       drawVLine(col, topRow, botRow, GREEN);
+      drawVLine(col, topRow, botRow, GREEN);
     }
   }
-  if (botRow<127) { //fill black to bottom
-    drawVLine(col, botRow+1, 127, BLACK);
-    if (botRow<77) tft.drawPixel(col, 77, WHITE);  //restore 5 ohm line
-    if (botRow<107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
+  if (botRow < 127) { //fill black to bottom
+    drawVLine(col, botRow + 1, 127, BLACK);
+    if (botRow < 77) tft.drawPixel(col, 77, WHITE); //restore 5 ohm line
+    if (botRow < 107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
     tft.drawPixel(col, 127, WHITE); //restore 0 ohm line
   }
-  if (col<127) { 
-    int icol = col+1; int irow=max(valRow-1,28);
-//    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    tft.drawFastVLine(icol, irow, 2, CYAN); }  //show where we are as 2x1 cyan line at col+1
+  if (col < 127) {
+    int icol = col + 1; int irow = max(valRow - 1, 28);
+    //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
+    tft.drawFastVLine(icol, irow, 2, CYAN);
+  }  //show where we are as 2x1 cyan line at col+1
 }
 
 //Draw a static line graph from an array
@@ -261,8 +262,8 @@ void InitializeDisplay()
 void dimOLEDDisplay() {
   //static bool alreadyDimmed=false;
 
-  //Fill the rest of the display with black leaving only the top bar.  
-  tft.fillRect(0, 17, 128, 128-17, BLACK);
+  //Fill the rest of the display with black leaving only the top bar.
+  tft.fillRect(0, 17, 128, 128 - 17, BLACK);
 }
 
 void displayBatteryStatus() {
@@ -272,34 +273,45 @@ void displayBatteryStatus() {
   int rectColor = WHITE;
   int fillColor = WHITE;
   byte barW;
-  bool battActive=false;
-  static const byte BattH=7;
-  static const byte BattW=10;
+  bool battActive = false;
+  static const byte BattH = 7;
+  static const byte BattW = 10;
   //static const byte BattX0=113-BattW-1;
-  static const byte BattX0=128-BattW-1;
-  static const byte BattY0=1;
-  
+  static const byte BattX0 = 128 - BattW - 1;
+  static const byte BattY0 = 1;
+
   if (batteryVoltage > 3.4) {
     battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
-    battActive=true;
-  } else {return;}
+    battActive = true;
+  } else {
+    return;
+  }
   tft.setTextSize(1);
-  
+
   if (!battActive) {
-    tft.fillRect(BattX0-1,BattY0-1,128-BattX0+1,BattY0+1,BLACK);
+    tft.fillRect(BattX0 - 1, BattY0 - 1, 128 - BattX0 + 1, BattY0 + 1, BLACK);
     return;
   }
 
-  if (battPercent <= 15 ) {fillColor = RED; rectColor=RED;}
-  if (battPercent >= 15 ) {fillColor = YELLOW;}
-  if (battPercent >= 50 ) {fillColor = GREEN;}
-  barW=min(BattW,(int) battPercent/BattW);
-  if (barW<0) {barW=0;}
+  if (battPercent <= 15 ) {
+    fillColor = RED;
+    rectColor = RED;
+  }
+  if (battPercent >= 15 ) {
+    fillColor = YELLOW;
+  }
+  if (battPercent >= 50 ) {
+    fillColor = GREEN;
+  }
+  barW = min(BattW, (int) battPercent / BattW);
+  if (barW < 0) {
+    barW = 0;
+  }
 
-  tft.drawRect(BattX0-1,BattY0-1,BattW+2,BattH+2,rectColor);
-  tft.drawFastVLine(BattX0-2,BattY0+1,5,rectColor);
-  tft.fillRect(BattX0+(BattW-barW),BattY0,barW,BattH,fillColor);
-  tft.setCursor(BattX0+BattW+3,BattY0);
+  tft.drawRect(BattX0 - 1, BattY0 - 1, BattW + 2, BattH + 2, rectColor);
+  tft.drawFastVLine(BattX0 - 2, BattY0 + 1, 5, rectColor);
+  tft.fillRect(BattX0 + (BattW - barW), BattY0, barW, BattH, fillColor);
+  tft.setCursor(BattX0 + BattW + 3, BattY0);
   //tft.setTextSize(1);
   //tft.setTextColor(CYAN,BLACK);
   //tft.print(battPercent);
@@ -313,20 +325,20 @@ int gv(char *s) {
   if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
   if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
   if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
-  for (int k=0; k<NUM_ADC_SCAN_CHANNELS; k++) {
-    if ((s[0]==ChanArray[k].ch_label[1]) && (s[1]==ChanArray[k].ch_label[2]) ) {
-        return floatTo10xInt(cableState.cableOhm[k]);
-      }
-    }  
+  for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
+    if ((s[0] == ChanArray[k].ch_label[1]) && (s[1] == ChanArray[k].ch_label[2]) ) {
+      return floatTo10xInt(cableState.cableOhm[k]);
+    }
+  }
   /*if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
-  if (s == "AB") return floatTo10xInt(cableState.ohm_AA);
-  if (s == "AC") return floatTo10xInt(cableState.ohm_AA);
-  if (s == "BA") return floatTo10xInt(cableState.ohm_BB);
-  if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
-  if (s == "BC") return floatTo10xInt(cableState.ohm_BB);
-  if (s == "CA") return floatTo10xInt(cableState.ohm_CC);
-  if (s == "CB") return floatTo10xInt(cableState.ohm_CC);
-  if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
+    if (s == "AB") return floatTo10xInt(cableState.ohm_AA);
+    if (s == "AC") return floatTo10xInt(cableState.ohm_AA);
+    if (s == "BA") return floatTo10xInt(cableState.ohm_BB);
+    if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
+    if (s == "BC") return floatTo10xInt(cableState.ohm_BB);
+    if (s == "CA") return floatTo10xInt(cableState.ohm_CC);
+    if (s == "CB") return floatTo10xInt(cableState.ohm_CC);
+    if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
 }
 
 char *oldFault;
@@ -361,9 +373,10 @@ void updateOLED(char Mode) {
   static int i = 0, val, oldMode = 'z';
   static bool oldFoil = false;
   static bool oldEpee = false;
+  static bool oledEnabled = true;
   enum lastConnected { first, none, epee, foil, shorted};
   static lastConnected lastConnection;
-  static int foilIndicator, epeeIndicator,foilInterIndicator, epeeInterIndicator;
+  static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
   bool inter;
   bool ABcross = CheckCableStatusByte((1 << BITAB));
@@ -377,17 +390,18 @@ void updateOLED(char Mode) {
   bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
 
   //Serial.println(Mode);
-  
+
   if (Mode != oldMode) {
     //Serial.println("Setting new mode");
+    tft.enableDisplay(true);
     oldMode = Mode;
-    if (Mode!='d') {      
+    if (Mode != 'd') {
       tft.fillRect(0, 0, 128, 128, BLACK);
       tft.setCursor(0, 0);
       tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
     }
 
-    
+
     switch (Mode) {
       case 'c':
         oldFault = "";
@@ -414,29 +428,40 @@ void updateOLED(char Mode) {
         tft.print("0");
         break;
       case 'r':
-        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
+        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
         lastConnection = first;
         oldVal = 990;
-        oldEpee=false;
-        oldFoil=false;
+        oldEpee = false;
+        oldFoil = false;
         i = 0;
         tft.setTextSize(2);
         tft.print("Weapon");
         break;
-       case 'w':
-        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator=BLACK;
+      case 'w':
+        foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
         lastConnection = first;
         tft.setTextSize(2);
         tft.print("WpnTest");
         break;
-     case 'i':
+      case 'i':
         tft.fillScreen(BLACK);
         tft.setTextSize(2);
-        tft.setTextColor(BLUE,BLACK);
-        tft.print("Idle");        
+        tft.setTextColor(BLUE, BLACK);
+        tft.print("Idle");
         //tft.fillScreen(BLACK);
     }
     displayBatteryStatus();
+  }
+
+  if ((millis() - tLastActive) > tOledOff) {
+    tft.enableDisplay(false);
+    oledEnabled = false;
+    return;
+  } else {
+    if (!oledEnabled) {
+      tft.enableDisplay(true);
+      oledEnabled = true;
+    }
   }
 
   switch (Mode) {
@@ -603,29 +628,29 @@ void updateOLED(char Mode) {
         epeeInterIndicator = BLACK;
       }
       tft.setTextSize(2);
-      tft.setTextColor(YELLOW,BLACK);
+      tft.setTextColor(YELLOW, BLACK);
       tft.setCursor(0, 0);
       if (weaponState.foilOn) {
         if (weaponState.epeeOn) {  //short
           if ((oldFoil != weaponState.foilOn) || (oldEpee != weaponState.epeeOn)) {
-            tft.fillRect(0, 27, 128, 100, BLACK); 
+            tft.fillRect(0, 27, 128, 100, BLACK);
             tft.print("Weapon");
-            tft.setTextColor(RED,BLACK);
-            tft.setCursor(75,0);
+            tft.setTextColor(RED, BLACK);
+            tft.setCursor(75, 0);
             tft.print("Gnd");
             oldA = oldB = 320;
-            lastConnection=shorted;
+            lastConnection = shorted;
           }
           barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
           barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
         }
         else {
-          if (!oldFoil || lastConnection!=foil)  {
+          if (!oldFoil || lastConnection != foil)  {
             tft.fillRect(0, 28, 128, 100, BLACK);
-            tft.setCursor(0,0);
+            tft.setCursor(0, 0);
             tft.print("Foil     ");
             i = 0; oldVal = 0;
-            lastConnection=foil;
+            lastConnection = foil;
             tft.drawFastHLine(0, 27, 128, WHITE);
             tft.drawFastHLine(0, 77, 128, WHITE);
             tft.drawFastHLine(0, 107, 128, WHITE);
@@ -636,37 +661,39 @@ void updateOLED(char Mode) {
           printVal(0, 50, YELLOW, "", val);
           oldVal = val;
           if (++i >= 128) i = 0;
-          sTime=millis(); //keep reseting every time we see it enabled
+          sTime = millis(); //keep reseting every time we see it enabled
         }
       }
       else if (weaponState.epeeOn) {
-        if (!oldEpee || lastConnection!=epee) {
+        if (!oldEpee || lastConnection != epee) {
           tft.fillRect(0, 28, 128, 100, BLACK);
-          tft.setCursor(0,0);
+          tft.setCursor(0, 0);
           tft.print("Epee     ");
           i = 0; oldVal = 0;
-          lastConnection=epee;
+          lastConnection = epee;
           tft.drawFastHLine(0, 27, 128, WHITE);
           tft.drawFastHLine(0, 77, 128, WHITE);
           tft.drawFastHLine(0, 107, 128, WHITE);
           tft.drawFastHLine(0, 127, 128, WHITE);
-       }
+        }
         val = weaponState.ohm10xEpee;
         drawColumn(i, val);
         printVal(0, 50, YELLOW, "", val);
         oldVal = val;
         if (++i >= 128) i = 0;
-        sTime=millis(); //keep reseting every time we see it enabled
+        sTime = millis(); //keep reseting every time we see it enabled
       }
       else {  //no connect
-         switch (lastConnection) {
+        switch (lastConnection) {
           case foil:
             val = weaponState.ohm10xFoil;
             drawColumn(i, val);
             printVal(0, 50, YELLOW, "", val);
             oldVal = val;
             if (++i >= 128) i = 0;
-            if ((millis()-sTime) > 5000ul) { lastConnection=none; }
+            if ((millis() - sTime) > 5000ul) {
+              lastConnection = none;
+            }
             break;
           case epee:
             val = weaponState.ohm10xEpee;
@@ -674,29 +701,31 @@ void updateOLED(char Mode) {
             printVal(0, 50, YELLOW, "", val);
             oldVal = val;
             if (++i >= 128) i = 0;
-            if ((millis()-sTime) > 5000ul) { lastConnection=none; }
+            if ((millis() - sTime) > 5000ul) {
+              lastConnection = none;
+            }
             break;
           case first:
           case none:
-          case shorted: 
-            if(oldFoil || oldEpee) {
-               tft.fillRect(0,28, 128, 100, BLACK);
-               tft.setCursor(0,0);
-               tft.setTextColor(YELLOW, BLACK);
-               if (lastConnection != first)  
-                 tft.print(oldFoil? "Epee Open" : "Foil Open");
-               
-               tft.drawFastHLine(0, 27, 128, WHITE);
-               tft.drawFastHLine(0, 77, 128, WHITE);
-               tft.drawFastHLine(0, 107, 128, WHITE);
-               tft.drawFastHLine(0, 127, 128, WHITE);
+          case shorted:
+            if (oldFoil || oldEpee) {
+              tft.fillRect(0, 28, 128, 100, BLACK);
+              tft.setCursor(0, 0);
+              tft.setTextColor(YELLOW, BLACK);
+              if (lastConnection != first)
+                tft.print(oldFoil ? "Epee Open" : "Foil Open");
+
+              tft.drawFastHLine(0, 27, 128, WHITE);
+              tft.drawFastHLine(0, 77, 128, WHITE);
+              tft.drawFastHLine(0, 107, 128, WHITE);
+              tft.drawFastHLine(0, 127, 128, WHITE);
             }
-            break;   
+            break;
         }
       }
       oldFoil = weaponState.foilOn;
       oldEpee = weaponState.epeeOn;
-      
+
       break;
     case 'w':
       if (weaponState.foilOn) {
@@ -721,24 +750,27 @@ void updateOLED(char Mode) {
       }
       if (weaponState.epeeOn) {
         if (epeeIndicator != GREEN) {
-          tft.fillRect(70, 28,128-50 ,50 , GREEN);
+          tft.fillRect(70, 28, 128 - 50 , 50 , GREEN);
           epeeIndicator = GREEN;
         }
       }
       else if (epeeIndicator != BLACK) {
-        tft.fillRect(70, 28,128-50 ,50 , BLACK);
+        tft.fillRect(70, 28, 128 - 50 , 50 , BLACK);
         epeeIndicator = BLACK;
       }
       if (weaponState.epeeInterOn) {
         if (epeeInterIndicator != YELLOW) {
-          tft.fillRect(70, 80, 128-50, 40, YELLOW);
+          tft.fillRect(70, 80, 128 - 50, 40, YELLOW);
           epeeInterIndicator = YELLOW;
         }
       }
       else if (epeeInterIndicator != BLACK) {
-        tft.fillRect(70, 80, 128-50, 40, BLACK);
+        tft.fillRect(70, 80, 128 - 50, 40, BLACK);
         epeeInterIndicator = BLACK;
       }
+      break;
+    case 'i':
+      //tft.enableDisplay(false);
       break;
   }
 }
@@ -761,7 +793,7 @@ void writeSerialOutput(char Mode) {
   long t_now = millis();
   static long t_last_upd = 0;
   float EffSampleRate = 0;
-// return;
+  // return;
 
   tempString1[0] = '\0'; //Reset the temp String
   tempString2[0] = '\0'; //Reset the temp String

@@ -192,6 +192,7 @@ void setWeaponInterrupts() {
 
 
 void setBoxMode(char mode) {
+  //Serial.print("Setting mode = "); Serial.println(mode);
   switch (mode) {
     case 'c':
       setCableTestMode();
@@ -214,10 +215,11 @@ void setIdleMode() {
 }
 
 void updateIdleMode() {
+  //Serial.println("Still idle");
   detachInterrupt(LineADetect);
   detachInterrupt(LineCDetect);
-  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
-  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+  //nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  //nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
@@ -229,7 +231,7 @@ void updateIdleMode() {
   }
 
   ActiveCh = &(ChanArray[0]);
-  Serial.println(ActiveCh->ch_label);
+  //Serial.println(ActiveCh->ch_label);
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
   //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
@@ -246,19 +248,49 @@ void updateIdleMode() {
     }
     ChanArray[k].valueReady = false;
   }
+  StopADC();
   updateCableState();
 
-
   if (!cableState.cableDC) {
-    Serial.println("Cable connected");
-    writeSerialOutput('c');
+    //Serial.println("Cable connected");
+    //writeSerialOutput('c');
     setBoxMode('c');
     return;
   }
 
+  FoilADC.valueReady = false;
+  EpeeADC.valueReady = false;
+
+  ActiveCh = &(FoilADC);
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
+  //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
+  NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
+
+  StartADC();
+  while ( (!FoilADC.valueReady) && (!EpeeADC.valueReady) ) {
+  }
   StopADC();
+  updateWeaponResistance();
+  updateWeaponState();
+
   while (nrf_saadc_busy_check()) {};
 
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
+
+  if (!weaponState.cableDC) {
+    //Serial.println("Cable connected");
+    //writeSerialOutput('c');
+    setBoxMode('r');
+    return;
+  }
+
+
+  /*
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
   digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
@@ -266,7 +298,7 @@ void updateIdleMode() {
   nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
   nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
 
-  setWeaponInterrupts();
+  setWeaponInterrupts();*/
 }
 
 void updateWeaponResistance() {
@@ -300,7 +332,6 @@ void updateWeaponResistance() {
       //Serial.println("No weapon connected");
     }
   }
-
 }
 
 void updateWeaponState() {
@@ -310,16 +341,17 @@ void updateWeaponState() {
   // C = green / Foil
 
   long t_now = millis();
-  static bool oldEpeeState = false;
-  static bool oldFoilState = false;
+  //static bool oldEpeeState = false;
+  //static bool oldFoilState = false;
 
   bool epeeState = EpeeADC.hsBuffer.CheckTriggerLastSample();
   bool foilState = FoilADC.hsBuffer.CheckTriggerLastSample();
 
   if (foilState != weaponState.foilOn) {
-    //Serial.println("Foil trigger");
+    
     //tLastActive=t_now;
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
+      Serial.println("Foil trigger");
       tLastActive = t_now;
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
@@ -329,9 +361,9 @@ void updateWeaponState() {
   }
 
   if (epeeState != weaponState.epeeOn) {
-    //Serial.println("Epee trigger");
     //tLastActive=t_now;
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
+      Serial.println("Epee trigger");
       tLastActive = t_now;
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
@@ -347,7 +379,6 @@ void updateWeaponState() {
   if ( (weaponState.foilInterOn) &&  ((t_now - weaponState.tFoilInterOn) > weaponState.tLightChange) ) {
     weaponState.foilInterOn = false;
   }
-
 }
 
 
@@ -388,6 +419,10 @@ void updateWeaponStateDigital() {
   if ( (weaponState.foilInterOn) &&  ((t_now - weaponState.tFoilInterOn) > weaponState.tLightChange) ) {
     weaponState.foilInterOn = false;
   }
+
+
+  //weaponState.cableDC=true;
+
 }
 
 void checkButtonState() {
@@ -399,7 +434,6 @@ void checkButtonState() {
   bool calibrationMode = false;
 
   if (newState != buttonState) {
-    //Serial.print(F("PINE = ")); Serial.println(PINE);
     //Serial.print(F("tButtonPress="));  Serial.println(tButtonPress);
     //Serial.print(F("t_now=")); Serial.println(t_now);
     tLastActive = t_now;

@@ -74,20 +74,21 @@ const byte calibrationRetries = 3; // Exit after this many retries
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
-constexpr long powerOffTimeOut = 1L*60L*1000L; //Time before switching to idle mode for scanning (in ms);
+constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching to idle mode for scanning (in ms);
 const int idleDisconnectTime = 5000; //Time before switching to idle mode for scanning (in ms);
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
-static constexpr int usFoilDebounce = weaponFoilDebounce*1000; //Foil debounce in us
-static constexpr int usEpeeDebounce = weaponEpeeDebounce*1000; //Foil debounce in us
+static constexpr int usFoilDebounce = weaponFoilDebounce * 1000; //Foil debounce in us
+static constexpr int usEpeeDebounce = weaponEpeeDebounce * 1000; //Foil debounce in us
 const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
-constexpr long tDimOLED = 20000; //ms - How often to refresh the OLED display
+constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
+constexpr long tOledOff = 35L * 1000L; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
-const long tBatteryInterval = 30000; //ms - Check battery every 30s
+const long tBatteryInterval = 10000; //ms - Check battery every 30s
 const long tIdleModeOn = 15000; //ms - Switch to idle mode after 30s of in-activity.
 const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
@@ -119,7 +120,7 @@ const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
 const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 4=Link
-const byte MUX_WEAPON_AB = B01010010;  
+const byte MUX_WEAPON_AB = B01010010;
 const byte MUX_WEAPON_AC = B00000010; //Only A is source, C relies on pull-down resistor
 const byte MUX_WEAPON_CB = B01011000;
 
@@ -189,7 +190,7 @@ ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
 ADC_Channel WeaponAC(5);
 ADC_Channel* ActiveCh;
-static constexpr byte NUM_CAL_CHANNELS=NUM_ADC_SCAN_CHANNELS+2;
+static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 
 //Buffers for high-speed capture
 #define PRE_TRIGGER_SIZE 20
@@ -200,22 +201,22 @@ int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
 int ADC_CaptureBuffer[ADC_CAPTURE_LEN]; //Buffer for ADC sample reads
 
 /*  DELETE ME
-//This struct is probably not needed for ESP32
-struct testbox_line {
+  //This struct is probably not needed for ESP32
+  struct testbox_line {
   byte directionBit;
   byte stateBit;
   byte digitalInMask;
   ADC_Channel* analogIn;
   byte pin_change;
-};
+  };
 
-testbox_line bananaA;
-testbox_line bananaB;
-testbox_line bananaC;*/ 
+  testbox_line bananaA;
+  testbox_line bananaB;
+  testbox_line bananaC;*/
 
 //Struct defining the cable/lame properties
 struct CableData {
-  uint16_t statusByte = (1<<BITAA)||(1<BITBB)||(1<BITCC);
+  uint16_t statusByte = (1 << BITAA) || (1 < BITBB) || (1 < BITCC);
   int line_AA = 4095;
   int line_AB = 4095;
   int line_AC = 4095;
@@ -249,12 +250,12 @@ struct CableData {
 
 struct IdleDataStruct {
   uint16_t cableStatus;
-  bool foilActive=false;
-  bool epeeActive=false;
+  bool foilActive = false;
+  bool epeeActive = false;
 };
 
 struct OLEDStatusStruct {
-  
+
 };
 
 CableData cableState;
@@ -274,14 +275,14 @@ struct weapon_test {
   long tLightChange = 300; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
-  int ohm10xFoil=0;
+  int ohm10xFoil = 0;
   float ohm_Epee = 0;
-  int ohm10xEpee=0;
+  int ohm10xEpee = 0;
   float ohm_FoilMax = 0;
   float ohm_EpeeMax = 0;
   long tLastConnect = 0;
   bool cableDC = true;
-  
+
   arm_biquad_casd_df1_inst_f32 EpeeLowPass;
   float EpeeLPFState[4];
   arm_biquad_casd_df1_inst_f32 FoilLowPass;
@@ -352,10 +353,10 @@ void SAADC_IRQHandler(void) {
   if (ActiveCh->bufferEnabled) {
     ActiveCh->hsBuffer.AddSample(ADCValue);
     if (ActiveCh->hsBuffer.CheckTrigger(ADCValue)) {
-      if (ActiveCh==&EpeeADC) {
+      if (ActiveCh == &EpeeADC) {
         ISR_EpeeHitDetect();
       }
-      if (ActiveCh==&FoilADC) {
+      if (ActiveCh == &FoilADC) {
         ISR_FoilHitDetect();
       }
     }
@@ -450,10 +451,10 @@ void setup() {
   displayBatteryStatus();
 
   InitializeCableData();
-  cableState.cableDC=true;
-  cableState.tLastConnect=-1*(idleDisconnectTime);
-  tLastActive= -1*(tIdleModeOn+1); //Put the box into idle mode initially
-  
+  InitializeWeaponData();
+  tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
+  //tLastActive= 0;
+
   setBoxMode('i');  //Start the box
   Serial.println("Setup complete");
 
@@ -461,16 +462,22 @@ void setup() {
 }
 
 //Used to clear FPU interrupt so sleep works
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define FPU_EXCEPTION_MASK 0x0000009F
 void FPU_IRQHandler(void)
 {
-    uint32_t *fpscr = (uint32_t *)(FPU->FPCAR+0x40);
-    (void)__get_FPSCR();
+  uint32_t *fpscr = (uint32_t *)(FPU->FPCAR + 0x40);
+  (void)__get_FPSCR();
 
-    *fpscr = *fpscr & ~(FPU_EXCEPTION_MASK);
+  *fpscr = *fpscr & ~(FPU_EXCEPTION_MASK);
 
-    //Serial.println("FPU event");
+  //Serial.println("FPU event");
 }
+#ifdef __cplusplus
+}
+#endif
 
 
 // Pin change interrupt handler.  Used for weapon test mode.
@@ -484,8 +491,8 @@ void ISR_EpeeHitDetect() {
   //byte state = nrf_gpio_pin_read(LineADetect);
   //byte pin = LineADetect;
 
-  tLastActive = t_now;
-  //Serial.println("Epee hit");
+  //tLastActive = t_now;
+  //Serial.println("Epee ISR");
   if ((t_now - t_prev) > weaponEpeeDebounce) {
     //Serial.print("Epee Trigger t="); Serial.println(t_now);
     t_prev = t_now;
@@ -500,7 +507,7 @@ void ISR_FoilHitDetect() {
   //byte changed = 0;
   //byte state = nrf_gpio_pin_read(LineCDetect);
 
-  tLastActive = t_now;
+  //tLastActive = t_now;
   if ((t_now - t_prev) > weaponFoilDebounce) {
     //Serial.println("Foil Trigger"); Serial.println(t_now);
     t_prev = t_now;
@@ -554,11 +561,15 @@ void loop() {
     case 's':
       break;
     case 'i':
-      Serial.println("Idle mode");
-      //tft.fillScreen(BLACK);
-      updateIdleMode();
-      //tft.fillScreen(BLACK);
+      if ((t_now - tIdleLEDOn) > tIdleLEDBlink) {
+        digitalWrite(LED1_PIN, HIGH);
+        delay(10);
+        digitalWrite(LED1_PIN, LOW);
+        tIdleLEDOn = millis();
+      }
       delay(tIdleWakeUpInterval);
+
+      updateIdleMode();
       break;
   }
 
@@ -568,41 +579,48 @@ void loop() {
     setPowerOff();
   }
 
-  
-  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState!='i') ) {
-    if ((BoxState=='c') && (cableState.cableDC)) {setBoxMode('i'); }
-    if ((BoxState=='r') && (weaponState.cableDC)) {setBoxMode('i');}
-    if ((BoxState=='w') && (!weaponState.foilOn) && (!weaponState.epeeOn)) {setBoxMode('i');}
-    //Serial.println("Setting idle mode");      
+  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState != 'i') ) {
+    if ((BoxState == 'c') && (cableState.cableDC)) {
+      setBoxMode('i');
+    }
+    if ((BoxState == 'r') && (weaponState.cableDC)) {
+      setBoxMode('i');
+    }
+    if ((BoxState == 'w') && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
+      setBoxMode('i');
+    }
+    //Serial.println("Setting idle mode");
   } else {
-    if (BoxState=='i') {
+    if (BoxState == 'i') {
       if (!cableState.cableDC) {
         //Serial.println("Wake up!");
         setBoxMode('c');
       } else {
-        if ((t_now - tLastActive) < tIdleModeOn) {
-          setBoxMode('r'); 
+        if (!weaponState.cableDC) {
+          setBoxMode('r');
         }
-      }      
+      }
     }
   }
-  
+
   if ((t_now - t_Battery_Check) > tBatteryInterval) {
-     digitalWrite(LED1_PIN, HIGH);
-      CheckBatteryStatus();
-      t_Battery_Check = millis();
-      displayBatteryStatus();
-      digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED1_PIN, HIGH);
+    CheckBatteryStatus();
+    t_Battery_Check = millis();
+    displayBatteryStatus();
+    digitalWrite(LED1_PIN, LOW);
   }
 
   if (t_now - t_Serial_upd > tSerialRefresh) {
     writeSerialOutput(BoxState);
+    //Serial.print("tActive= ");Serial.println(tLastActive);
     t_Serial_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
+
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
-    if ( ((t_now - tLastActive) > tDimOLED) && (BoxState!='i') ) {
+    if ( ((t_now - tLastActive) > tDimOLED) && (BoxState != 'i') ) {
       dimOLEDDisplay();
       updateOLED('d');
     } else {
