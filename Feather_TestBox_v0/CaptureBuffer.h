@@ -8,11 +8,11 @@
 class CaptureBuffer
 {
   public:
-    int* GetBuffer(int *samplesInBuffer); 
-    void AddSample(int value);
+    int* GetBuffer(int *samplesInBuffer); //Returns pointer to the buffer start, and the number of samples in the buffer
+    void AddSample(int value); 
     void SetBuffers(int *mainBuffer, int bufferSize, int *preTrigger1, int *preTrigger2, int preTriggerLen);
-    bool CaptureDone();
-    void ResetTrigger();
+    bool CaptureDone(); //Checks if a capture has completed. 
+    void ResetTrigger();  //Resets and allows for a new capture to occur. 
     bool CheckTrigger(int val);
     bool CheckTriggerLastSample();
     void setTrigger(int value, bool TriggerHigh);

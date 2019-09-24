@@ -98,7 +98,7 @@ void CaptureBuffer::FinalizeBuffer() {
 }
 
 bool CaptureBuffer::CaptureDone() {
-  return triggerState = 'd';
+  return (triggerState=='d');
 }
 
 void CaptureBuffer::ResetTrigger() {
