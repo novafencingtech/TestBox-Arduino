@@ -19,6 +19,8 @@
 #define ORANGE          0xFD20
 #define YELLOW          0xFFE0
 #define WHITE           0xFFFF
+#define GREY            0x79EF
+#define DARKBLUE        0x0007
 
 #define BARCOLOR  YELLOW
 #define GRAPHCOLOR  RED
@@ -65,6 +67,14 @@ int scaleWidth(int val) {  //tenths don't divide by 4 very well
     case 8: return (sVal + 3); break;  //x7, x.8 is x 3/4
     case 9: return (sVal + 4); break;  //x.9 is x+1
   }
+}
+
+void tftDisplayMessage(char *msg) {
+  tft.setTextSize(2);
+  tft.setCursor(0, 0);
+  tft.setTextColor(ORANGE, DARKBLUE);
+  tft.print(msg);
+  
 }
 
 void printVal(int x, int y, int valColor, char *lab, int val) {
@@ -257,7 +267,9 @@ void InitializeDisplay()
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
-  tft.println("Welcome to TTtarm");
+  tft.println("Welcome to\n  TTtarm\n");
+  tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
+  tft.println("  G Allen \n     &\n  B Rosen");
 }
 
 void dimOLEDDisplay() {
@@ -323,9 +335,19 @@ int floatTo10xInt(float g) {
 }
 int gv(char *s) {
   //arduino does not support strings in switch statements
+  /*switch (s[0]) {
+    case 'A':
+      return floatTo10xInt(cableState.ohm_AA);
+      break;
+    case 'B':
+      return floatTo10xInt(cableState.ohm_BB);
+    case 'C':
+      return floatTo10xInt(cableState.ohm_CC);
+  }*/
   if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
   if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
   if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
+  
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     if ((s[0] == ChanArray[k].ch_label[1]) && (s[1] == ChanArray[k].ch_label[2]) ) {
       return floatTo10xInt(cableState.cableOhm[k]);

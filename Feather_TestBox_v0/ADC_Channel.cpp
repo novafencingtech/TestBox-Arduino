@@ -100,24 +100,20 @@ int ADC_Channel::getDecayMaxRawValue() {
 
 void ADC_Channel::setRangeHigh() {
   _gain=HIGH_GAIN;
+  _isHighRange=true;
 }
 
 void ADC_Channel::setRangeLow() {
   _gain=LOW_GAIN;
+  _isHighRange=false;
 }
 
 bool ADC_Channel::isHighRange(){
-  if (!_dualRangeEnabled) {
-    return false;
-  }
   return _isHighRange;
 }
 
 bool ADC_Channel::isLowRange(){
-  if (!_dualRangeEnabled) {
-    return false;
-  }
-  return !_isHighRange;
+  return (!_isHighRange);
 }
 
 void ADC_Channel::resetMinMaxValues(){

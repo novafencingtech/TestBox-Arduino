@@ -86,10 +86,10 @@ const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
-constexpr long tOledOff = 35L * 1000L; //ms - How often to refresh the OLED display
+constexpr long tOledOff = 60L * 1000L; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
-const long tBatteryInterval = 10000; //ms - Check battery every 30s
-const long tIdleModeOn = 15000; //ms - Switch to idle mode after 30s of in-activity.
+const long tBatteryInterval = 10000; //ms - Check battery every 10s
+const long tIdleModeOn = 10000; //ms - Switch to idle mode after 30s of in-activity.
 const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
@@ -392,18 +392,18 @@ void setup() {
   // put your setup code here, to run once:
 
   //Activate display
-  delay(250); //Hold for half second to power on
+  //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-
-  //Required to fix FPU prevent sleep bug
-  NVIC_SetPriority(FPU_IRQn, 100);
-  NVIC_EnableIRQ(FPU_IRQn);
 
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
   delay(500);
+
+  //Required to fix FPU prevent sleep bug
+  NVIC_SetPriority(FPU_IRQn, 100);
+  NVIC_EnableIRQ(FPU_IRQn);
 
   // Enable timing diagnostics
   pinMode(DIAG_PIN, OUTPUT);
@@ -448,7 +448,7 @@ void setup() {
   InitializeADC();
 
   CheckBatteryStatus();
-  displayBatteryStatus();
+  //displayBatteryStatus();
 
   InitializeCableData();
   InitializeWeaponData();
@@ -562,9 +562,9 @@ void loop() {
       break;
     case 'i':
       if ((t_now - tIdleLEDOn) > tIdleLEDBlink) {
-        digitalWrite(LED1_PIN, HIGH);
+        digitalWrite(LED2_PIN, HIGH);
         delay(10);
-        digitalWrite(LED1_PIN, LOW);
+        digitalWrite(LED2_PIN, LOW);
         tIdleLEDOn = millis();
       }
       delay(tIdleWakeUpInterval);

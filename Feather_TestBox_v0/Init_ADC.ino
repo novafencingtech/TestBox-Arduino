@@ -208,6 +208,7 @@ void calibrateSystem() {
       //sprintf(buf,"Connect %s\n Press button",label);
       //Serial.write(buf);
 
+      tft.fillScreen(BLACK);
       tft.setCursor(2, 2);
       tft.setTextColor(CYAN, BLACK);
       tft.println("  Connect ");
@@ -264,7 +265,7 @@ void calibrateSystem() {
         tft.println(adc_val);
         tft.println("Error!");
         //Serial.println("Cal Error");
-        delay(2000);
+        delay(750);
         cal_valid = false;
         if (errorCount >= calibrationRetries) {
           //Serial.println("Cal Failed.  Exiting....");

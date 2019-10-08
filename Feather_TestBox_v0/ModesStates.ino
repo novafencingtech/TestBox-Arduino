@@ -112,7 +112,11 @@ void updateCableState() {
   cableState.line_CC = ChanArray[8].getRawValue();
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
-    cableState.cableOhm[k] = ChanArray[k].getValue();
+    if ( (ChanArray[k].getRawValue()>shortADCthreshold) && (ChanArray[k].isHighRange()) ) {
+      cableState.cableOhm[k]=OPEN_CIRCUIT_VALUE;
+    } else {
+      cableState.cableOhm[k] = ChanArray[k].getValue();
+    }
     ChanArray[k].valueReady = false;
   }
 
@@ -401,6 +405,7 @@ void updateWeaponStateDigital() {
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
       weaponState.foilInterOn = true;
+      tLastActive=t_now;
     }
   }
 
@@ -409,6 +414,7 @@ void updateWeaponStateDigital() {
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
       weaponState.epeeInterOn = true;
+      tLastActive=t_now;
     }
   }
 
@@ -449,6 +455,9 @@ void checkButtonState() {
           case 'w':
             setBoxMode('c');
             break;
+          case 'i':
+            setBoxMode('c');
+            break;
         }
         tSwitch = millis();
       }
@@ -462,12 +471,14 @@ void checkButtonState() {
       //lcd.clear();
       //lcd.setCursor(0, 0);
       //lcd.print(F("  Power off  "));
+      tftDisplayMessage("Power off");
       while (digitalRead(BUTTON_PIN) == HIGH) {
         delay(100);
         if ((millis() - tButtonPress) > tEnterCalibrationMode) {
           //lcd.clear();
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
+          tftDisplayMessage("Calibration");
           calibrationMode = true;
         }
       }
