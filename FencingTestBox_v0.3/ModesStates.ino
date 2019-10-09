@@ -303,8 +303,8 @@ bool updateWeaponState() {
       //weaponState.tFoilTrigger=t_now;
       weaponState.tFoilInterOn = t_now;
       lineBGauge.setOffOn(true);
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("  Foil Hit!  "));
+      lcd.setCursor(0, 1);
+      lcd.print(F("  Foil Hit!  "));
       lightsChanged = true;
     }
   }
@@ -317,8 +317,8 @@ bool updateWeaponState() {
       weaponState.tEpeeInterOn = t_now;
       lineBGauge.setOffOn(true);
       lightsChanged = true;
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("  Epee Hit!  "));
+      lcd.setCursor(0, 1);
+      lcd.print(F("  Epee Hit!  "));
     }
   }
 
@@ -327,8 +327,8 @@ bool updateWeaponState() {
         ((t_now - weaponState.tEpeeInterOn) > weaponStateHoldTime)) {
       lineBGauge.setOffOn(false);
       lightsChanged = true;
-      //lcd.setCursor(0, 1);
-      //lcd.print(F("                "));
+      lcd.setCursor(0, 1);
+      lcd.print(F("                "));
     }
   }
   return lightsChanged;

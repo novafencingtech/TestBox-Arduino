@@ -265,7 +265,7 @@ void setup() {
   //sei();  //Enable ALL interrupts
 
   //delay(2000);
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   analogReference(INTERNAL);
   //CheckBatteryStatus();
@@ -533,14 +533,14 @@ void loop() {
     }
   }
 
-  if (t_now - t_Serial_upd > tSerialRefresh) {
+  /*if (t_now - t_Serial_upd > tSerialRefresh) {
     if (Serial) {
       if (Serial.availableForWrite() >= 64) { //Only write if the buffer is empty
         writeSerialOutput(BoxState);
       }
     }
     t_Serial_upd = millis();
-  }
+  }*/
 
   if (t_now - t_LCD_upd > tLCDRefresh) {
     //bitWrite(PORTB, PORTB0, !bitRead(PORTB, PORTB0)); //Blink the LCD to indicate still alive
