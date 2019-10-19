@@ -34,7 +34,7 @@ const byte cableShortThreshold = 100; //Used to detect cable shorts
 const byte minADCthreshold = 20; //Used for switching between high/low gain
 const long powerOffTimeOut = 180000; //Time before switching the box off automatically;
 const int idleDisconnectTime = 1000; //Time before switching to idle mode;
-const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
+const int weaponStateHoldTime = 350; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
 //const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
@@ -265,7 +265,7 @@ void setup() {
   //sei();  //Enable ALL interrupts
 
   //delay(2000);
-  Serial.begin(115200);
+  //Serial.begin(115200);
 
   analogReference(INTERNAL);
   //CheckBatteryStatus();
@@ -533,14 +533,14 @@ void loop() {
     }
   }
 
-  if (t_now - t_Serial_upd > tSerialRefresh) {
+  /*if (t_now - t_Serial_upd > tSerialRefresh) {
     if (Serial) {
       if (Serial.availableForWrite() >= 64) { //Only write if the buffer is empty
         writeSerialOutput(BoxState);
       }
     }
     t_Serial_upd = millis();
-  }
+  }*/
 
   if (t_now - t_LCD_upd > tLCDRefresh) {
     //bitWrite(PORTB, PORTB0, !bitRead(PORTB, PORTB0)); //Blink the LCD to indicate still alive

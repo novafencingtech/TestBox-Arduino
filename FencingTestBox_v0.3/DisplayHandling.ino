@@ -224,6 +224,7 @@ void CreateDisplay() {
   lcd.print(F("by Graham Allen"));
 }
 
+/*
 void writeSerialOutput(char Mode) {
   // Use Generic format "WF01E00CA00.0B00.0C00.0AB etc
   // First letter: W/C indicates mode
@@ -323,4 +324,4 @@ void writeSerialOutput(char Mode) {
       }
       break;
   }
-}
+}*/

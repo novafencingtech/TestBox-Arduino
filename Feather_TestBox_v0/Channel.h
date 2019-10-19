@@ -6,6 +6,7 @@
 #define Channel_h
 
 #include "Arduino.h"
+#include "CaptureBuffer.h"
 
 #ifndef arm_math_h
   #define ARM_MATH_CM4
@@ -27,8 +28,8 @@ class ADC_Channel
 {
   public:
     static const float HIGH_GAIN;
-    static const int SAMPLE_BUFFER_SIZE = 32;
-    static const int NUM_BUFFERS=4;
+    //static const int SAMPLE_BUFFER_SIZE = 32;
+    //static const int NUM_BUFFERS=4;
     // Assuming 4.096Vref, 2kOhm resistor, G=48, 255 cnts/2.56V
     static const float LOW_GAIN; //10-bit conversion factor
     static const byte ADC_BIT_DEPTH = 12;
@@ -68,10 +69,9 @@ class ADC_Channel
     q31_t FIRState[STATE_LENGTH];
     q31_t filterValue=0;
 
-    bool bufferActive=false;
-    int sampleIndex=0;
-    volatile int *activeBuffer;
-    
+    bool bufferEnabled=false;
+    CaptureBuffer hsBuffer;
+        
     volatile long t_max = 0;
     volatile long t_min = 0;
 
