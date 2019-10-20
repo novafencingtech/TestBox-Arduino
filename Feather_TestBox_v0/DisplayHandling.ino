@@ -47,7 +47,7 @@ int weaponOrangeThresh = 50; //threshold from red to organge for cables in tenth
 int weaponGreenThresh = 20;   //threshaold from orange to green for cables in tenths of an ohm, 20=2.0 ohms
 int slowShift = 0;         //counts refreshs to avoid fast scale shifts
 int oldScale = 200;        //max value of full graph for last refresh
-int oldVal = 0;            //prior value (global so we don't have to pass by ref everywhere)
+//int oldVal = 0;            //prior value (global so we don't have to pass by ref everywhere)
 #define SLOWCOUNT 8          //how many refreshes before scale can change
 long unsigned int startTime, endTime, totalTime, timeSamples;
 
@@ -74,10 +74,11 @@ void tftDisplayMessage(char *msg) {
   tft.setCursor(0, 0);
   tft.setTextColor(ORANGE, DARKBLUE);
   tft.print(msg);
-  
+
 }
 
 void printVal(int x, int y, int valColor, char *lab, int val) {
+  tft.setTextSize(2);
   tft.setCursor(y, x);
   tft.setTextColor(YELLOW, BLACK);
   tft.print(lab); tft.print("="); //display connection string
@@ -115,7 +116,8 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
 //  newVal = current value
 // with 128 pixel wide screen, show 32 ohms * 4 pixels/ohm
 void barGraph(int X, int H, int newVal, int &oldVal, char *conn) {
-  int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;
+  int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;  
+  //Serial.print(conn); Serial.print("||New value = ");Serial.println(newVal);
   if (newVal > cableOrangeThresh) {  //if the new value is greater than the orange threshold
     bc = RED; //then its a red bar
     if (oldVal <= cableOrangeThresh) newColor = true;  //did we change color?
@@ -163,9 +165,12 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
 void drawColumn(int col, int val) {
+  //Assumes we have only one graph EVER
+  static int oldVal=0;
+  static int oldRow=0;
   //0-9.9 ohm, rows 27-127
   int valRow = 127 - min(val, 99); //convert ohms in tenths to row
-  int oldRow = 127 - min(oldVal, 99); //same with old val
+  //int oldRow = 127 - min(oldVal, 99); //same with old val
   int topRow, botRow, orangeRow, greenRow;
   //sort ends so we're always drawing from top to bottom
   if (valRow > oldRow) {
@@ -213,6 +218,8 @@ void drawColumn(int col, int val) {
     //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
     tft.drawFastVLine(icol, irow, 2, CYAN);
   }  //show where we are as 2x1 cyan line at col+1
+  oldRow=valRow;
+  oldVal=val;
 }
 
 //Draw a static line graph from an array
@@ -247,12 +254,12 @@ void LineGraph(int rData[127]) {
   vRatio = vMax / 100;  //tenths of an ohm per row
   oY = 100 - (weaponOrangeThresh / vRatio);  //calculate row # of orange threshold
   gY = 100 - (weaponGreenThresh / vRatio);  // same for green threshold
-  oldVal = rData[0]; //force first column to be a point
+  //oldVal = rData[0]; //force first column to be a point
   for (i = 0; i < 128; i++) {
     val = rData[i];
     if (val == 990) val = maxVal; //if not connected, use max value in array
     drawColumn(i, val);
-    oldVal = val;
+    //oldVal = val;
   }
   endTime = micros();
   if (startTime < endTime) {
@@ -263,7 +270,7 @@ void LineGraph(int rData[127]) {
 void InitializeDisplay()
 {
   tft.begin();
-  tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB. 
+  tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
@@ -274,7 +281,6 @@ void InitializeDisplay()
 
 void dimOLEDDisplay() {
   //static bool alreadyDimmed=false;
-
   //Fill the rest of the display with black leaving only the top bar.
   tft.fillRect(0, 17, 128, 128 - 17, BLACK);
 }
@@ -343,11 +349,11 @@ int gv(char *s) {
       return floatTo10xInt(cableState.ohm_BB);
     case 'C':
       return floatTo10xInt(cableState.ohm_CC);
-  }*/
+    }*/
   if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
   if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
   if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
-  
+
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     if ((s[0] == ChanArray[k].ch_label[1]) && (s[1] == ChanArray[k].ch_label[2]) ) {
       return floatTo10xInt(cableState.cableOhm[k]);
@@ -364,25 +370,29 @@ int gv(char *s) {
     if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
 }
 
-char *oldFault;
-void labelFault(char *s) {
-  if (oldFault == s) return; //no change
+
+void labelFault(char *s, bool hasError) {
+  static char *oldFault;
+  if (strcmp(s,oldFault)) return; //no change
   oldFault = s;
+  tft.setTextSize(2);
   tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
   tft.setCursor(2, 2);
-  if (s == "Cable") { //no fault
-    tft.setTextColor(GREEN, BLACK);
-    tft.println("Cable");
+  if (hasError) { 
+    tft.setTextColor(RED, BLACK);
+    tft.println(s);
     return;
-  }
-  tft.setTextColor(RED, BLACK);
-  tft.println(s);
+  } else { //no fault
+    tft.setTextColor(GREEN, BLACK);
+    tft.println(s);
+  }  
 }
+
 static int oldA = 0, oldB = 0, oldC = 0;
 #define ABAR 25
 #define BBAR 60
 #define CBAR 95
-void graph1(char *s) {
+void graph1(char *s) {  
   barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(char *s) {
@@ -398,36 +408,65 @@ void updateOLED(char Mode) {
   static bool oldEpee = false;
   static bool oledEnabled = true;
   enum lastConnected { first, none, epee, foil, shorted};
+  enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_wpnR, disp_wpnTest, disp_unk, disp_error};
   static lastConnected lastConnection;
+  static displayStates currentDisplayState = disp_unk;
+  static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
   bool inter;
-  bool ABcross = CheckCableStatusByte((1 << BITAB));
-  bool ACcross = CheckCableStatusByte((1 << BITAC));
-  bool BAcross = CheckCableStatusByte((1 << BITBA));
-  bool BCcross = CheckCableStatusByte((1 << BITBC));
-  bool CAcross = CheckCableStatusByte((1 << BITCA));
-  bool CBcross = CheckCableStatusByte((1 << BITCB));
-  bool ABshort = (CheckCableStatusByte((1 << BITAB)) || CheckCableStatusByte((1 << BITBA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITBB))));
-  bool BCshort = (CheckCableStatusByte((1 << BITBC)) || CheckCableStatusByte((1 << BITCB))) && ((!CheckCableStatusByte((1 << BITBB))) || (!CheckCableStatusByte((1 << BITCC))));
-  bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
 
   //Serial.println(Mode);
 
-  if (Mode != oldMode) {
-    //Serial.println("Setting new mode");
-    tft.enableDisplay(true);
-    oldMode = Mode;
-    if (Mode != 'd') {
-      tft.fillRect(0, 0, 128, 128, BLACK);
-      tft.setCursor(0, 0);
-      tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+  if ((millis() - tLastActive) > tOledOff) {
+    tft.enableDisplay(false);
+    oledEnabled = false;
+    currentDisplayState = disp_off;
+    return;
+  } else {
+    if (!oledEnabled) {
+      tft.enableDisplay(true);
+      oledEnabled = true;
     }
+  }
 
+  //Check the display state
+  switch (Mode) {
+    case 'c':
+      currentDisplayState = disp_cable;
+      if (cableState.lameMode) {
+        currentDisplayState = disp_lame;
+        break;
+      }
+      if (cableState.maskMode) {
+        currentDisplayState = disp_clip;
+        break;
+      } 
+      
+      break;
+    case 'r':
+      currentDisplayState = disp_wpnR;
+      break;
+    case 'w':
+      currentDisplayState = disp_wpnTest;
+      break;
+    case 'i':
+      currentDisplayState = disp_idle;
+      break;
+  }
 
-    switch (Mode) {
-      case 'c':
-        oldFault = "";
+  if (oldDisplayState != currentDisplayState) {
+    //Serial.println("Setting new mode");
+    //tft.fillRect(0, 0, 128, 128, BLACK);
+    tft.fillScreen(BLACK);
+    tft.setCursor(0, 0);
+    //tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+    
+    switch (currentDisplayState) {
+      case disp_lame:
+        createLameDisplay();
+        break;
+      case disp_cable:        
         tft.print("Cable");
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
@@ -450,166 +489,50 @@ void updateOLED(char Mode) {
         tft.setCursor(127 - 8, 120);
         tft.print("0");
         break;
-      case 'r':
+      case disp_wpnR:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
         lastConnection = first;
-        oldVal = 990;
+        //oldVal = 990;
         oldEpee = false;
         oldFoil = false;
         i = 0;
         tft.setTextSize(2);
         tft.print("Weapon");
         break;
-      case 'w':
+      case disp_wpnTest:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
         lastConnection = first;
         tft.setTextSize(2);
         tft.print("WpnTest");
         break;
-      case 'i':
-        tft.fillScreen(BLACK);
+      case disp_idle:
+        tft.setCursor(0, 0);
         tft.setTextSize(2);
         tft.setTextColor(BLUE, BLACK);
         tft.print("Idle");
         //tft.fillScreen(BLACK);
     }
+    oldDisplayState=currentDisplayState;
     displayBatteryStatus();
   }
 
-  if ((millis() - tLastActive) > tOledOff) {
-    tft.enableDisplay(false);
-    oledEnabled = false;
-    return;
-  } else {
-    if (!oledEnabled) {
-      tft.enableDisplay(true);
-      oledEnabled = true;
-    }
-  }
-
-  switch (Mode) {
-    case 'c':
+  switch (currentDisplayState) {
+    case disp_cable:
       startTime = micros();
-      tft.setTextSize(2);
-      if (ABshort) //AB short
-        if (BCshort) {//if AB and BC then AC has to be shorted
-          //A - B - C short
-          labelFault("Short ABC");
-          graph1("AB");
-          graph2("BC");
-          graph3("AC");
-        }
-        else {
-          //AB short, CC okay or open
-          labelFault("Short AB");
-          graph1("AB");
-          graph2("BB");
-          graph3("CC");
-        }
-      else if (BCshort) {
-        //BC and not AB (and therefore not AC), AA okay or open
-        labelFault("Short BC");
-        graph1("AA");
-        graph2("BC");
-        graph3("CC");
-      }
-      else if (ACshort) {
-        //AC and not AB, and therefore not BC, BB okay or open
-        labelFault("Short AC");
-        graph1("AC");
-        graph2("BB");
-        graph3("CC");
-      }
-      else //no shorts
-        if (ABcross)
-          if (BAcross) {
-            //AB cross, CC okay or open
-            labelFault("AB Cross");
-            graph1("AB");
-            graph2("BA");
-            graph3("CC");
-          }
-          else if (CAcross) {
-            //A->B C->A, could be B->C or open
-            labelFault("ABC Cross");
-            graph1("AB");
-            graph2("BC");
-            graph3("CA");
-          }
-          else {
-            //AB cross, don't know what happened to BA
-            labelFault("AB Cross.");
-            graph1("AB");
-            graph2("BB"); //always going to be open
-            graph3("CC");
-          }
-        else if (BCcross) {
-          //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
-          labelFault("BC Cross");
-          graph1("AA");
-          graph2("BC");
-          graph3("CB");
-        }
-        else if (ACcross)
-          if (CAcross) {
-            //AC cross, BB good or open
-            labelFault("AC Cross");
-            graph1("AC");
-            graph2("BB");
-            graph3("CA");
-          }
-          else if (BAcross) {
-            //A->C, B->A, C->B
-            labelFault("ACB Cross");
-            graph1("AC");
-            graph2("BA");
-            graph3("CB");
-          }
-          else {
-            //something is open
-            labelFault("AC Cross.");
-            graph1("AC");
-            graph2("BB");
-            graph3("CA");
-          }
-
-        else  //something is open
-          if (BAcross) {
-            //BA but not AB
-            labelFault("BA Cross");
-            graph1("AB");
-            graph2("BA");
-            graph3("CC");
-          }
-          else if (CBcross) {
-            //CB but not BC
-            labelFault("CB Cross");
-            graph1("AA");
-            graph2("BC");
-            graph3("CB");
-          }
-          else if (CAcross) {
-            //CA but not AC
-            labelFault("CA Cross");
-            graph1("AC");
-            graph2("BB");
-            graph3("CA");
-          }
-          else {//no shorts/no crosses
-            labelFault("Cable");
-            graph1("AA");
-            graph2("BB");
-            graph3("CC");
-          }
-
+      updateDisplayCableMode();
       endTime = micros();
       if (startTime < endTime) {
         totalTime += (endTime - startTime);
         timeSamples += 1ul;
       }
-
       break;
-    case 'r':
+
+    case disp_lame:
+      updateLameDisplay();
+      break;
+    case disp_clip:
+
+    case disp_wpnR:
       if (weaponState.foilOn) {
         if (foilIndicator != RED) {
           tft.fillRect(0, 19, 20, 7, RED);
@@ -668,11 +591,12 @@ void updateOLED(char Mode) {
           barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
         }
         else {
-          if (!oldFoil || lastConnection != foil)  {
+          //if (!oldFoil || lastConnection != foil)  {
+          if (lastConnection != foil)  {
             tft.fillRect(0, 28, 128, 100, BLACK);
             tft.setCursor(0, 0);
             tft.print("Foil     ");
-            i = 0; oldVal = 0;
+            i = 0; //oldVal = 0;
             lastConnection = foil;
             tft.drawFastHLine(0, 27, 128, WHITE);
             tft.drawFastHLine(0, 77, 128, WHITE);
@@ -682,17 +606,18 @@ void updateOLED(char Mode) {
           val = weaponState.ohm10xFoil;
           drawColumn(i, val);
           printVal(0, 50, YELLOW, "", val);
-          oldVal = val;
+          //oldVal = val;
           if (++i >= 128) i = 0;
           sTime = millis(); //keep reseting every time we see it enabled
         }
       }
       else if (weaponState.epeeOn) {
-        if (!oldEpee || lastConnection != epee) {
+        //if (!oldEpee || lastConnection != epee) {
+        if (lastConnection != epee) {
           tft.fillRect(0, 28, 128, 100, BLACK);
           tft.setCursor(0, 0);
           tft.print("Epee     ");
-          i = 0; oldVal = 0;
+          i = 0; //oldVal = 0;
           lastConnection = epee;
           tft.drawFastHLine(0, 27, 128, WHITE);
           tft.drawFastHLine(0, 77, 128, WHITE);
@@ -702,7 +627,7 @@ void updateOLED(char Mode) {
         val = weaponState.ohm10xEpee;
         drawColumn(i, val);
         printVal(0, 50, YELLOW, "", val);
-        oldVal = val;
+        //oldVal = val;
         if (++i >= 128) i = 0;
         sTime = millis(); //keep reseting every time we see it enabled
       }
@@ -712,7 +637,7 @@ void updateOLED(char Mode) {
             val = weaponState.ohm10xFoil;
             drawColumn(i, val);
             printVal(0, 50, YELLOW, "", val);
-            oldVal = val;
+            //oldVal = val;
             if (++i >= 128) i = 0;
             if ((millis() - sTime) > 5000ul) {
               lastConnection = none;
@@ -722,7 +647,7 @@ void updateOLED(char Mode) {
             val = weaponState.ohm10xEpee;
             drawColumn(i, val);
             printVal(0, 50, YELLOW, "", val);
-            oldVal = val;
+            //oldVal = val;
             if (++i >= 128) i = 0;
             if ((millis() - sTime) > 5000ul) {
               lastConnection = none;
@@ -750,7 +675,7 @@ void updateOLED(char Mode) {
       oldEpee = weaponState.epeeOn;
 
       break;
-    case 'w':
+    case disp_wpnTest:
       if (weaponState.foilOn) {
         if (foilIndicator != RED) {
           tft.fillRect(0, 28, 50, 50, RED);
@@ -792,9 +717,171 @@ void updateOLED(char Mode) {
         epeeInterIndicator = BLACK;
       }
       break;
-    case 'i':
+    case disp_idle:
       //tft.enableDisplay(false);
       break;
+  }
+}
+
+void updateDisplayCableMode() {
+  //static char displayMode = 'c';
+  bool ABcross = CheckCableStatusByte( (1 << BITAB) );
+  bool ACcross = CheckCableStatusByte( (1 << BITAC)  );
+  bool BAcross = CheckCableStatusByte( (1 << BITBA)  );
+  bool BCcross = CheckCableStatusByte((1 << BITBC));
+  bool CAcross = CheckCableStatusByte((1 << BITCA));
+  bool CBcross = CheckCableStatusByte((1 << BITCB));
+  bool ABshort = (CheckCableStatusByte((1 << BITAB)) || CheckCableStatusByte((1 << BITBA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITBB))));
+  bool BCshort = (CheckCableStatusByte((1 << BITBC)) || CheckCableStatusByte((1 << BITCB))) && ((!CheckCableStatusByte((1 << BITBB))) || (!CheckCableStatusByte((1 << BITCC))));
+  bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
+
+  tft.setTextSize(2);
+  if (ABshort) //AB short
+    if (BCshort) {//if AB and BC then AC has to be shorted
+      //A - B - C short
+      labelFault("Short ABC",true);
+      graph1("AB");
+      graph2("BC");
+      graph3("AC");
+    }
+    else {
+      //AB short, CC okay or open
+      labelFault("Short AB",true);
+      graph1("AB");
+      graph2("BB");
+      graph3("CC");
+    }
+  else if (BCshort) {
+    //BC and not AB (and therefore not AC), AA okay or open
+    labelFault("Short BC",true);
+    graph1("AA");
+    graph2("BC");
+    graph3("CC");
+  }
+  else if (ACshort) {
+    //AC and not AB, and therefore not BC, BB okay or open
+    labelFault("Short AC",true);
+    graph1("AC");
+    graph2("BB");
+    graph3("CC");
+  }
+  else //no shorts
+    if (ABcross)
+      if (BAcross) {
+        //AB cross, CC okay or open
+        labelFault("AB Cross", true);
+        graph1("AB");
+        graph2("BA");
+        graph3("CC");
+      }
+      else if (CAcross) {
+        //A->B C->A, could be B->C or open
+        labelFault("ABC Cross", true);
+        graph1("AB");
+        graph2("BC");
+        graph3("CA");
+      }
+      else {
+        //AB cross, don't know what happened to BA
+        labelFault("AB Cross",true);
+        graph1("AB");
+        graph2("BB"); //always going to be open
+        graph3("CC");
+      }
+    else if (BCcross) {
+      //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
+      labelFault("BC Cross",true);
+      graph1("AA");
+      graph2("BC");
+      graph3("CB");
+    }
+    else if (ACcross)
+      if (CAcross) {
+        //AC cross, BB good or open
+        labelFault("AC Cross",true);
+        graph1("AC");
+        graph2("BB");
+        graph3("CA");
+      }
+      else if (BAcross) {
+        //A->C, B->A, C->B
+        labelFault("ACB Cross",true);
+        graph1("AC");
+        graph2("BA");
+        graph3("CB");
+      }
+      else {
+        //something is open
+        labelFault("AC Cross",true);
+        graph1("AC");
+        graph2("BB");
+        graph3("CA");
+      }
+
+    else  //something is open
+      if (BAcross) {
+        //BA but not AB
+        labelFault("BA Cross",true);
+        graph1("AB");
+        graph2("BA");
+        graph3("CC");
+      }
+      else if (CBcross) {
+        //CB but not BC
+        labelFault("CB Cross",true);
+        graph1("AA");
+        graph2("BC");
+        graph3("CB");
+      }
+      else if (CAcross) {
+        //CA but not AC
+        labelFault("CA Cross",true);
+        graph1("AC");
+        graph2("BB");
+        graph3("CA");
+      }
+      else {//no shorts/no crosses
+        labelFault("Cable",false);
+        graph1("AA");
+        graph2("BB");
+        graph3("CC");
+      }
+}
+
+#define LAME_GRAPH_Y 0
+// barGraph(X, H, oldVal, newVal, oldVal)
+void createLameDisplay() {
+  tft.setCursor(0, 0);
+  tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+  tft.print("Lame");
+  tft.drawFastHLine(0, 27, 128, WHITE);
+  tft.drawFastHLine(0, 77, 128, WHITE);
+  tft.drawFastHLine(0, 107, 128, WHITE);
+  tft.drawFastHLine(0, 127, 128, WHITE);
+}
+
+
+void updateLameDisplay() {
+  static int oldVal = 9999;
+  int lameVal = floatTo10xInt(cableState.ohm_CC);
+  static byte i=0;
+
+  //Serial.println(lameVal);
+  barGraph(LAME_GRAPH_Y, 8, lameVal, oldVal, "Lame");
+  oldVal = lameVal;
+  if (lameVal>50) {
+    labelFault("Bad ",true);
+  } else {
+    labelFault("Lame",false);
+  }  
+  drawColumn(i, lameVal);
+  //printVal(0, 50, YELLOW, "", lameVal);
+  if (++i >= 128) { 
+    i = 0;
+    tft.drawFastHLine(0, 27, 128, WHITE);
+    tft.drawFastHLine(0, 77, 128, WHITE);
+    tft.drawFastHLine(0, 107, 128, WHITE);
+    tft.drawFastHLine(0, 127, 128, WHITE);
   }
 }
 
