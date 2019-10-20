@@ -277,6 +277,20 @@ void InitializeDisplay()
   tft.println("Welcome to\n  TTtarm\n");
   tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
   tft.println("  G Allen \n     &\n  B Rosen");
+
+  //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
+  weaponGraph=oledGraph(&tft, 0,27, 100,128, 0.0f,10.0f);
+  lameGraph=oledGraph(&tft, 0,40, 127-40,128, 0.0f, 20.0f);
+
+  int bars=5;
+  float vals[5]{0.0f,5.0f,10.0f,15.0f,20.0f};
+  int colors[5]{lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED};
+  lameGraph.setHorizontalBarValues(5, vals, colors);
+  //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
+
+  float wvals[4]{0.0f,2.0f,5.0f,10.0f};
+  int wcolors[4]{weaponGraph.cGREEN,weaponGraph.cORANGE,weaponGraph.cRED,weaponGraph.cRED};  
+  weaponGraph.setHorizontalBarValues(4, wvals, wcolors);
 }
 
 void dimOLEDDisplay() {
@@ -854,10 +868,12 @@ void createLameDisplay() {
   tft.setCursor(0, 0);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   tft.print("Lame");
-  tft.drawFastHLine(0, 27, 128, WHITE);
+  lameGraph.resetGraph();
+
+  /*tft.drawFastHLine(0, 27, 128, WHITE);
   tft.drawFastHLine(0, 77, 128, WHITE);
   tft.drawFastHLine(0, 107, 128, WHITE);
-  tft.drawFastHLine(0, 127, 128, WHITE);
+  tft.drawFastHLine(0, 127, 128, WHITE);*/
 }
 
 
@@ -867,22 +883,16 @@ void updateLameDisplay() {
   static byte i=0;
 
   //Serial.println(lameVal);
-  barGraph(LAME_GRAPH_Y, 8, lameVal, oldVal, "Lame");
+  barGraph(LAME_GRAPH_Y, 20, lameVal, oldVal, "Lame");
   oldVal = lameVal;
   if (lameVal>50) {
     labelFault("Bad ",true);
   } else {
     labelFault("Lame",false);
   }  
-  drawColumn(i, lameVal);
+  
+  lameGraph.updateGraph(cableState.ohm_CC);
   //printVal(0, 50, YELLOW, "", lameVal);
-  if (++i >= 128) { 
-    i = 0;
-    tft.drawFastHLine(0, 27, 128, WHITE);
-    tft.drawFastHLine(0, 77, 128, WHITE);
-    tft.drawFastHLine(0, 107, 128, WHITE);
-    tft.drawFastHLine(0, 127, 128, WHITE);
-  }
 }
 
 void writeSerialOutput(char Mode) {

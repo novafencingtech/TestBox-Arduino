@@ -23,6 +23,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "Channel.h"
 #include "string.h"
 #include "CaptureBuffer.h"
+#include "oledGraphClass.h"
 //#include "BluetoothSerial.h"
 
 #define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
@@ -168,6 +169,9 @@ volatile long tLastActive = 0; //ms - Time that an event was last detected
 // Store the box state
 volatile char BoxState = 'w'; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
+oledGraph lameGraph;
+oledGraph weaponGraph;
+
 // ADC timer settings;
 
 
@@ -199,20 +203,6 @@ static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
 int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
 int ADC_CaptureBuffer[ADC_CAPTURE_LEN]; //Buffer for ADC sample reads
-
-/*  DELETE ME
-  //This struct is probably not needed for ESP32
-  struct testbox_line {
-  byte directionBit;
-  byte stateBit;
-  byte digitalInMask;
-  ADC_Channel* analogIn;
-  byte pin_change;
-  };
-
-  testbox_line bananaA;
-  testbox_line bananaB;
-  testbox_line bananaC;*/
 
 //Struct defining the cable/lame properties
 struct CableData {
@@ -252,10 +242,6 @@ struct IdleDataStruct {
   uint16_t cableStatus;
   bool foilActive = false;
   bool epeeActive = false;
-};
-
-struct OLEDStatusStruct {
-
 };
 
 CableData cableState;
