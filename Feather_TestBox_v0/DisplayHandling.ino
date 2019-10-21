@@ -71,7 +71,7 @@ int scaleWidth(int val) {  //tenths don't divide by 4 very well
 
 void tftDisplayMessage(char *msg) {
   tft.setTextSize(2);
-  tft.setCursor(0, 0);
+  tft.setCursor(2, 2);
   tft.setTextColor(ORANGE, DARKBLUE);
   tft.print(msg);
 
@@ -116,7 +116,7 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
 //  newVal = current value
 // with 128 pixel wide screen, show 32 ohms * 4 pixels/ohm
 void barGraph(int X, int H, int newVal, int &oldVal, char *conn) {
-  int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;  
+  int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;
   //Serial.print(conn); Serial.print("||New value = ");Serial.println(newVal);
   if (newVal > cableOrangeThresh) {  //if the new value is greater than the orange threshold
     bc = RED; //then its a red bar
@@ -164,10 +164,11 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   if (color == BLACK) s = "BLACK";
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
+/*
 void drawColumn(int col, int val) {
   //Assumes we have only one graph EVER
-  static int oldVal=0;
-  static int oldRow=0;
+  static int oldVal = 0;
+  static int oldRow = 0;
   //0-9.9 ohm, rows 27-127
   int valRow = 127 - min(val, 99); //convert ohms in tenths to row
   //int oldRow = 127 - min(oldVal, 99); //same with old val
@@ -218,15 +219,15 @@ void drawColumn(int col, int val) {
     //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
     tft.drawFastVLine(icol, irow, 2, CYAN);
   }  //show where we are as 2x1 cyan line at col+1
-  oldRow=valRow;
-  oldVal=val;
-}
+  oldRow = valRow;
+  oldVal = val;
+}*/
 
 //Draw a static line graph from an array
 //  rData = array with resistance values in tenths of an ohm
 //  oThresh = resistance of Orange threshold im tenths of an ohm
 //  gThresh = resistance of Green threshold in tenths of an ohm
-void LineGraph(int rData[127]) {
+/* void LineGraph(int rData[127]) {
   int i, val, maxVal, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
   maxVal = 0;
   for (i = 0; i < 128; i++) if ((rData[i] > val) && (rData[i] != 990)) maxVal = rData[i]; //find biggest value
@@ -267,6 +268,8 @@ void LineGraph(int rData[127]) {
     timeSamples = 1ul;
   };
 }
+*/
+
 void InitializeDisplay()
 {
   tft.begin();
@@ -278,18 +281,18 @@ void InitializeDisplay()
   tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
   tft.println("  G Allen \n     &\n  B Rosen");
 
-  //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
-  weaponGraph=oledGraph(&tft, 0,27, 100,128, 0.0f,10.0f);
-  lameGraph=oledGraph(&tft, 0,40, 127-40,128, 0.0f, 20.0f);
+  //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
+  weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
+  lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
-  int bars=5;
-  float vals[5]{0.0f,5.0f,10.0f,15.0f,20.0f};
-  int colors[5]{lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED};
+  int bars = 5;
+  float vals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
+  int colors[5] {lameGraph.cGREEN, lameGraph.cYELLOW, lameGraph.cORANGE, lameGraph.cRED, lameGraph.cRED};
   lameGraph.setHorizontalBarValues(5, vals, colors);
   //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
 
-  float wvals[4]{0.0f,2.0f,5.0f,10.0f};
-  int wcolors[4]{weaponGraph.cGREEN,weaponGraph.cORANGE,weaponGraph.cRED,weaponGraph.cRED};  
+  float wvals[4] {0.0f, 2.0f, 5.0f, 10.0f};
+  int wcolors[4] {weaponGraph.cGREEN, weaponGraph.cORANGE, weaponGraph.cRED, weaponGraph.cRED};
   weaponGraph.setHorizontalBarValues(4, wvals, wcolors);
 }
 
@@ -387,26 +390,26 @@ int gv(char *s) {
 
 void labelFault(char *s, bool hasError) {
   static char *oldFault;
-  if (strcmp(s,oldFault)) return; //no change
+  if (s==oldFault) return; //no change
   oldFault = s;
   tft.setTextSize(2);
   tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
   tft.setCursor(2, 2);
-  if (hasError) { 
+  if (hasError) {
     tft.setTextColor(RED, BLACK);
     tft.println(s);
     return;
   } else { //no fault
     tft.setTextColor(GREEN, BLACK);
     tft.println(s);
-  }  
+  }
 }
 
 static int oldA = 0, oldB = 0, oldC = 0;
 #define ABAR 25
 #define BBAR 60
 #define CBAR 95
-void graph1(char *s) {  
+void graph1(char *s) {
   barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(char *s) {
@@ -418,12 +421,12 @@ void graph3(char *s) {
 
 void updateOLED(char Mode) {
   static int i = 0, val, oldMode = 'z';
-  static bool oldFoil = false;
-  static bool oldEpee = false;
   static bool oledEnabled = true;
   enum lastConnected { first, none, epee, foil, shorted};
   enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_wpnR, disp_wpnTest, disp_unk, disp_error};
   static lastConnected lastConnection;
+  lastConnected newConnection;
+  static lastConnected lastConnectionSeen;
   static displayStates currentDisplayState = disp_unk;
   static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
@@ -453,10 +456,11 @@ void updateOLED(char Mode) {
         break;
       }
       if (cableState.maskMode) {
-        currentDisplayState = disp_clip;
+        //currentDisplayState = disp_clip;
+        currentDisplayState = disp_cable;
         break;
-      } 
-      
+      }
+
       break;
     case 'r':
       currentDisplayState = disp_wpnR;
@@ -469,18 +473,20 @@ void updateOLED(char Mode) {
       break;
   }
 
+  //Change the display state
   if (oldDisplayState != currentDisplayState) {
     //Serial.println("Setting new mode");
     //tft.fillRect(0, 0, 128, 128, BLACK);
     tft.fillScreen(BLACK);
-    tft.setCursor(0, 0);
+    tft.setCursor(2, 2);
     //tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
-    
+
     switch (currentDisplayState) {
       case disp_lame:
         createLameDisplay();
         break;
-      case disp_cable:        
+      case disp_cable:
+        tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
         tft.print("Cable");
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
@@ -506,12 +512,7 @@ void updateOLED(char Mode) {
       case disp_wpnR:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
         lastConnection = first;
-        //oldVal = 990;
-        oldEpee = false;
-        oldFoil = false;
-        i = 0;
-        tft.setTextSize(2);
-        tft.print("Weapon");
+        createWeaponDisplay();
         break;
       case disp_wpnTest:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
@@ -520,18 +521,19 @@ void updateOLED(char Mode) {
         tft.print("WpnTest");
         break;
       case disp_idle:
-        tft.setCursor(0, 0);
+        tft.setCursor(2, 2);
         tft.setTextSize(2);
         tft.setTextColor(BLUE, BLACK);
         tft.print("Idle");
         //tft.fillScreen(BLACK);
     }
-    oldDisplayState=currentDisplayState;
+    oldDisplayState = currentDisplayState;
     displayBatteryStatus();
   }
 
   switch (currentDisplayState) {
     case disp_cable:
+    case disp_clip:
       startTime = micros();
       updateDisplayCableMode();
       endTime = micros();
@@ -544,196 +546,189 @@ void updateOLED(char Mode) {
     case disp_lame:
       updateLameDisplay();
       break;
-    case disp_clip:
 
     case disp_wpnR:
+      updateWeaponIndicators();
+
+      newConnection = lastConnection;
       if (weaponState.foilOn) {
-        if (foilIndicator != RED) {
-          tft.fillRect(0, 19, 20, 7, RED);
-          foilIndicator = RED;
-        }
-      }
-      else if (foilIndicator != BLACK) {
-        tft.fillRect(0, 19, 20, 7, BLACK);
-        foilIndicator = BLACK;
-      }
-      if (weaponState.foilInterOn) {
-        if (foilInterIndicator != YELLOW) {
-          tft.fillRect(20, 19, 20, 7, YELLOW);
-          foilInterIndicator = YELLOW;
-        }
-      }
-      else if (foilInterIndicator != BLACK) {
-        tft.fillRect(20, 19, 20, 7, BLACK);
-        foilInterIndicator = BLACK;
+        lastConnectionSeen=foil;
+        newConnection = foil;
+        sTime = millis();
       }
       if (weaponState.epeeOn) {
-        if (epeeIndicator != GREEN) {
-          tft.fillRect(70, 19, 20, 7, GREEN);
-          epeeIndicator = GREEN;
-        }
+        lastConnectionSeen=epee;
+        newConnection = epee;
+        sTime = millis();
       }
-      else if (epeeIndicator != BLACK) {
-        tft.fillRect(70, 19, 20, 7, BLACK);
-        epeeIndicator = BLACK;
+      if ((weaponState.foilOn) && (weaponState.epeeOn)) { //short
+        //if ((oldFoil != weaponState.foilOn) || (oldEpee != weaponState.epeeOn)) {
+        tft.fillRect(0, 27, 128, 100, BLACK);
+        tft.print("Weapon");
+        tft.setTextColor(RED, BLACK);
+        tft.setCursor(75, 0);
+        tft.print("Gnd");
+        oldA = oldB = 320;
+        newConnection = shorted;
+        //}
+        barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
+        barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
       }
-      if (weaponState.epeeInterOn) {
-        if (epeeInterIndicator != YELLOW) {
-          tft.fillRect(90, 19, 20, 7, YELLOW);
-          epeeInterIndicator = YELLOW;
-        }
-      }
-      else if (epeeInterIndicator != BLACK) {
-        tft.fillRect(90, 19, 20, 7, BLACK);
-        epeeInterIndicator = BLACK;
-      }
-      tft.setTextSize(2);
-      tft.setTextColor(YELLOW, BLACK);
-      tft.setCursor(0, 0);
-      if (weaponState.foilOn) {
-        if (weaponState.epeeOn) {  //short
-          if ((oldFoil != weaponState.foilOn) || (oldEpee != weaponState.epeeOn)) {
-            tft.fillRect(0, 27, 128, 100, BLACK);
-            tft.print("Weapon");
-            tft.setTextColor(RED, BLACK);
-            tft.setCursor(75, 0);
-            tft.print("Gnd");
-            oldA = oldB = 320;
-            lastConnection = shorted;
-          }
-          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
-          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
-        }
-        else {
-          //if (!oldFoil || lastConnection != foil)  {
-          if (lastConnection != foil)  {
-            tft.fillRect(0, 28, 128, 100, BLACK);
-            tft.setCursor(0, 0);
-            tft.print("Foil     ");
-            i = 0; //oldVal = 0;
-            lastConnection = foil;
-            tft.drawFastHLine(0, 27, 128, WHITE);
-            tft.drawFastHLine(0, 77, 128, WHITE);
-            tft.drawFastHLine(0, 107, 128, WHITE);
-            tft.drawFastHLine(0, 127, 128, WHITE);
-          }
-          val = weaponState.ohm10xFoil;
-          drawColumn(i, val);
-          printVal(0, 50, YELLOW, "", val);
-          //oldVal = val;
-          if (++i >= 128) i = 0;
-          sTime = millis(); //keep reseting every time we see it enabled
-        }
-      }
-      else if (weaponState.epeeOn) {
-        //if (!oldEpee || lastConnection != epee) {
-        if (lastConnection != epee) {
-          tft.fillRect(0, 28, 128, 100, BLACK);
-          tft.setCursor(0, 0);
-          tft.print("Epee     ");
-          i = 0; //oldVal = 0;
-          lastConnection = epee;
-          tft.drawFastHLine(0, 27, 128, WHITE);
-          tft.drawFastHLine(0, 77, 128, WHITE);
-          tft.drawFastHLine(0, 107, 128, WHITE);
-          tft.drawFastHLine(0, 127, 128, WHITE);
-        }
-        val = weaponState.ohm10xEpee;
-        drawColumn(i, val);
-        printVal(0, 50, YELLOW, "", val);
-        //oldVal = val;
-        if (++i >= 128) i = 0;
-        sTime = millis(); //keep reseting every time we see it enabled
-      }
-      else {  //no connect
-        switch (lastConnection) {
-          case foil:
-            val = weaponState.ohm10xFoil;
-            drawColumn(i, val);
-            printVal(0, 50, YELLOW, "", val);
-            //oldVal = val;
-            if (++i >= 128) i = 0;
-            if ((millis() - sTime) > 5000ul) {
-              lastConnection = none;
-            }
-            break;
-          case epee:
-            val = weaponState.ohm10xEpee;
-            drawColumn(i, val);
-            printVal(0, 50, YELLOW, "", val);
-            //oldVal = val;
-            if (++i >= 128) i = 0;
-            if ((millis() - sTime) > 5000ul) {
-              lastConnection = none;
-            }
-            break;
-          case first:
-          case none:
-          case shorted:
-            if (oldFoil || oldEpee) {
-              tft.fillRect(0, 28, 128, 100, BLACK);
-              tft.setCursor(0, 0);
-              tft.setTextColor(YELLOW, BLACK);
-              if (lastConnection != first)
-                tft.print(oldFoil ? "Epee Open" : "Foil Open");
 
-              tft.drawFastHLine(0, 27, 128, WHITE);
-              tft.drawFastHLine(0, 77, 128, WHITE);
-              tft.drawFastHLine(0, 107, 128, WHITE);
-              tft.drawFastHLine(0, 127, 128, WHITE);
-            }
-            break;
-        }
+      if ((millis() - sTime) > 5000ul) {
+        newConnection = none;
       }
-      oldFoil = weaponState.foilOn;
-      oldEpee = weaponState.epeeOn;
 
+      if (newConnection != lastConnection)  {
+        //tft.fillRect(0, 28, 128, 100, BLACK);
+        tft.setTextSize(2);
+        tft.setTextColor(GREEN, BLACK);
+        tft.setCursor(2, 2);
+        if (newConnection==epee) {
+          tft.print("Epee ");
+        }        
+        if (newConnection==foil) {
+          tft.print("Foil ");
+        }
+        if (newConnection==none) {
+          tft.setTextColor(YELLOW, BLACK);
+          if (lastConnectionSeen==epee) {
+            tft.print("Epee Open");
+          }          
+          if (lastConnectionSeen==foil) {
+            tft.print("Foil Open");
+          }
+        }
+        weaponGraph.resetGraph();
+        lastConnection = newConnection;
+      }
+
+
+      switch (lastConnection) {
+        case foil:
+          weaponGraph.updateGraph(weaponState.ohm_Foil);
+          printVal(0, 50, YELLOW, "", weaponState.ohm10xFoil);
+          break;
+        case epee:
+          weaponGraph.updateGraph(weaponState.ohm_Epee);
+          printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);
+          break;
+        case first:
+        case none: 
+          break;
+        case shorted:
+          //if (oldFoil || oldEpee) {
+            //tft.fillRect(0, 28, 128, 100, BLACK);
+            tft.setCursor(2, 2);
+            tft.setTextColor(YELLOW, BLACK);
+            tft.setTextSize(2);
+            if (lastConnection != first) {
+              //tft.print(oldFoil ? "Epee Open" : "Foil Open");
+              tft.print("Open"); }
+          //}
+          break;
+      }
       break;
     case disp_wpnTest:
-      if (weaponState.foilOn) {
-        if (foilIndicator != RED) {
-          tft.fillRect(0, 28, 50, 50, RED);
-          foilIndicator = RED;
-        }
-      }
-      else if (foilIndicator != BLACK) {
-        tft.fillRect(0, 28, 50, 50, BLACK);
-        foilIndicator = BLACK;
-      }
-      if (weaponState.foilInterOn) {
-        if (foilInterIndicator != YELLOW) {
-          tft.fillRect(0, 80, 50, 40, YELLOW);
-          foilInterIndicator = YELLOW;
-        }
-      }
-      else if (foilInterIndicator != BLACK) {
-        tft.fillRect(0, 80, 50, 40, BLACK);
-        foilInterIndicator = BLACK;
-      }
-      if (weaponState.epeeOn) {
-        if (epeeIndicator != GREEN) {
-          tft.fillRect(70, 28, 128 - 50 , 50 , GREEN);
-          epeeIndicator = GREEN;
-        }
-      }
-      else if (epeeIndicator != BLACK) {
-        tft.fillRect(70, 28, 128 - 50 , 50 , BLACK);
-        epeeIndicator = BLACK;
-      }
-      if (weaponState.epeeInterOn) {
-        if (epeeInterIndicator != YELLOW) {
-          tft.fillRect(70, 80, 128 - 50, 40, YELLOW);
-          epeeInterIndicator = YELLOW;
-        }
-      }
-      else if (epeeInterIndicator != BLACK) {
-        tft.fillRect(70, 80, 128 - 50, 40, BLACK);
-        epeeInterIndicator = BLACK;
-      }
-      break;
+      updateWeaponTestLights();
     case disp_idle:
       //tft.enableDisplay(false);
       break;
+  }
+}
+
+void updateWeaponIndicators() {
+  static int foilIndicator = BLACK;
+  static int epeeIndicator = BLACK;
+  static int foilInterIndicator = BLACK;
+  static int epeeInterIndicator = BLACK;
+
+  if (weaponState.foilOn) {
+    if (foilIndicator != RED) {
+      tft.fillRect(0, 19, 20, 7, RED);
+      foilIndicator = RED;
+    }
+  }
+  else if (foilIndicator != BLACK) {
+    tft.fillRect(0, 19, 20, 7, BLACK);
+    foilIndicator = BLACK;
+  }
+  if (weaponState.foilInterOn) {
+    if (foilInterIndicator != YELLOW) {
+      tft.fillRect(20, 19, 20, 7, YELLOW);
+      foilInterIndicator = YELLOW;
+    }
+  }
+  else if (foilInterIndicator != BLACK) {
+    tft.fillRect(20, 19, 20, 7, BLACK);
+    foilInterIndicator = BLACK;
+  }
+  if (weaponState.epeeOn) {
+    if (epeeIndicator != GREEN) {
+      tft.fillRect(70, 19, 20, 7, GREEN);
+      epeeIndicator = GREEN;
+    }
+  }
+  else if (epeeIndicator != BLACK) {
+    tft.fillRect(70, 19, 20, 7, BLACK);
+    epeeIndicator = BLACK;
+  }
+  if (weaponState.epeeInterOn) {
+    if (epeeInterIndicator != YELLOW) {
+      tft.fillRect(90, 19, 20, 7, YELLOW);
+      epeeInterIndicator = YELLOW;
+    }
+  }
+  else if (epeeInterIndicator != BLACK) {
+    tft.fillRect(90, 19, 20, 7, BLACK);
+    epeeInterIndicator = BLACK;
+  }
+}
+
+void updateWeaponTestLights() {
+  static int foilIndicator = BLACK;
+  static int epeeIndicator = BLACK;
+  static int foilInterIndicator = BLACK;
+  static int epeeInterIndicator = BLACK;
+  if (weaponState.foilOn) {
+    if (foilIndicator != RED) {
+      tft.fillRect(0, 28, 50, 50, RED);
+      foilIndicator = RED;
+    }
+  }
+  else if (foilIndicator != BLACK) {
+    tft.fillRect(0, 28, 50, 50, BLACK);
+    foilIndicator = BLACK;
+  }
+  if (weaponState.foilInterOn) {
+    if (foilInterIndicator != YELLOW) {
+      tft.fillRect(0, 80, 50, 40, YELLOW);
+      foilInterIndicator = YELLOW;
+    }
+  }
+  else if (foilInterIndicator != BLACK) {
+    tft.fillRect(0, 80, 50, 40, BLACK);
+    foilInterIndicator = BLACK;
+  }
+  if (weaponState.epeeOn) {
+    if (epeeIndicator != GREEN) {
+      tft.fillRect(70, 28, 128 - 50 , 50 , GREEN);
+      epeeIndicator = GREEN;
+    }
+  }
+  else if (epeeIndicator != BLACK) {
+    tft.fillRect(70, 28, 128 - 50 , 50 , BLACK);
+    epeeIndicator = BLACK;
+  }
+  if (weaponState.epeeInterOn) {
+    if (epeeInterIndicator != YELLOW) {
+      tft.fillRect(70, 80, 128 - 50, 40, YELLOW);
+      epeeInterIndicator = YELLOW;
+    }
+  }
+  else if (epeeInterIndicator != BLACK) {
+    tft.fillRect(70, 80, 128 - 50, 40, BLACK);
+    epeeInterIndicator = BLACK;
   }
 }
 
@@ -753,28 +748,28 @@ void updateDisplayCableMode() {
   if (ABshort) //AB short
     if (BCshort) {//if AB and BC then AC has to be shorted
       //A - B - C short
-      labelFault("Short ABC",true);
+      labelFault("Short ABC", true);
       graph1("AB");
       graph2("BC");
       graph3("AC");
     }
     else {
       //AB short, CC okay or open
-      labelFault("Short AB",true);
+      labelFault("Short AB", true);
       graph1("AB");
       graph2("BB");
       graph3("CC");
     }
   else if (BCshort) {
     //BC and not AB (and therefore not AC), AA okay or open
-    labelFault("Short BC",true);
+    labelFault("Short BC", true);
     graph1("AA");
     graph2("BC");
     graph3("CC");
   }
   else if (ACshort) {
     //AC and not AB, and therefore not BC, BB okay or open
-    labelFault("Short AC",true);
+    labelFault("Short AC", true);
     graph1("AC");
     graph2("BB");
     graph3("CC");
@@ -797,14 +792,14 @@ void updateDisplayCableMode() {
       }
       else {
         //AB cross, don't know what happened to BA
-        labelFault("AB Cross",true);
+        labelFault("AB Cross", true);
         graph1("AB");
         graph2("BB"); //always going to be open
         graph3("CC");
       }
     else if (BCcross) {
       //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
-      labelFault("BC Cross",true);
+      labelFault("BC Cross", true);
       graph1("AA");
       graph2("BC");
       graph3("CB");
@@ -812,21 +807,21 @@ void updateDisplayCableMode() {
     else if (ACcross)
       if (CAcross) {
         //AC cross, BB good or open
-        labelFault("AC Cross",true);
+        labelFault("AC Cross", true);
         graph1("AC");
         graph2("BB");
         graph3("CA");
       }
       else if (BAcross) {
         //A->C, B->A, C->B
-        labelFault("ACB Cross",true);
+        labelFault("ACB Cross", true);
         graph1("AC");
         graph2("BA");
         graph3("CB");
       }
       else {
         //something is open
-        labelFault("AC Cross",true);
+        labelFault("AC Cross", true);
         graph1("AC");
         graph2("BB");
         graph3("CA");
@@ -835,62 +830,71 @@ void updateDisplayCableMode() {
     else  //something is open
       if (BAcross) {
         //BA but not AB
-        labelFault("BA Cross",true);
+        labelFault("BA Cross", true);
         graph1("AB");
         graph2("BA");
         graph3("CC");
       }
       else if (CBcross) {
         //CB but not BC
-        labelFault("CB Cross",true);
+        labelFault("CB Cross", true);
         graph1("AA");
         graph2("BC");
         graph3("CB");
       }
       else if (CAcross) {
         //CA but not AC
-        labelFault("CA Cross",true);
+        labelFault("CA Cross", true);
         graph1("AC");
         graph2("BB");
         graph3("CA");
       }
       else {//no shorts/no crosses
-        labelFault("Cable",false);
+        labelFault("Cable", false);
         graph1("AA");
         graph2("BB");
         graph3("CC");
       }
 }
 
-#define LAME_GRAPH_Y 0
+void createWeaponDisplay() {
+  tft.setCursor(2, 2);
+  tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+  tft.print("Weapon");
+  weaponGraph.resetGraph();
+}
+
+void updateWeaponDisplay() {
+
+}
+
 // barGraph(X, H, oldVal, newVal, oldVal)
 void createLameDisplay() {
-  tft.setCursor(0, 0);
+  tft.setCursor(2, 2);
   tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
   tft.print("Lame");
   lameGraph.resetGraph();
 
   /*tft.drawFastHLine(0, 27, 128, WHITE);
-  tft.drawFastHLine(0, 77, 128, WHITE);
-  tft.drawFastHLine(0, 107, 128, WHITE);
-  tft.drawFastHLine(0, 127, 128, WHITE);*/
+    tft.drawFastHLine(0, 77, 128, WHITE);
+    tft.drawFastHLine(0, 107, 128, WHITE);
+    tft.drawFastHLine(0, 127, 128, WHITE);*/
 }
-
 
 void updateLameDisplay() {
   static int oldVal = 9999;
   int lameVal = floatTo10xInt(cableState.ohm_CC);
-  static byte i=0;
+  static byte i = 0;
 
   //Serial.println(lameVal);
-  barGraph(LAME_GRAPH_Y, 20, lameVal, oldVal, "Lame");
+  barGraph(2, 18, lameVal, oldVal, "Lame");
   oldVal = lameVal;
-  if (lameVal>50) {
-    labelFault("Bad ",true);
+  /*if (lameVal > 50) {
+    labelFault("Lame", true);
   } else {
-    labelFault("Lame",false);
-  }  
-  
+    labelFault("Lame", false);
+  }*/
+
   lameGraph.updateGraph(cableState.ohm_CC);
   //printVal(0, 50, YELLOW, "", lameVal);
 }

@@ -76,7 +76,7 @@ const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching to idle mode for scanning (in ms);
-const int idleDisconnectTime = 5000; //Time before switching to idle mode for scanning (in ms);
+const long idleDisconnectTime = 5000L; //Time before switching to idle mode for scanning (in ms);
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
@@ -90,7 +90,7 @@ constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
 constexpr long tOledOff = 60L * 1000L; //ms - How often to refresh the OLED display
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
-const long tIdleModeOn = 10000; //ms - Switch to idle mode after 30s of in-activity.
+const long tIdleModeOn = 15000L; //ms - Switch to idle mode after 30s of in-activity.
 const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
@@ -135,7 +135,6 @@ nrfx_gpiote_in_config_t weaponPinConfig = {
   .hi_accuracy = true,
   .skip_gpio_setup = false
 };
-
 
 //Bit definitions for the status word
 const byte BITAA = 0;

@@ -63,8 +63,10 @@ void oledGraph::drawHLines() {
 }
 
 void oledGraph::resetGraph() {
+  _tft->fillRect(_locX,_locY,_width,_height,cBLACK);
   drawHLines();
   drawTextLabels();
+  _col=_locX;
   }
 
 void oledGraph::updateGraph(float newValue){
