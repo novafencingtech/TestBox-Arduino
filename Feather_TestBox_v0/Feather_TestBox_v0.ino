@@ -75,7 +75,7 @@ const byte calibrationRetries = 3; // Exit after this many retries
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
-constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching to idle mode for scanning (in ms);
+constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching off if inactive;
 const long idleDisconnectTime = 5000L; //Time before switching to idle mode for scanning (in ms);
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
@@ -510,8 +510,6 @@ void loop() {
   static long t_Battery_Check = 0;
   static bool force_update = false;
   static bool valueChanged = false;
-  static bool idleLEDIsOn = false;
-  static long tIdleLEDOn = 0;
   static bool bLCDOff = false;
   bool updateReady = false;
 
@@ -546,14 +544,7 @@ void loop() {
     case 's':
       break;
     case 'i':
-      if ((t_now - tIdleLEDOn) > tIdleLEDBlink) {
-        digitalWrite(LED2_PIN, HIGH);
-        delay(10);
-        digitalWrite(LED2_PIN, LOW);
-        tIdleLEDOn = millis();
-      }
       delay(tIdleWakeUpInterval);
-
       updateIdleMode();
       break;
   }
@@ -605,12 +596,12 @@ void loop() {
 
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
-    if ( ((t_now - tLastActive) > tDimOLED) && (BoxState != 'i') ) {
-      dimOLEDDisplay();
-      updateOLED('d');
-    } else {
+    //if ( ((t_now - tLastActive) > tDimOLED) && (BoxState != 'i') ) {
+      //dimOLEDDisplay();
+      //updateOLED('d');
+    //} else {
       updateOLED(BoxState);
-    }
+    //}
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);

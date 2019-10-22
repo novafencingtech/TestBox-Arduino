@@ -165,7 +165,7 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
 /*
-void drawColumn(int col, int val) {
+  void drawColumn(int col, int val) {
   //Assumes we have only one graph EVER
   static int oldVal = 0;
   static int oldRow = 0;
@@ -221,7 +221,7 @@ void drawColumn(int col, int val) {
   }  //show where we are as 2x1 cyan line at col+1
   oldRow = valRow;
   oldVal = val;
-}*/
+  }*/
 
 //Draw a static line graph from an array
 //  rData = array with resistance values in tenths of an ohm
@@ -267,7 +267,7 @@ void drawColumn(int col, int val) {
     totalTime = endTime - startTime;
     timeSamples = 1ul;
   };
-}
+  }
 */
 
 void InitializeDisplay()
@@ -390,7 +390,7 @@ int gv(char *s) {
 
 void labelFault(char *s, bool hasError) {
   static char *oldFault;
-  if (s==oldFault) return; //no change
+  if (s == oldFault) return; //no change
   oldFault = s;
   tft.setTextSize(2);
   tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
@@ -421,7 +421,7 @@ void graph3(char *s) {
 
 void updateOLED(char Mode) {
   static int i = 0, val, oldMode = 'z';
-  static bool oledEnabled = true;
+  //static bool oledEnabled = true;
   enum lastConnected { first, none, epee, foil, shorted};
   enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_wpnR, disp_wpnTest, disp_unk, disp_error};
   static lastConnected lastConnection;
@@ -432,47 +432,52 @@ void updateOLED(char Mode) {
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
   bool inter;
+  static long tIdleLEDOn = 0;
+  //static long tIdleLEDOn
 
   //Serial.println(Mode);
 
   if ((millis() - tLastActive) > tOledOff) {
     tft.enableDisplay(false);
-    oledEnabled = false;
+    //oledEnabled = false;
     currentDisplayState = disp_off;
-    return;
+    //return;
   } else {
-    if (!oledEnabled) {
+    if (currentDisplayState == disp_off) {
       tft.enableDisplay(true);
-      oledEnabled = true;
+      currentDisplayState = disp_unk;
+      //oledEnabled = true;
     }
   }
 
   //Check the display state
-  switch (Mode) {
-    case 'c':
-      currentDisplayState = disp_cable;
-      if (cableState.lameMode) {
-        currentDisplayState = disp_lame;
-        break;
-      }
-      if (cableState.maskMode) {
-        //currentDisplayState = disp_clip;
+  if (currentDisplayState != disp_off) {
+    switch (Mode) {
+      case 'c':
         currentDisplayState = disp_cable;
+        if (cableState.lameMode) {
+          currentDisplayState = disp_lame;
+          break;
+        }
+        if (cableState.maskMode) {
+          //currentDisplayState = disp_clip;
+          currentDisplayState = disp_cable;
+          break;
+        }
+
         break;
-      }
-
-      break;
-    case 'r':
-      currentDisplayState = disp_wpnR;
-      break;
-    case 'w':
-      currentDisplayState = disp_wpnTest;
-      break;
-    case 'i':
-      currentDisplayState = disp_idle;
-      break;
+      case 'r':
+        currentDisplayState = disp_wpnR;
+        break;
+      case 'w':
+        currentDisplayState = disp_wpnTest;
+        break;
+      case 'i':
+        currentDisplayState = disp_idle;
+        break;
+    }
   }
-
+  
   //Change the display state
   if (oldDisplayState != currentDisplayState) {
     //Serial.println("Setting new mode");
@@ -552,12 +557,12 @@ void updateOLED(char Mode) {
 
       newConnection = lastConnection;
       if (weaponState.foilOn) {
-        lastConnectionSeen=foil;
+        lastConnectionSeen = foil;
         newConnection = foil;
         sTime = millis();
       }
       if (weaponState.epeeOn) {
-        lastConnectionSeen=epee;
+        lastConnectionSeen = epee;
         newConnection = epee;
         sTime = millis();
       }
@@ -584,18 +589,18 @@ void updateOLED(char Mode) {
         tft.setTextSize(2);
         tft.setTextColor(GREEN, BLACK);
         tft.setCursor(2, 2);
-        if (newConnection==epee) {
+        if (newConnection == epee) {
           tft.print("Epee ");
-        }        
-        if (newConnection==foil) {
+        }
+        if (newConnection == foil) {
           tft.print("Foil ");
         }
-        if (newConnection==none) {
+        if (newConnection == none) {
           tft.setTextColor(YELLOW, BLACK);
-          if (lastConnectionSeen==epee) {
+          if (lastConnectionSeen == epee) {
             tft.print("Epee Open");
-          }          
-          if (lastConnectionSeen==foil) {
+          }
+          if (lastConnectionSeen == foil) {
             tft.print("Foil Open");
           }
         }
@@ -614,25 +619,34 @@ void updateOLED(char Mode) {
           printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);
           break;
         case first:
-        case none: 
+        case none:
           break;
         case shorted:
           //if (oldFoil || oldEpee) {
-            //tft.fillRect(0, 28, 128, 100, BLACK);
-            tft.setCursor(2, 2);
-            tft.setTextColor(YELLOW, BLACK);
-            tft.setTextSize(2);
-            if (lastConnection != first) {
-              //tft.print(oldFoil ? "Epee Open" : "Foil Open");
-              tft.print("Open"); }
+          //tft.fillRect(0, 28, 128, 100, BLACK);
+          tft.setCursor(2, 2);
+          tft.setTextColor(YELLOW, BLACK);
+          tft.setTextSize(2);
+          if (lastConnection != first) {
+            //tft.print(oldFoil ? "Epee Open" : "Foil Open");
+            tft.print("Open");
+          }
           //}
           break;
       }
       break;
     case disp_wpnTest:
       updateWeaponTestLights();
+      break;
     case disp_idle:
-      //tft.enableDisplay(false);
+    case disp_off:
+      //Serial.println("Updating display");
+      if ((millis() - tIdleLEDOn) > tIdleLEDBlink) {
+        digitalWrite(LED2_PIN, HIGH);
+        delay(10);
+        digitalWrite(LED2_PIN, LOW);
+        tIdleLEDOn = millis();
+      }
       break;
   }
 }
@@ -891,9 +905,9 @@ void updateLameDisplay() {
   oldVal = lameVal;
   /*if (lameVal > 50) {
     labelFault("Lame", true);
-  } else {
+    } else {
     labelFault("Lame", false);
-  }*/
+    }*/
 
   lameGraph.updateGraph(cableState.ohm_CC);
   //printVal(0, 50, YELLOW, "", lameVal);
