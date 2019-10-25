@@ -56,7 +56,7 @@ void oledGraph::drawHLines() {
   
   for (int k=0; k<_numActiveBars; k++) {
     _tft->drawFastHLine(_locX, _hBarY[k], _maxX-_locX-1,cWHITE);
-    Serial.print("Value = ");Serial.print(_hBarValues[k]);Serial.print(" Loc = ");Serial.println(_hBarY[k]);    
+    //Serial.print("Value = ");Serial.print(_hBarValues[k]);Serial.print(" Loc = ");Serial.println(_hBarY[k]);    
     //Serial.print("Drawing Line @ ");Serial.println(_hBarY[k]);
   }
   //_tft->drawPixel(_col, _maxY, cWHITE); //draw bottom scale (9.9 ohms), could be erased later

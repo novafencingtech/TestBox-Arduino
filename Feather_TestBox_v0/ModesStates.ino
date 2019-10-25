@@ -154,11 +154,12 @@ void updateCableState() {
       !bitRead(cableState.statusByte, BITAC) &&
       !bitRead(cableState.statusByte, BITBC) )
   {
-    if ((millis() - cableState.tLastConnect) > idleDisconnectTime) {
+    if ((millis() - cableState.tLastConnect) > cableDisconnectTimeOut) {
       //Serial.println("Disconnected");
       cableState.cableDC = true;
-      cableState.lameMode = false;
-      cableState.maskMode = false;
+      //cableState.lameMode = false;
+      //cableState.maskMode = false;
+      //cableState.lameMode = false;
     }
   } else {
     //Serial.println("Connected");
@@ -167,16 +168,18 @@ void updateCableState() {
   }
 
   //Check if only testing a mask cord (line A-A only)
-  statusCheck = ((1 << BITAA) | (1 << BITBB));
-  if ( (cableState.statusByte & ~(1 << BITCC)) == statusCheck) {
-    if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC < OPEN_CIRCUIT_VALUE)) ) {
-      cableState.lameMode = true;
-      cableState.maskMode = false;
-    }
-  } else {
-    cableState.lameMode = false;
+  uint16_t statusMask = ~( (1<<BITAA) | (1<<BITBB) | (1<<BITCC));
+  if  ((cableState.statusByte & statusMask)==0) {
+    if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_BB >= OPEN_CIRCUIT_VALUE)) {     
+      if (cableState.ohm_CC < OPEN_CIRCUIT_VALUE) { 
+          cableState.lameMode = true;
+          cableState.maskMode = false;
+        }
+    } else {
+      cableState.lameMode = false;
+    } 
   }
-
+  
   statusCheck = ((1 << BITBB) | (1 << BITCC));
   if ( (cableState.statusByte & ~(1 << BITAA)) == statusCheck) {
     if ((cableState.ohm_AA < OPEN_CIRCUIT_VALUE) && ((cableState.ohm_BB >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_CC >= OPEN_CIRCUIT_VALUE)) ) {
@@ -224,11 +227,24 @@ void updateIdleMode() {
   detachInterrupt(LineCDetect);
   //nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
   //nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+  
+  if (checkCableConnected()) {
+    setBoxMode('c');
+    return;
+  }
+  if (checkWeaponConnected()) {
+    setBoxMode('r');
+    return;
+  }
+    
+}
 
+bool checkCableConnected() {  
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
   digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
 
+  StopADC();
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     ChanArray[k].valueReady = false;
     ChanArray[k].sampleCount = 0;
@@ -252,19 +268,17 @@ void updateIdleMode() {
     }
     ChanArray[k].valueReady = false;
   }
-  StopADC();
   updateCableState();
+  StopADC();
 
-  if (!cableState.cableDC) {
-    //Serial.println("Cable connected");
-    //writeSerialOutput('c');
-    setBoxMode('c');
-    return;
-  }
+  return (!cableState.cableDC);
+}
 
+bool checkWeaponConnected() {
   FoilADC.valueReady = false;
   EpeeADC.valueReady = false;
-
+  
+  StopADC();
   ActiveCh = &(FoilADC);
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
@@ -286,23 +300,7 @@ void updateIdleMode() {
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
   digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
 
-  if (!weaponState.cableDC) {
-    //Serial.println("Cable connected");
-    //writeSerialOutput('c');
-    setBoxMode('r');
-    return;
-  }
-
-
-  /*
-  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
-  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_WEAPON_MODE);
-  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4, HIGH); Toggle the SPI
-
-  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
-  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
-
-  setWeaponInterrupts();*/
+  return (!weaponState.cableDC);
 }
 
 void updateWeaponResistance() {
@@ -331,7 +329,7 @@ void updateWeaponResistance() {
   weaponState.lineAC = (WeaponAC.getRawValue() < shortADCthreshold);
 
   if ( (weaponState.ohm_Epee == OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil == OPEN_CIRCUIT_VALUE) ) {
-    if ((t_now - weaponState.tLastConnect) > idleDisconnectTime) {
+    if ((t_now - weaponState.tLastConnect) > weaponDisconnectTimeOut) {
       weaponState.cableDC = true;
       //Serial.println("No weapon connected");
     }

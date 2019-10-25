@@ -56,7 +56,7 @@ void InitializeCableData() {
   StopADC();
 
   cableState.cableDC = true;
-  cableState.tLastConnect = -1 * (idleDisconnectTime);
+  cableState.tLastConnect = -1 * (cableDisconnectTimeOut);
 }
 
 void InitializeWeaponData() {
@@ -82,7 +82,7 @@ void InitializeWeaponData() {
   StopADC();
 
   weaponState.cableDC = true;
-  weaponState.tLastConnect = -1 * (idleDisconnectTime);
+  weaponState.tLastConnect = -1 * (weaponDisconnectTimeOut);
 }
 
 void StopADC() {
