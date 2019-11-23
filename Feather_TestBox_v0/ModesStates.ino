@@ -564,6 +564,7 @@ void CheckBatteryStatus() {
       ADCActive = false;
       break;
   }
+  //BatteryCheck=true;
 
   NRF_SAADC->CH[ADC_UNIT].PSELP = 7; //AIN 6+1
   nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
@@ -588,6 +589,7 @@ void CheckBatteryStatus() {
   }
 
   batteryCnts = ave_data / sampleCount;
+  //BatteryCheck=false;
   if (ADCActive) {
     NRF_SAADC->CH[ADC_UNIT].PSELP = oldAIn;
     StartADC();

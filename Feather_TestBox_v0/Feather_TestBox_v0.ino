@@ -298,6 +298,8 @@ struct weapon_test {
 
 volatile weapon_test weaponState;
 
+//bool BatteryCheck=false;
+
 //Used for ADC sampling
 #ifdef __cplusplus
 extern "C" {
@@ -308,9 +310,17 @@ void SAADC_IRQHandler(void) {
   long t_now = millis();
   int ADCValue;
   float flVal = 0.0;
+  static bool foilState=false;
+  static bool epeeState=false;
+  bool tempState=false;
 
 
   tempVal = 0;
+
+  /*if (BatteryCheck) {
+    Serial.println("We shouldn't be here.");
+    return;
+  }*/
 
   if (nrf_saadc_event_check(NRF_SAADC_EVENT_RESULTDONE)) {
     nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
@@ -335,6 +345,20 @@ void SAADC_IRQHandler(void) {
     ActiveCh->filterValue = (ActiveCh->filterValue >> 8);
     ActiveCh->valueReady = true;
     ActiveCh->sampleCount = 0;
+  }
+
+  tempState=(ADCValue<maxADCthreshold);
+  if (ActiveCh == &EpeeADC) {
+    if (tempState!=epeeState) {
+        ISR_EpeeHitDetect();
+        epeeState=tempState;
+    }
+  }
+  if (ActiveCh == &FoilADC) {
+    if (tempState!=foilState) {
+      ISR_FoilHitDetect();
+      foilState=tempState;
+    }
   }
 
   if ((t_now - ActiveCh->t_max) > tMaxHold) {
