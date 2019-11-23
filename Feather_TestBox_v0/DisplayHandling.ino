@@ -464,7 +464,6 @@ void updateOLED(TestBoxModes Mode) {
           currentDisplayState = disp_cable;
           break;
         }
-
         break;
       case WPN_GRAPH:
         currentDisplayState = disp_wpnR;

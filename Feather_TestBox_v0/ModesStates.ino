@@ -33,21 +33,32 @@ void setWeaponTestMode() {
 }
 
 void setWeaponResistanceMode(bool enableCapture) {
-  setCableTestMode();
+  detachInterrupt(LineADetect);
+  detachInterrupt(LineCDetect);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
+  digitalWrite(MUX_LATCH, HIGH);
+
   StopADC();
+  
+  InitializeADC(enableCapture);
+  loadCalibrationData();
   ActiveCh = &(FoilADC);
 
   if (enableCapture) {
     //FoilADC.hsBuffer.SetBuffers(int *mainBuffer, int bufferSize, int *preTrigger1, int *preTrigger2, int preTriggerLen);
     FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigFoil[0][0]),&(ADC_PreTrigFoil[1][0]),PRE_TRIGGER_SIZE);
     //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
-    FoilADC.hsBuffer.setTrigger(3096, true, usEpeeDebounce); //debounce in us
+    FoilADC.hsBuffer.setTrigger(maxADCthreshold, true, usEpeeDebounce); //debounce in us
     FoilADC.bufferEnabled=true;
     FoilADC.hsBuffer.ResetTrigger();    
 
     EpeeADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigEpee[0][0]),&(ADC_PreTrigEpee[1][0]),PRE_TRIGGER_SIZE);
     //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
-    EpeeADC.hsBuffer.setTrigger(1024, false, usEpeeDebounce); //debounce in us
+    EpeeADC.hsBuffer.setTrigger(shortADCthreshold, false, usEpeeDebounce); //debounce in us
     EpeeADC.bufferEnabled=true;
     EpeeADC.hsBuffer.ResetTrigger();  
 
@@ -76,7 +87,7 @@ void setCableTestMode() {
   StopADC();
 
   // Re-initialize the ADC
-  InitializeADC();
+  InitializeADC(false);
   loadCalibrationData();
 
   ActiveCh = &(ChanArray[0]);

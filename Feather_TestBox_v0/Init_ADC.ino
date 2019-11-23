@@ -1,4 +1,4 @@
-void InitializeADC() {
+void InitializeADC(bool fastAcq) {
   // Configures the basic ADC, does not set ADMUX channels.
 
   nrf_saadc_enable();
@@ -6,7 +6,11 @@ void InitializeADC() {
   //NVIC_SetPriority(ADC_IRQn, 6);
 
   //ADC Configuration code
-  nrf_saadc_channel_init(ADC_UNIT, &ADC_CONFIG);
+  if (fastAcq) {
+    nrf_saadc_channel_init(ADC_UNIT, &FAST_ADC_CONFIG);
+  } else {
+    nrf_saadc_channel_init(ADC_UNIT, &ADC_CONFIG);
+  }
   // Set the resolution to 12-bit (0..4095)
   nrf_saadc_resolution_set(NRF_SAADC_RESOLUTION_12BIT);
   NRF_SAADC->SAMPLERATE = (SAADC_SAMPLERATE_MODE_Task << SAADC_SAMPLERATE_MODE_Pos);

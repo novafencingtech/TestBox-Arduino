@@ -3,8 +3,6 @@
 
 
 
-
-
 //Sets the main buffer
 void CaptureBuffer::SetBuffers(int *mainBuffer, int bufferSize, int *preTrigger1, int *preTrigger2, int preTriggerLen) {
   _capBufSize = bufferSize;
@@ -70,6 +68,8 @@ void CaptureBuffer::AddSample(int value) {
   _lastValue = value;
   static bool oldTriggerState = false;
   bool triggerValue = CheckTrigger(value);
+  static int _trigResetCount=0;
+  static unsigned long trigResetTime=0;
   //static armCount=0;
 
   if (triggerValue != oldTriggerState) {
@@ -79,16 +79,23 @@ void CaptureBuffer::AddSample(int value) {
 
   switch (triggerState) {
     case 'i': //Trigger initiated but not confirmed
+    // After the debounce time any valid trigger will confirm the trigger.
+    // If a second full debounce interval passes the trigger is discarded. 
       _captureBuffer[_capIndx] = value;
       _capIndx++;
       if ((micros() - _trigTime) > _trigDebounce)  { // If trigger confirmed goto trigger mode
         if (triggerValue) {
           triggerState = 't';
-          _trigValidTime=micros();
+          _lastTrigTime=_trigValidTime=micros();
+          //for (int k=_trigSampleIndex-2; k<_capIndx+2; k++) {
+          //  Serial.print(_captureBuffer[k]);Serial.print(" ");
+          //}
           //Serial.println("Trigger confirmed");
         } else {
-          ResetTrigger(); //Trigger invalid reset and move on
-          //Serial.println("Trigger invalid");
+          if (micros()>(_trigTime+_trigDebounce+_trigDebounce)) {//If we haven't confirmed a trigger after a full debounce interval reject  
+            ResetTrigger(); //Trigger invalid reset and move on
+            //Serial.println("Trigger invalid");
+          }
         }
       }
       break;
@@ -104,9 +111,10 @@ void CaptureBuffer::AddSample(int value) {
         _capIndx = _preTrigSize + _ptIndx;
         _trigSampleIndex=_capIndx;
         triggerState = 'i';
-        //Serial.println("Trigger initiated");
-        _trigTime = micros();
+        //Serial.println("Trigger detected");
+        _lastTrigTime=_trigTime = micros();
         _trigTime_ms = millis();
+        _trigResetCount=0;
       }
       break;
     case 't':    
@@ -128,7 +136,7 @@ void CaptureBuffer::AddSample(int value) {
     case 'r':
       if (triggerValue == false) {
         _armCount++;
-        if (_armCount > 10) { //Require 10 consecutive false triggers to re-arm
+        if (_armCount > rearmThresholdCount) { //Require 10 consecutive false triggers to re-arm
           triggerState = 'w'; //require trigger to false prior to arming
           //Serial.println("Armed");
         }
@@ -153,5 +161,10 @@ void CaptureBuffer::ResetTrigger() {
   _tBufNum = 0;
   _ptIndx = 0;
   _armCount = 0;
+  _trigTime=0;
   triggerState = 'r';
+  for (int k=0; k<_capBufSize; k++) {
+    _captureBuffer[k]=9999;
+  }
+  Serial.println("Trigger reset");
 }

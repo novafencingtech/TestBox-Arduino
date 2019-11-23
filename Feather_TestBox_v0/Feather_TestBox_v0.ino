@@ -42,6 +42,16 @@ nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABL
                                          .pin_p = NRF_SAADC_INPUT_AIN0,
                                          .pin_n = NRF_SAADC_INPUT_DISABLED
                                         };
+nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
+                                         .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
+                                         .gain = NRF_SAADC_GAIN1_4,
+                                         .reference = NRF_SAADC_REFERENCE_INTERNAL,
+                                         .acq_time = NRF_SAADC_ACQTIME_20US,
+                                         .mode = NRF_SAADC_MODE_SINGLE_ENDED,
+                                         .burst = NRF_SAADC_BURST_ENABLED,
+                                         .pin_p = NRF_SAADC_INPUT_AIN0,
+                                         .pin_n = NRF_SAADC_INPUT_DISABLED
+                                        };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
 
 
@@ -176,7 +186,7 @@ typedef enum TestBoxModes {
   BOX_IDLE,
   BOX_OFF
 };
-volatile TestBoxModes BoxState = WPN_GRAPH; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
+volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
 oledGraph lameGraph;
 oledGraph weaponGraph;
@@ -208,7 +218,7 @@ ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 
 //Buffers for high-speed capture
-#define PRE_TRIGGER_SIZE 25
+#define PRE_TRIGGER_SIZE 20
 #define ADC_CAPTURE_LEN 128 //128-PreTrigger
 //Declare arrays here so that we can use pointers internally to channels
 int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
@@ -434,7 +444,7 @@ void setup() {
   Serial.println("Initializing channels");
 
   InitializeChannels();
-  InitializeADC();
+  InitializeADC(false);
 
   CheckBatteryStatus();
   //displayBatteryStatus();
@@ -586,7 +596,7 @@ void loop() {
       setBoxMode(BOX_IDLE);
     }
     if (weaponState.cableDC) {
-      if ((BoxState == WPN_GRAPH) || (BoxState == HIT_CAPTURE) ) {
+      if (BoxState == WPN_GRAPH) {
         setBoxMode(BOX_IDLE);
       }
     }
