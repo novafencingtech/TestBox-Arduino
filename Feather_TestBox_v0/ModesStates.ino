@@ -27,17 +27,40 @@ void setWeaponTestMode() {
   setWeaponInterrupts();
 
   //tLastActive = millis();
-  BoxState = 'w';
+
+  BoxState = WPN_TEST;
+  
 }
 
-void setWeaponResistanceMode() {
+void setWeaponResistanceMode(bool enableCapture) {
   setCableTestMode();
   StopADC();
   ActiveCh = &(FoilADC);
 
-  BoxState = 'r';
-  StartADC();
+  if (enableCapture) {
+    //FoilADC.hsBuffer.SetBuffers(int *mainBuffer, int bufferSize, int *preTrigger1, int *preTrigger2, int preTriggerLen);
+    FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigFoil[0][0]),&(ADC_PreTrigFoil[1][0]),PRE_TRIGGER_SIZE);
+    //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
+    FoilADC.hsBuffer.setTrigger(2048, true, usFoilDebounce); //debounce in us
+    FoilADC.bufferEnabled=true;
+    FoilADC.hsBuffer.ResetTrigger();    
 
+    EpeeADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigEpee[0][0]),&(ADC_PreTrigEpee[1][0]),PRE_TRIGGER_SIZE);
+    //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
+    EpeeADC.hsBuffer.setTrigger(2048, false, usEpeeDebounce); //debounce in us
+    EpeeADC.bufferEnabled=true;
+    EpeeADC.hsBuffer.ResetTrigger();  
+
+    BoxState = HIT_CAPTURE;
+  } else {
+    EpeeADC.bufferEnabled=false;
+    EpeeADC.hsBuffer.ResetTrigger();
+    FoilADC.bufferEnabled=false;
+    FoilADC.hsBuffer.ResetTrigger();
+    BoxState = WPN_GRAPH;
+  }
+  
+  StartADC();
 }
 
 void setCableTestMode() {
@@ -58,7 +81,7 @@ void setCableTestMode() {
 
   ActiveCh = &(ChanArray[0]);
 
-  BoxState = 'c';
+  BoxState = CABLE;
   //tLastActive = millis();
   //updateCableState();
   StartADC();
@@ -198,27 +221,30 @@ void setWeaponInterrupts() {
 }
 
 
-void setBoxMode(char mode) {
+void setBoxMode(TestBoxModes newMode) {
   //Serial.print("Setting mode = "); Serial.println(mode);
-  switch (mode) {
-    case 'c':
+  switch (newMode) {
+    case CABLE:
       setCableTestMode();
       break;
-    case 'w':
+    case WPN_TEST:
       setWeaponTestMode();
       break;
-    case 'r':
-      setWeaponResistanceMode();
+    case WPN_GRAPH:
+      setWeaponResistanceMode(false);
       break;
-    case 'i':
+    case BOX_IDLE:
       setIdleMode();
+      break;
+    case HIT_CAPTURE:
+      setWeaponResistanceMode(true);
       break;
   }
 }
 
 void setIdleMode() {
   updateIdleMode();
-  BoxState = 'i';
+  BoxState = BOX_IDLE;
 }
 
 void updateIdleMode() {
@@ -229,11 +255,11 @@ void updateIdleMode() {
   //nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_DISCONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
   
   if (checkCableConnected()) {
-    setBoxMode('c');
+    setBoxMode(CABLE);
     return;
   }
   if (checkWeaponConnected()) {
-    setBoxMode('r');
+    setBoxMode(WPN_GRAPH);
     return;
   }
     
@@ -346,14 +372,14 @@ void updateWeaponState() {
   //static bool oldEpeeState = false;
   //static bool oldFoilState = false;
 
-  bool epeeState = EpeeADC.hsBuffer.CheckTriggerLastSample();
-  bool foilState = FoilADC.hsBuffer.CheckTriggerLastSample();
+  bool epeeState = EpeeADC.lastValue<maxADCthreshold;
+  bool foilState = FoilADC.lastValue<maxADCthreshold;
 
   if (foilState != weaponState.foilOn) {
     
     //tLastActive=t_now;
     if ((t_now - weaponState.tFoilTrigger) > weaponFoilDebounce) {
-      Serial.println("Foil trigger");
+      //Serial.println("Foil trigger");
       tLastActive = t_now;
       weaponState.foilOn = foilState;
       weaponState.tFoilInterOn = t_now;
@@ -365,7 +391,7 @@ void updateWeaponState() {
   if (epeeState != weaponState.epeeOn) {
     //tLastActive=t_now;
     if ((t_now - weaponState.tEpeeTrigger) > weaponEpeeDebounce) {
-      Serial.println("Epee trigger");
+      //Serial.println("Epee trigger");
       tLastActive = t_now;
       weaponState.epeeOn = epeeState;
       weaponState.tEpeeInterOn = t_now;
@@ -443,18 +469,22 @@ void checkButtonState() {
     tLastActive = t_now;
     if (newState == LOW) { //Button has been released
       if (((t_now - tButtonPress) > weaponFoilDebounce) && ((t_now - tSwitch) > tModeSwitchLockOut) ) {
+        Serial.println("Button pressed");
         switch (BoxState) {
-          case 'c':
-            setBoxMode('r');
+          case CABLE:
+            setBoxMode(WPN_GRAPH);
             break;
-          case 'r':
-            setBoxMode('w');
+          case WPN_GRAPH:
+            setBoxMode(HIT_CAPTURE);
             break;
-          case 'w':
-            setBoxMode('c');
+          case HIT_CAPTURE:
+            setBoxMode(WPN_TEST);
             break;
-          case 'i':
-            setBoxMode('c');
+          case WPN_TEST:
+            setBoxMode(CABLE);
+            break;
+          case BOX_IDLE:
+            setBoxMode(CABLE);
             break;
         }
         tSwitch = millis();
@@ -512,13 +542,14 @@ void CheckBatteryStatus() {
   nrf_saadc_value_t *adcRead;
 
   switch (BoxState) {
-    case 'c':
-    case 'r':
+    case CABLE:
+    case HIT_CAPTURE:
+    case WPN_GRAPH:
       ADCActive = true;
       StopADC();
       oldAIn = NRF_SAADC->CH[ADC_UNIT].PSELP;
       break;
-    case 'w':
+    case WPN_TEST:
       ADCActive = false;
       break;
   }

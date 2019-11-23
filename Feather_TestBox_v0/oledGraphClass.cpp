@@ -90,7 +90,7 @@ void oledGraph::drawColumn(float val){
   valRow=_maxY-int(_pixelScaleFactor*(val-_offset)-0.5f);
   valRow=max(valRow,_locY);
   valRow=min(valRow,_maxY);
-  
+    
   int topRow, botRow;
   //sort ends so we're always drawing from bottom to top (large to small values)
   if (valRow > oldRow) {
@@ -99,6 +99,11 @@ void oledGraph::drawColumn(float val){
   } else {
     topRow = valRow;
     botRow = oldRow;
+  }
+
+  if (_col==_locX) { //Starting over, no need to draw a line
+    topRow=valRow;
+    botRow=valRow;
   }
 
   topRow=max(topRow,_locY);

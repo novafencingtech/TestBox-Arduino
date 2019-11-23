@@ -27,6 +27,7 @@ void StartADC() {
   nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
   nrf_saadc_int_enable(NRF_SAADC_INT_RESULTDONE);
   nrf_saadc_buffer_init(ADC_Buffer1, 1);
+  NVIC_ClearPendingIRQ(ADC_IRQn);
   NVIC_EnableIRQ(ADC_IRQn);
   nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
   nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
@@ -87,6 +88,7 @@ void InitializeWeaponData() {
 
 void StopADC() {
   NVIC_DisableIRQ(ADC_IRQn);
+  NVIC_ClearPendingIRQ(ADC_IRQn);
   nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
   nrf_saadc_task_trigger(NRF_SAADC_TASK_STOP);
 }
@@ -306,5 +308,5 @@ void calibrateSystem() {
     delay(500);
   }
   // Automatically go to cable test mode
-  setBoxMode('c');
+  setBoxMode(CABLE);
 }

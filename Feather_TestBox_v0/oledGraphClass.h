@@ -42,12 +42,12 @@ class oledGraph
     void setHorizontalBarValues(int numBars, float values[], int colors[]);
     void updateGraph(float newValue);
     void resetGraph();
-    //void drawTextLabels();
+    void drawTextLabels();
     
   private:
     void drawColumn(float val);
     void drawHLines();
-    void drawTextLabels();
+    //void drawTextLabels();
 
     int _locX=0;
     int _maxX=127;
@@ -87,11 +87,11 @@ class oledBarGraph
     void updateGraph(float newValue);
     void resetGraph();
     //void drawTextLabels();
+    void drawHLines();
+    void drawTextLabels();
     
   private:
     void drawColumn(float val);
-    void drawHLines();
-    void drawTextLabels();
 
     int _locX=0;
     int _maxX=127;

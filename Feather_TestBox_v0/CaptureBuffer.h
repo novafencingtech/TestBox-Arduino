@@ -19,12 +19,14 @@ class CaptureBuffer
     void setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
     long getLastTriggerMs();
     long getLastStateChange();
+    int getTriggerIndex();
+    long getCaptureTime(); //Interval between trigger start and capture finish
 
   private:
     void FinalizeBuffer();
     
     bool captureDone=false;
-    char triggerState='w'; // 'w' -- wait, 't' -- triggered, 'd'-done, 'i' --initiated
+    char triggerState='w'; // 'w' -- wait, 't' -- triggered, 'd'-done, 'i' --initiated, 'r' -- reset
     byte _tBufNum=0;
     int _ptIndx=0; //pre-trigger buffer index
     int _capIndx=0; //Capture buffer index
@@ -34,14 +36,21 @@ class CaptureBuffer
     int _preTrigSize;
     int _capBufSize;
     int _lastValue;
+
+    int _trigSampleIndex=0;
+    
     
     long _tStateChange=0;
     long _trigTime=0;  //Time in us
     long _trigTime_ms=0;
+    long _trigValidTime=0;
+    long _captureTime=0;
     int _trigValue;
     
     bool _trigHigh;
     long _trigDebounce=1500; //Trigger must remain below threshold continuously for this duration
+
+    int _armCount=0;
     
 };
 

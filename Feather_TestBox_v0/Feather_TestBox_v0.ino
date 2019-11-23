@@ -77,9 +77,9 @@ const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 2000L; //Time out before flagging the cable as disconnected
-const long weaponDisconnectTimeOut = 5000L; //Time out before flagging the cable as disconnected
+const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
-const int weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
+const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
 static constexpr int usFoilDebounce = weaponFoilDebounce * 1000; //Foil debounce in us
 static constexpr int usEpeeDebounce = weaponEpeeDebounce * 1000; //Foil debounce in us
@@ -99,6 +99,7 @@ const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mod
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
+const long dispCaptureHoldTime = 1000; //ms -- Minimum Duration that a hit capture displays for
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
@@ -167,10 +168,19 @@ volatile long toc = 0;
 volatile long tLastActive = 0; //ms - Time that an event was last detected
 
 // Store the box state
-volatile char BoxState = 'w'; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
+typedef enum TestBoxModes {
+  CABLE,
+  WPN_TEST,
+  WPN_GRAPH,
+  HIT_CAPTURE,
+  BOX_IDLE,
+  BOX_OFF
+};
+volatile TestBoxModes BoxState = WPN_GRAPH; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
 oledGraph lameGraph;
 oledGraph weaponGraph;
+oledGraph captureGraph;
 
 // ADC timer settings;
 
@@ -193,12 +203,13 @@ const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}
 ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
 ADC_Channel WeaponAC(5);
+//ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 
 //Buffers for high-speed capture
-#define PRE_TRIGGER_SIZE 20
-#define ADC_CAPTURE_LEN 256 //128-PreTrigger
+#define PRE_TRIGGER_SIZE 25
+#define ADC_CAPTURE_LEN 120 //128-PreTrigger
 //Declare arrays here so that we can use pointers internally to channels
 int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
 int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
@@ -337,15 +348,7 @@ void SAADC_IRQHandler(void) {
   }
 
   if (ActiveCh->bufferEnabled) {
-    ActiveCh->hsBuffer.AddSample(ADCValue);
-    if (ActiveCh->hsBuffer.CheckTrigger(ADCValue)) {
-      if (ActiveCh == &EpeeADC) {
-        ISR_EpeeHitDetect();
-      }
-      if (ActiveCh == &FoilADC) {
-        ISR_FoilHitDetect();
-      }
-    }
+    ActiveCh->hsBuffer.AddSample(ActiveCh->lastValue);
   }
 
   //Load the next channel
@@ -441,7 +444,7 @@ void setup() {
   tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
   //tLastActive= 0;
 
-  setBoxMode('i');  //Start the box
+  setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
   //BlinkLEDThenPowerOff();
@@ -520,7 +523,7 @@ void loop() {
   checkButtonState(); //Handle button pushes for mode states
 
   switch (BoxState) {
-    case 'c':
+    case CABLE:
       updateReady = true;
       for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
         if (!ChanArray[k].valueReady) {
@@ -532,40 +535,41 @@ void loop() {
         toc = micros();
         timing_seg = toc - tic;
         //updateOLED(BoxState);
-        if ((cableState.cableDC) && ( (t_now-t_idle_Check)>tIdleWakeUpInterval)) {
+        if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval)) {
           //Serial.println("Checking idle connections");
           if (checkWeaponConnected()) {
-            setBoxMode('r');
+            setBoxMode(WPN_GRAPH);
             return;
           }
           checkCableConnected();
           StartADC();
-          t_idle_Check=millis();
+          t_idle_Check = millis();
           //updateIdleMode();
         }
       }
       break;
-    case 'r':
+    case HIT_CAPTURE:
+    case WPN_GRAPH:
       //FoilADC.updateVals();
       //EpeeADC.updateVals();
       updateWeaponResistance();
       updateWeaponState();
-      if ((weaponState.cableDC) && ( (t_now-t_idle_Check)>tIdleWakeUpInterval)){
+      if ((weaponState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval)) {
         if (checkCableConnected()) {
-          setBoxMode('c');
+          setBoxMode(CABLE);
           return;
         }
-        checkWeaponConnected();        
+        checkWeaponConnected();
         StartADC();
-        t_idle_Check=millis();
+        t_idle_Check = millis();
       }
       break;
-    case 'w':
+    case WPN_TEST:
       updateWeaponStateDigital();
       break;
     case 's':
       break;
-    case 'i':
+    case BOX_IDLE:
       delay(tIdleWakeUpInterval);
       updateIdleMode();
       break;
@@ -577,25 +581,27 @@ void loop() {
     setPowerOff();
   }
 
-  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState != 'i') ) {
-    if ((BoxState == 'c') && (cableState.cableDC)) {
-      setBoxMode('i');
+  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState != BOX_IDLE) ) {
+    if ((BoxState == CABLE) && (cableState.cableDC)) {
+      setBoxMode(BOX_IDLE);
     }
-    if ((BoxState == 'r') && (weaponState.cableDC)) {
-      setBoxMode('i');
+    if (weaponState.cableDC) {
+      if ((BoxState == WPN_GRAPH) || (BoxState == HIT_CAPTURE) ) {
+        setBoxMode(BOX_IDLE);
+      }
     }
-    if ((BoxState == 'w') && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
-      setBoxMode('i');
+    if ((BoxState == WPN_TEST) && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
+      setBoxMode(BOX_IDLE);
     }
     //Serial.println("Setting idle mode");
   } else {
-    if (BoxState == 'i') {
+    if (BoxState == BOX_IDLE) {
       if (!cableState.cableDC) {
         //Serial.println("Wake up!");
-        setBoxMode('c');
+        setBoxMode(CABLE);
       } else {
         if (!weaponState.cableDC) {
-          setBoxMode('r');
+          setBoxMode(WPN_GRAPH);
         }
       }
     }
@@ -619,10 +625,10 @@ void loop() {
   if (t_now - t_OLED_upd > tOLEDRefresh) {
     //digitalWrite(DIAG_PIN,HIGH);
     //if ( ((t_now - tLastActive) > tDimOLED) && (BoxState != 'i') ) {
-      //dimOLEDDisplay();
-      //updateOLED('d');
+    //dimOLEDDisplay();
+    //updateOLED('d');
     //} else {
-      updateOLED(BoxState);
+    updateOLED(BoxState);
     //}
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
