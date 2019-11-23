@@ -567,14 +567,16 @@ void updateOLED(TestBoxModes Mode) {
         updateWeaponIndicators();
         static bool armed = false;
         long captureDuration=0;
-        int trigIndx=0;
+        int trigIndx,lastIndx,trimVal;
 
         if (FoilADC.hsBuffer.CaptureDone()) {
           newConnection = foil;
           lastConnection = foil;
           sTime = millis();
           trigIndx=FoilADC.hsBuffer.getTriggerIndex();
-          captureDuration=FoilADC.hsBuffer.getCaptureTime();
+          lastIndx=FoilADC.hsBuffer.getLastTriggerIndex();
+          trimVal=FoilADC.getTrim();
+          captureDuration=FoilADC.hsBuffer.getTriggerDuration();
           labelTitle("Foil hit", RED);
         }
 
@@ -582,7 +584,9 @@ void updateOLED(TestBoxModes Mode) {
           newConnection = epee;
           lastConnection = epee;
           trigIndx=EpeeADC.hsBuffer.getTriggerIndex();
-          captureDuration=EpeeADC.hsBuffer.getCaptureTime();
+          lastIndx=EpeeADC.hsBuffer.getLastTriggerIndex();
+          trimVal=EpeeADC.getTrim();
+          captureDuration=EpeeADC.hsBuffer.getTriggerDuration();
           sTime = millis();
           labelTitle("Epee hit", RED);
         }
@@ -597,13 +601,18 @@ void updateOLED(TestBoxModes Mode) {
           if (FoilADC.hsBuffer.CaptureDone() || EpeeADC.hsBuffer.CaptureDone())  {
             captureGraph.resetGraph();
             for (int k = 0; k < ADC_CAPTURE_LEN; k++) {
-              captureGraph.updateGraph(ADC_CaptureBuffer[k]*FoilADC.LOW_GAIN);
-            }
+              captureGraph.updateGraph((ADC_CaptureBuffer[k]-trimVal)*FoilADC.LOW_GAIN);
+            }            
             tft.drawFastVLine(trigIndx, 28, 127, CYAN);
+            tft.drawFastVLine(lastIndx, 28, 127, CYAN);
             tft.setTextSize(1);
             tft.setTextColor(CYAN);
-            tft.setCursor(trigIndx+20,65);
-            tft.print(captureDuration/1000); tft.print("ms");
+            tft.setCursor(trigIndx+20,65);            
+            tft.print(captureDuration/1000);
+            if (lastIndx>=(ADC_CAPTURE_LEN-1)) {
+              tft.print("+");
+            }
+            tft.print(" ms");
             captureGraph.drawTextLabels();
             lastCapture = millis();
             armed = false;

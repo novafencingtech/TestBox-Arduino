@@ -58,6 +58,14 @@ long CaptureBuffer::getCaptureTime() {
   return (_captureTime-_trigTime);
 }
 
+int CaptureBuffer::getLastTriggerIndex() {
+  return _lastCapTriggerIndx;
+}
+
+long CaptureBuffer::getTriggerDuration() {
+  return (_lastTrigTime-_trigTime);
+}
+
 void CaptureBuffer::AddSample(int value) {
   _lastValue = value;
   static bool oldTriggerState = false;
@@ -101,7 +109,11 @@ void CaptureBuffer::AddSample(int value) {
         _trigTime_ms = millis();
       }
       break;
-    case 't':
+    case 't':    
+      if (triggerValue) {
+        _lastTrigTime=micros();
+        _lastCapTriggerIndx=_capIndx;
+      }
       _captureBuffer[_capIndx] = value;
       _capIndx++;
       if (_capIndx >= _capBufSize) { //Capture buffer is full, trigger complete

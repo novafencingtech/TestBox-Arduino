@@ -99,7 +99,7 @@ const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mod
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
-const long dispCaptureHoldTime = 1000; //ms -- Minimum Duration that a hit capture displays for
+const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit capture displays for
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
@@ -209,7 +209,7 @@ static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 
 //Buffers for high-speed capture
 #define PRE_TRIGGER_SIZE 25
-#define ADC_CAPTURE_LEN 120 //128-PreTrigger
+#define ADC_CAPTURE_LEN 128 //128-PreTrigger
 //Declare arrays here so that we can use pointers internally to channels
 int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
 int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];

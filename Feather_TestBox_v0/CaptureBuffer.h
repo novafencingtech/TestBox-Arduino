@@ -20,6 +20,8 @@ class CaptureBuffer
     long getLastTriggerMs();
     long getLastStateChange();
     int getTriggerIndex();
+    int getLastTriggerIndex();
+    long getTriggerDuration(); //Time between initial trigger & last trigger in the buffer
     long getCaptureTime(); //Interval between trigger start and capture finish
 
   private:
@@ -38,7 +40,8 @@ class CaptureBuffer
     int _lastValue;
 
     int _trigSampleIndex=0;
-    
+    int _lastCapTriggerIndx=0;
+    long _lastTrigTime=0;
     
     long _tStateChange=0;
     long _trigTime=0;  //Time in us

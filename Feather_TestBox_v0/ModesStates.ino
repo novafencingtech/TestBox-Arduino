@@ -41,13 +41,13 @@ void setWeaponResistanceMode(bool enableCapture) {
     //FoilADC.hsBuffer.SetBuffers(int *mainBuffer, int bufferSize, int *preTrigger1, int *preTrigger2, int preTriggerLen);
     FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigFoil[0][0]),&(ADC_PreTrigFoil[1][0]),PRE_TRIGGER_SIZE);
     //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
-    FoilADC.hsBuffer.setTrigger(2048, true, usFoilDebounce); //debounce in us
+    FoilADC.hsBuffer.setTrigger(3096, true, usEpeeDebounce); //debounce in us
     FoilADC.bufferEnabled=true;
     FoilADC.hsBuffer.ResetTrigger();    
 
     EpeeADC.hsBuffer.SetBuffers(ADC_CaptureBuffer,ADC_CAPTURE_LEN,&(ADC_PreTrigEpee[0][0]),&(ADC_PreTrigEpee[1][0]),PRE_TRIGGER_SIZE);
     //FoilADC.hsBuffer.setTrigger(int value, bool TriggerHigh, long debounce); //debounce in us
-    EpeeADC.hsBuffer.setTrigger(2048, false, usEpeeDebounce); //debounce in us
+    EpeeADC.hsBuffer.setTrigger(1024, false, usEpeeDebounce); //debounce in us
     EpeeADC.bufferEnabled=true;
     EpeeADC.hsBuffer.ResetTrigger();  
 
