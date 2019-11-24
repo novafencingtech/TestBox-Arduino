@@ -430,6 +430,7 @@ void updateOLED(TestBoxModes Mode) {
   static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
+  static unsigned long dispHoldTime; //Don't allow display to switch mode if this is set
   static unsigned long lastCapture = 0;
   bool inter;
   static long tIdleLEDOn = 0;
@@ -640,16 +641,21 @@ void updateOLED(TestBoxModes Mode) {
       newConnection = lastConnection;
       if (weaponState.foilOn) {
         //lastConnection = foil;
-        newConnection = foil;
-        sTime = millis();
+        sTime = millis();        
+        newConnection = foil;        
       }
       if (weaponState.epeeOn) {
         //lastConnection = epee;
         newConnection = epee;
         sTime = millis();
       }
+      if ((lastConnection==shorted) && (sTime < dispHoldTime)) {
+        newConnection=shorted;
+      }
+      
       if ((weaponState.foilOn) && (weaponState.epeeOn)) { //short
         newConnection = shorted;
+        dispHoldTime=millis()+5000ul;
         //lastConnection = shorted;
       }
 
@@ -673,7 +679,7 @@ void updateOLED(TestBoxModes Mode) {
           weaponGraph.resetGraph();
         }
         if (newConnection == shorted) {
-          labelTitle("Weapon GND", RED);
+          labelTitle("Wep GND", RED);
           tft.fillRect(0, 27, 128, 100, BLACK);
           oldA = oldB = 320;
           //oldA=weaponState.ohm10xEpee;
