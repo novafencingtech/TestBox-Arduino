@@ -569,9 +569,10 @@ void loop() {
         toc = micros();
         timing_seg = toc - tic;
         //updateOLED(BoxState);
-        if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval)) {
+        if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval) && ((t_now-tLastActive)>cableDisconnectTimeOut)) {
           //Serial.println("Checking idle connections");
           if (checkWeaponConnected()) {
+            Serial.println("Weapon connected, switching mode");
             setBoxMode(WPN_GRAPH);
             return;
           }

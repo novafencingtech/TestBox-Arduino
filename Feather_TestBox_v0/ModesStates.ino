@@ -43,6 +43,8 @@ void setWeaponResistanceMode(bool enableCapture) {
   digitalWrite(MUX_LATCH, HIGH);
 
   StopADC();
+
+  cableState.cableDC = true;
   
   InitializeADC(enableCapture);
   loadCalibrationData();
@@ -92,6 +94,8 @@ void setCableTestMode() {
 
   ActiveCh = &(ChanArray[0]);
 
+  weaponState.cableDC = true;
+  
   BoxState = CABLE;
   //tLastActive = millis();
   //updateCableState();
