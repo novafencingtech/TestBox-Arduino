@@ -321,8 +321,8 @@ void displayBatteryStatus() {
   static const byte BattX0 = 128 - BattW - 1;
   static const byte BattY0 = 1;
 
-  if (batteryVoltage > 3.4) {
-    battPercent = int( (batteryVoltage - 3.4) / (4.2 - 3.4) * 100);
+  if (batteryVoltage > 2.5) {
+    battPercent = int( (batteryVoltage - 3.3) / (4.1 - 3.3) * 100);
     battActive = true;
   } else {
     return;
@@ -1019,7 +1019,7 @@ void writeSerialOutput(TestBoxModes Mode) {
 
     dtostrf(EffSampleRate, 5, 0, tempString1); //Effective sample rate
     dtostrf(batteryVoltage, 5, 2, tempString2);
-    snprintf(outputString, bufferSize, "t=%ld, N=%ld, %sHz, %c, Bat=%sV\r\n", t_now, numSamples, tempString1, BoxState, tempString2);
+    snprintf(outputString, bufferSize, "t=%ld, N=%ld, %sHz, Bat=%sV\r\n", t_now, numSamples, tempString1, tempString2);
     Serial.write(outputString);
     tHeartBeat = millis();
     t_last_upd = millis();
