@@ -152,6 +152,7 @@ int ValColor(int val) {
   if (val > weaponGreenThresh) return ORANGE;
   return GREEN;
 }
+/*
 void drawVLine(int col, int startRow, int endRow, int color) {
   int sRow = min(max(27, startRow), 127);
   int eRow = min(max(27, endRow), 127);
@@ -163,112 +164,7 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   if (color == GREEN) s = "GREEN";
   if (color == BLACK) s = "BLACK";
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
-}
-/*
-  void drawColumn(int col, int val) {
-  //Assumes we have only one graph EVER
-  static int oldVal = 0;
-  static int oldRow = 0;
-  //0-9.9 ohm, rows 27-127
-  int valRow = 127 - min(val, 99); //convert ohms in tenths to row
-  //int oldRow = 127 - min(oldVal, 99); //same with old val
-  int topRow, botRow, orangeRow, greenRow;
-  //sort ends so we're always drawing from top to bottom
-  if (valRow > oldRow) {
-    topRow = oldRow;
-    botRow = valRow;
-  } else {
-    topRow = valRow;
-    botRow = oldRow;
-  }
-  //  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
-  orangeRow = 127 - weaponOrangeThresh; //first line of orange
-  greenRow = 127 - weaponGreenThresh; //first line of green
-  tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
-  drawVLine(col, 28, topRow - 1, BLACK); //clear out above topRow
-  if (topRow > 77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
-  if (topRow > 107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
-  if (topRow < orangeRow) { //some red
-    drawVLine(col, topRow, min(botRow, orangeRow - 1), RED);
-    if (botRow >= orangeRow) {
-      if (botRow >= greenRow) { //extends to green
-        drawVLine(col, orangeRow, greenRow - 1, ORANGE); //complete orange section
-        drawVLine(col, greenRow, botRow, GREEN);
-      } else { //ends in orange
-        drawVLine(col, orangeRow, botRow, ORANGE);
-      }
-    }
-  } else {  //no red
-    if (topRow < greenRow) { //some orange
-      drawVLine(col, topRow, min(botRow, greenRow - 1), ORANGE);
-      if (botRow > greenRow) { //extends to green
-        drawVLine(col, greenRow, botRow, GREEN);
-      }
-    } else { //green only
-      drawVLine(col, topRow, botRow, GREEN);
-    }
-  }
-  if (botRow < 127) { //fill black to bottom
-    drawVLine(col, botRow + 1, 127, BLACK);
-    if (botRow < 77) tft.drawPixel(col, 77, WHITE); //restore 5 ohm line
-    if (botRow < 107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
-    tft.drawPixel(col, 127, WHITE); //restore 0 ohm line
-  }
-  if (col < 127) {
-    int icol = col + 1; int irow = max(valRow - 1, 28);
-    //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    tft.drawFastVLine(icol, irow, 2, CYAN);
-  }  //show where we are as 2x1 cyan line at col+1
-  oldRow = valRow;
-  oldVal = val;
-  }*/
-
-//Draw a static line graph from an array
-//  rData = array with resistance values in tenths of an ohm
-//  oThresh = resistance of Orange threshold im tenths of an ohm
-//  gThresh = resistance of Green threshold in tenths of an ohm
-/* void LineGraph(int rData[127]) {
-  int i, val, maxVal, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
-  maxVal = 0;
-  for (i = 0; i < 128; i++) if ((rData[i] > val) && (rData[i] != 990)) maxVal = rData[i]; //find biggest value
-  // We reserve 28 rows for text, leaving 100 rows for graph
-  // Graphs are scaled to the max resistance in the array
-  //    Max R  Precision (1 pixel)
-  //      10    .1 ohm
-  //      20   .25 ohm
-  //     100    1 ohm
-  //     500    5 ohm
-  startTime = micros();
-  vMax = 100;  // assume 10 ohm scale
-  if (maxVal > 100) vMax = 500;  //possible 20 ohm scale
-  if (maxVal > 200) vMax = 1000;  //possible 100 scale
-  if (maxVal > 1000) vMax = 5000;  //nope, it's 500 ohm scale
-  if (vMax != oldScale) {  //don't change scale fast
-    if (slowShift++ < SLOWCOUNT) {
-      vMax = oldScale;  //use the old scale for a while
-    }
-    else {  //new scale
-      oldScale = vMax;  //change scale
-      slowShift = 0;  //restart slow filter
-    }
-  } else slowShift = 0;  //stay in your lane
-  vRatio = vMax / 100;  //tenths of an ohm per row
-  oY = 100 - (weaponOrangeThresh / vRatio);  //calculate row # of orange threshold
-  gY = 100 - (weaponGreenThresh / vRatio);  // same for green threshold
-  //oldVal = rData[0]; //force first column to be a point
-  for (i = 0; i < 128; i++) {
-    val = rData[i];
-    if (val == 990) val = maxVal; //if not connected, use max value in array
-    drawColumn(i, val);
-    //oldVal = val;
-  }
-  endTime = micros();
-  if (startTime < endTime) {
-    totalTime = endTime - startTime;
-    timeSamples = 1ul;
-  };
-  }
-*/
+}*/
 
 void InitializeDisplay()
 {
@@ -282,7 +178,7 @@ void InitializeDisplay()
   tft.println("  G Allen \n     &\n  B Rosen");
 
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
-  weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
+  weaponGraph = oledGraph(&tft, 0, 40, 127-40, 128, 0.0f, 20.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
@@ -292,8 +188,8 @@ void InitializeDisplay()
   lameGraph.setHorizontalBarValues(5, vals, colors);
   //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
 
-  float wvals[4] {0.0f, 2.0f, 5.0f, 10.0f};
-  int wcolors[4] {weaponGraph.cGREEN, weaponGraph.cORANGE, weaponGraph.cRED, weaponGraph.cRED};
+  float wvals[4] {0.0f, 5.0f, 10.0f,20.0f};
+  int wcolors[4] {weaponGraph.cGREEN, weaponGraph.cYELLOW, weaponGraph.cORANGE, weaponGraph.cRED};
   weaponGraph.setHorizontalBarValues(4, wvals, wcolors);
 
   float cvals[4] {0.0f, 10.0f, 20.0f, 40.0f};
@@ -421,16 +317,16 @@ void graph3(char *s) {
 void updateOLED(TestBoxModes Mode) {
   static int i = 0, val, oldMode = 'z';
   //static bool oledEnabled = true;
-  enum lastConnected { first, none, epee, foil, shorted};
+  //enum lastConnected { first, none, epee, foil, shorted};
   enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_wpnR, disp_wpnTest, disp_capture, disp_unk, disp_error};
-  static lastConnected lastConnection;
-  lastConnected newConnection;
+  //static lastConnected lastConnection;
+  //lastConnected newConnection;
   //static lastConnected lastConnectionSeen;
   static displayStates currentDisplayState = disp_unk;
   static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
-  static unsigned long sTime; //start time of last seen foil/epee connection
-  static unsigned long dispHoldTime; //Don't allow display to switch mode if this is set
+  //static unsigned long sTime; //start time of last seen foil/epee connection
+  //static unsigned long dispHoldTime; //Don't allow display to switch mode if this is set
   static unsigned long lastCapture = 0;
   bool inter;
   static long tIdleLEDOn = 0;
@@ -521,16 +417,16 @@ void updateOLED(TestBoxModes Mode) {
       case disp_capture:
         labelTitle("Capture", RED);
         captureGraph.resetGraph();
-        lastConnection = first;
+        //lastConnection = first;
         break;
       case disp_wpnR:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
-        lastConnection = first;
+        //lastConnection = first;
         createWeaponDisplay();
         break;
       case disp_wpnTest:
         foilIndicator = epeeIndicator = foilInterIndicator = epeeInterIndicator = BLACK;
-        lastConnection = first;
+        //lastConnection = first;
         labelTitle("WpnTest", YELLOW);
         //tft.setTextSize(2);
         //tft.print("WpnTest");
@@ -550,13 +446,13 @@ void updateOLED(TestBoxModes Mode) {
   switch (currentDisplayState) {
     case disp_cable:
     case disp_clip:
-      startTime = micros();
+      //startTime = micros();
       updateDisplayCableMode();
-      endTime = micros();
-      if (startTime < endTime) {
-        totalTime += (endTime - startTime);
-        timeSamples += 1ul;
-      }
+//      endTime = micros();
+//      if (startTime < endTime) {
+//        totalTime += (endTime - startTime);
+//        timeSamples += 1ul;
+//      }
       break;
 
     case disp_lame:
@@ -570,9 +466,9 @@ void updateOLED(TestBoxModes Mode) {
         int trigIndx,lastIndx,trimVal;
 
         if (FoilADC.hsBuffer.CaptureDone()) {
-          newConnection = foil;
-          lastConnection = foil;
-          sTime = millis();
+          //newConnection = foil;
+          //lastConnection = foil;
+          //sTime = millis();
           trigIndx=FoilADC.hsBuffer.getTriggerIndex();
           lastIndx=FoilADC.hsBuffer.getLastTriggerIndex();
           trimVal=FoilADC.getTrim();
@@ -581,13 +477,13 @@ void updateOLED(TestBoxModes Mode) {
         }
 
         if (EpeeADC.hsBuffer.CaptureDone()) {
-          newConnection = epee;
-          lastConnection = epee;
+          //newConnection = epee;
+          //lastConnection = epee;
           trigIndx=EpeeADC.hsBuffer.getTriggerIndex();
           lastIndx=EpeeADC.hsBuffer.getLastTriggerIndex();
           trimVal=EpeeADC.getTrim();
           captureDuration=EpeeADC.hsBuffer.getTriggerDuration();
-          sTime = millis();
+          //sTime = millis();
           labelTitle("Epee hit", RED);
         }
 
@@ -636,91 +532,10 @@ void updateOLED(TestBoxModes Mode) {
       }
       break;
     case disp_wpnR:
-      updateWeaponIndicators();
+      //updateWeaponIndicators();
 
-      newConnection = lastConnection;
-      if (weaponState.foilOn) {
-        //lastConnection = foil;
-        sTime = millis();        
-        newConnection = foil;        
-      }
-      if (weaponState.epeeOn) {
-        //lastConnection = epee;
-        newConnection = epee;
-        sTime = millis();
-      }
-      if ((lastConnection==shorted) && (sTime < dispHoldTime)) {
-        newConnection=shorted;
-      }
-      
-      if ((weaponState.foilOn) && (weaponState.epeeOn)) { //short
-        newConnection = shorted;
-        dispHoldTime=millis()+5000ul;
-        //lastConnection = shorted;
-      }
+      updateWeaponDisplay();
 
-      if ((millis() - sTime) > 5000ul) {
-        newConnection = none;
-      }
-
-      if (newConnection != lastConnection)  {
-        //tft.fillRect(0, 28, 128, 100, BLACK);
-        //tft.setTextSize(2);
-        //tft.setTextColor(GREEN, BLACK);
-        //tft.setCursor(2, 2);
-        if (newConnection == epee) {
-          //tft.print("Epee ");
-          labelTitle("Epee", GREEN);
-          weaponGraph.resetGraph();
-        }
-        if (newConnection == foil) {
-          //tft.print("Foil ");
-          labelTitle("Foil", GREEN);
-          weaponGraph.resetGraph();
-        }
-        if (newConnection == shorted) {
-          labelTitle("Wep GND", RED);
-          tft.fillRect(0, 27, 128, 100, BLACK);
-          oldA = oldB = 320;
-          //oldA=weaponState.ohm10xEpee;
-          //oldB=weaponState.ohm10xFoil;
-          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
-          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
-        }
-        if (newConnection == none) {
-          //tft.setTextColor(YELLOW, BLACK);
-          weaponGraph.resetGraph();
-          if (lastConnection == epee) {
-            labelTitle("Epee Open", YELLOW);
-            //tft.print("Epee Open");
-          }
-          if (lastConnection == foil) {
-            labelTitle("Foil Open", YELLOW);
-            //tft.print("Foil Open");
-          }
-        }
-        lastConnection = newConnection;
-      }
-
-      switch (lastConnection) {
-        case foil:
-          weaponGraph.updateGraph(weaponState.ohm_Foil);
-          printVal(0, 50, YELLOW, "", weaponState.ohm10xFoil);
-          break;
-        case epee:
-          weaponGraph.updateGraph(weaponState.ohm_Epee);
-          printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);
-          break;
-        case first:
-        case none:
-          break;
-        case shorted:
-          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
-          //oldA=weaponState.ohm10xEpee;
-          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
-          //oldB=weaponState.ohm10xFoil;
-          break;
-      }
       break;
     case disp_wpnTest:
       updateWeaponTestLights();
@@ -784,6 +599,102 @@ void updateWeaponIndicators() {
     tft.fillRect(90, 19, 20, 7, BLACK);
     epeeInterIndicator = BLACK;
   }
+}
+
+void updateWeaponDisplay() {
+  enum lastConnected { first, none, epee, foil, shorted};
+  static lastConnected lastConnection=first;
+  lastConnected newConnection;
+  static unsigned long lastSeenTime,dispHoldTime;
+  static int oldVal, oldA, oldB;
+  
+      newConnection = lastConnection;
+      if (weaponState.foilOn) {
+        //lastConnection = foil;
+        lastSeenTime = millis();        
+        newConnection = foil;        
+      }
+      if (weaponState.epeeOn) {
+        //lastConnection = epee;
+        newConnection = epee;
+        lastSeenTime = millis();
+      }
+      if ((lastConnection==shorted) && (lastSeenTime < dispHoldTime)) {
+        newConnection=shorted;
+      }
+      
+      if ((weaponState.foilOn) && (weaponState.epeeOn)) { //short
+        newConnection = shorted;
+        dispHoldTime=millis()+5000ul;
+        //lastConnection = shorted;
+      }
+
+      if ((millis() - lastSeenTime) > 5000ul) {
+        newConnection = none;
+      }
+
+      if (newConnection != lastConnection)  {
+        //tft.fillRect(0, 28, 128, 100, BLACK);
+        //tft.setTextSize(2);
+        //tft.setTextColor(GREEN, BLACK);
+        //tft.setCursor(2, 2);
+        if (newConnection == epee) {
+          //tft.print("Epee ");
+          //labelTitle("Epee", GREEN);
+          weaponGraph.resetGraph();
+        }
+        if (newConnection == foil) {
+          //tft.print("Foil ");
+          //labelTitle("Foil", GREEN);
+          weaponGraph.resetGraph();
+        }
+        if (newConnection == shorted) {
+          labelTitle("Wep GND", RED);
+          tft.fillRect(0, 27, 128, 100, BLACK);
+          oldA = oldB = 320;
+          //oldA=weaponState.ohm10xEpee;
+          //oldB=weaponState.ohm10xFoil;
+          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
+          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
+        }
+        if (newConnection == none) {
+          //tft.setTextColor(YELLOW, BLACK);
+          weaponGraph.resetGraph();
+          if (lastConnection == epee) {
+            labelTitle("Epee Open", YELLOW);
+            //tft.print("Epee Open");
+          }
+          if (lastConnection == foil) {
+            labelTitle("Foil Open", YELLOW);
+            //tft.print("Foil Open");
+          }
+        }
+        lastConnection = newConnection;
+      }
+
+      switch (lastConnection) {
+        case foil:
+          barGraph(2, 20, weaponState.ohm10xFoil, oldVal, "Foil");
+          weaponGraph.updateGraph(weaponState.ohm_Foil);
+          //printVal(0, 50, YELLOW, "", weaponState.ohm10xFoil);
+          oldVal=weaponState.ohm10xFoil;
+          break;
+        case epee:
+          barGraph(2, 20, weaponState.ohm10xEpee, oldVal, "Epee");
+          weaponGraph.updateGraph(weaponState.ohm_Epee);
+          oldVal=weaponState.ohm10xEpee;
+          //printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);          
+          break;
+        case first:
+        case none:
+          break;
+        case shorted:
+          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
+          //oldA=weaponState.ohm10xEpee;
+          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
+          //oldB=weaponState.ohm10xFoil;
+          break;
+      }
 }
 
 void updateWeaponTestLights() {

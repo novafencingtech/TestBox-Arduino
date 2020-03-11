@@ -108,12 +108,14 @@ void oledGraph::drawColumn(float val){
 
   topRow=max(topRow,_locY);
   botRow=min(botRow,_maxY);
-  _tft->drawFastVLine(_col, _locY, _maxY-_locY+1, cBLACK); //clear out the column
-  
-  //Re-draw the horizontal lines
-  for (int k=0; k<_numActiveBars; k++) {
-    _tft->drawPixel(_col, _hBarY[k], cWHITE);
-  }  
+  for (int k=_col; k<min(_col+10,_maxY); k++) {
+    _tft->drawFastVLine(k, _locY, _maxY-_locY+1, cBLACK); //clear out the column
+      
+    //Re-draw the horizontal lines
+    for (int j=0; j<_numActiveBars; j++) {
+      _tft->drawPixel(_col, _hBarY[j], cWHITE);
+    }  
+  }    
 
   int curRow=topRow;
   int endRow;
@@ -157,8 +159,9 @@ void oledGraph::drawColumn(float val){
   if (_col < (_locX+_width) ) {
     int irow = max(valRow - 1, _locY);
     //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    _tft->drawFastVLine(_col+1, irow, 2, cCYAN);
-    _tft->drawFastVLine(_col+2, irow, 2, cCYAN);
+    _tft->drawFastVLine(_col+1, irow, 4, cCYAN);
+    _tft->drawFastVLine(_col+2, irow, 4, cCYAN);
+    _tft->drawFastVLine(_col+3, irow, 4, cCYAN);
   }  //show where we are as 2x1 cyan line at col+1
   
 }
