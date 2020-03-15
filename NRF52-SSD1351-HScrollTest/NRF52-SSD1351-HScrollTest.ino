@@ -40,15 +40,15 @@ void setup() {
   tft.begin();
   
   
-  tft.setRotation(3);
+  tft.setRotation(0);
   //tft.setAddrWindow(0,0,127,127);
   //tft.setDisplayStartLine(0x0);
   
-  //tft.setHorizontalScroll(false, 0xff, 0,128,0x01);
+  tft.setHorizontalScroll(false, 0xff, 0,128,0x01);
     
 
-  tft.enableDisplay(false);
-  tft.enableDisplay(true);
+  //tft.enableDisplay(false);
+  //tft.enableDisplay(true);
   tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.drawLine(0,0,127, 127, WHITE);
 
@@ -59,9 +59,12 @@ void setup() {
   tft.setCursor(0,0);
   tft.print("Static");
 
-  tft.setCursor(0,85);
-  tft.print("Scrolling");
-  //tft.setHorizontalScroll(true, 0xff, 25,103,B01);
+  tft.setTextSize(1);
+  tft.setCursor(80,85);
+  tft.print("20");
+  tft.setCursor(120,85);
+  tft.print("5");
+  tft.setHorizontalScroll(true, 0x01, 50,128-50,B01);
 
   //tft.setDisplayOffset(40);
   //tft.setMuxRatio(70);
@@ -74,67 +77,27 @@ void setup() {
 
 
 void loop() {
-  struct lineBuffer {
-    uint8_t pix_start=0;
-    uint8_t lineLength=0;
-    uint16_t color=BLACK;
-  };
-  const int BUF_SIZE=100;
-  static int lastVal=50;
-  int newVal=50;
-  unsigned long tic,toc;
-
-  static lineBuffer circBuffer[BUF_SIZE];
-  static int bufIndx=0;
+  static uint8_t dispRow,lastVal,newVal;
+  static unsigned long tic,toc;
   
   // put your main code here, to run repeatedly:
 
-  //tft.drawLine(dispRow,lastVal,dispRow,newVal,BLUE);
-  //lastVal=newVal;
+  newVal=random(50,127);
+  dispRow=100;
+  tft.drawLine(dispRow,lastVal,dispRow,newVal,BLUE);
+  tft.fillRect(0,50,2,127,BLACK);
+  lastVal=newVal;
 
-  delay(100);
+  delay(500);
 
   tic=micros();
-  uint8_t tempIndx=bufIndx;
-  for (int k=0;k<BUF_SIZE;k++) {
-    tempIndx=bufIndx+k;
-    if (tempIndx+1>=BUF_SIZE) {
-      tempIndx=0;
-    }
-    tft.drawFastVLine(k,circBuffer[tempIndx].pix_start,circBuffer[tempIndx].lineLength,BLACK);
-    tft.drawFastVLine(k,circBuffer[tempIndx+1].pix_start,circBuffer[tempIndx+1].lineLength,circBuffer[tempIndx+1].color);
-  }
-  tft.fillRect(BUF_SIZE,lastVal-2,5,5,BLACK);
 
-  newVal=lastVal+random(-10,10);
-  if (newVal<50) {
-    newVal=60;
-  }
-  if (newVal>127) {
-    newVal=117;
-  }
-
-  bufIndx++;
-  if (bufIndx==BUF_SIZE) {
-    bufIndx=0;
-  }
-  if (newVal>lastVal) {
-    circBuffer[bufIndx].pix_start=lastVal;
-    circBuffer[bufIndx].lineLength=newVal-lastVal;
-    circBuffer[bufIndx].color=GREEN;
-  } else {
-    circBuffer[bufIndx].pix_start=newVal;
-    circBuffer[bufIndx].lineLength=lastVal-newVal;
-    circBuffer[bufIndx].color=RED;
-    if (lastVal==newVal) {
-      circBuffer[bufIndx].lineLength=1;
-    }
-  }
-  lastVal=newVal;
-  tft.drawFastVLine(BUF_SIZE,circBuffer[bufIndx-1].pix_start,circBuffer[bufIndx-1].lineLength,BLACK);
-  tft.drawFastVLine(BUF_SIZE,circBuffer[bufIndx].pix_start,circBuffer[bufIndx].lineLength,BLUE);
-  tft.fillRect(BUF_SIZE,newVal-2,5,5,CYAN);
-
+  tft.setTextSize(1);
+  tft.setCursor(110,55);
+  tft.print(" 20");
+  tft.setCursor(110,85);
+  tft.print(" 5");
+    
   toc=micros();
   tft.setCursor(0,0);
   tft.print(toc-tic);

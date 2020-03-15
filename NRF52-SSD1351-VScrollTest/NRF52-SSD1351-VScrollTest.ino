@@ -44,7 +44,7 @@ void setup() {
   //tft.setAddrWindow(0,0,127,127);
   //tft.setDisplayStartLine(0x0);
   
-  //tft.setHorizontalScroll(false, 0xff, 0,128,0x01);
+  tft.setHorizontalScroll(false, 0xff, 0,128,0x01);
     
 
   tft.enableDisplay(false);
@@ -57,14 +57,14 @@ void setup() {
   tft.setTextColor(WHITE,BLACK);
   tft.setTextWrap(false);
   tft.setCursor(0,0);
-  tft.print("Static");
+  tft.print(" Static");
 
   tft.setCursor(0,85);
   tft.print("Scrolling");
   //tft.setHorizontalScroll(true, 0xff, 25,103,B01);
 
   //tft.setDisplayOffset(40);
-  //tft.setMuxRatio(70);
+  tft.setMuxRatio(127);
   
 
   //Serial.begin();
@@ -83,29 +83,21 @@ void loop() {
   static int lastVal=50;
   int newVal=50;
   unsigned long tic,toc;
+  static uint8_t dispRow,zeroRow;
+  
 
   static lineBuffer circBuffer[BUF_SIZE];
   static int bufIndx=0;
   
   // put your main code here, to run repeatedly:
 
-  //tft.drawLine(dispRow,lastVal,dispRow,newVal,BLUE);
-  //lastVal=newVal;
-
   delay(100);
 
   tic=micros();
-  uint8_t tempIndx=bufIndx;
-  for (int k=0;k<BUF_SIZE;k++) {
-    tempIndx=bufIndx+k;
-    if (tempIndx+1>=BUF_SIZE) {
-      tempIndx=0;
-    }
-    tft.drawFastVLine(k,circBuffer[tempIndx].pix_start,circBuffer[tempIndx].lineLength,BLACK);
-    tft.drawFastVLine(k,circBuffer[tempIndx+1].pix_start,circBuffer[tempIndx+1].lineLength,circBuffer[tempIndx+1].color);
-  }
-  tft.fillRect(BUF_SIZE,lastVal-2,5,5,BLACK);
+  tft.setCursor(0,0);
 
+  tft.drawFastVLine(zeroRow,50,128-50,BLACK);
+  
   newVal=lastVal+random(-10,10);
   if (newVal<50) {
     newVal=60;
@@ -113,29 +105,27 @@ void loop() {
   if (newVal>127) {
     newVal=117;
   }
+  dispRow=(zeroRow+100) & 0x7F; //127 for mod operator
 
-  bufIndx++;
-  if (bufIndx==BUF_SIZE) {
-    bufIndx=0;
-  }
   if (newVal>lastVal) {
-    circBuffer[bufIndx].pix_start=lastVal;
-    circBuffer[bufIndx].lineLength=newVal-lastVal;
-    circBuffer[bufIndx].color=GREEN;
+    tft.drawFastVLine(dispRow,lastVal,newVal-lastVal,RED);  
   } else {
-    circBuffer[bufIndx].pix_start=newVal;
-    circBuffer[bufIndx].lineLength=lastVal-newVal;
-    circBuffer[bufIndx].color=RED;
+    tft.drawFastVLine(dispRow,lastVal,lastVal-newVal,GREEN); 
     if (lastVal==newVal) {
-      circBuffer[bufIndx].lineLength=1;
+      tft.drawFastVLine(dispRow,lastVal,1,BLUE); 
     }
   }
+  tft.fillRect((dispRow+1) & 0x7F,lastVal-2,5,5,BLACK);
+  tft.fillRect((dispRow+2) & 0x7F,newVal-2,5,5,CYAN);
+
   lastVal=newVal;
-  tft.drawFastVLine(BUF_SIZE,circBuffer[bufIndx-1].pix_start,circBuffer[bufIndx-1].lineLength,BLACK);
-  tft.drawFastVLine(BUF_SIZE,circBuffer[bufIndx].pix_start,circBuffer[bufIndx].lineLength,BLUE);
-  tft.fillRect(BUF_SIZE,newVal-2,5,5,CYAN);
+  zeroRow=(zeroRow+1) & (B01111111);
+
+  tft.setCursor(zeroRow+1,0);
+  tft.print(" Static");
+  tft.setDisplayStartLine(zeroRow);
 
   toc=micros();
-  tft.setCursor(0,0);
-  tft.print(toc-tic);
+  //tft.setCursor(zeroRow+75,0);
+  //tft.print(dispRow);
 }
