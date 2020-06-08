@@ -1,12 +1,99 @@
 void setStatusText(char *msg, SM_RGB color) {
   backgroundLayer.fillRectangle(20, 23, 43, 31, LED_BLACK);
   backgroundLayer.setFont(font3x5);
-  backgroundLayer.drawString(statusTextLocX, statusTextLocY, LED_BLACK, "    ");
+  //backgroundLayer.drawString(statusTextLocX, statusTextLocY, LED_BLACK, "    ");
   backgroundLayer.drawString(statusTextLocX, statusTextLocY, color, msg);
   backgroundLayer.swapBuffers();
 }
 
 void clearScreen() {
+  backgroundLayer.fillScreen(LED_BLACK);
+  backgroundLayer.swapBuffers();
+}
+
+void idleMessage(char *msg, SM_RGB color) {
+  //scrollingLayer.drawString()
+}
+
+void updateBouncingLogo() {
+  //uint8_t velX=1;
+  //uint8_t velY=
+}
+
+
+void displayLogo() {
+  uint16_t indx = 0;
+  rgb24 pixelVal;
+
+  for (int j = 0; j < NoVAlogo.height; j++) {
+    for (int i = 0; i < NoVAlogo.width; i++) {
+      pixelVal.red = NoVAlogo.pixel_data[NoVAlogo.bytes_per_pixel * indx + 0];
+      pixelVal.green = NoVAlogo.pixel_data[NoVAlogo.bytes_per_pixel * indx + 1];
+      pixelVal.blue = NoVAlogo.pixel_data[NoVAlogo.bytes_per_pixel * indx + 2];
+      backgroundLayer.drawPixel(i, j, pixelVal);
+      indx++;
+    }
+  }
+  backgroundLayer.swapBuffers();
+}
+void updateIdleScreen() {
+  char buf[4];
+  static uint8_t lastStrip = 0;
+
+  //clearScreen();
+  displayLogo();
+
+  if (fa05Status.stripNum != lastStrip) {
+    backgroundLayer.setFont(gohufont11b);
+    backgroundLayer.fillRectangle(24, 18, 40, 18 + 9, LED_BLACK);
+    if (fa05Status.stripNum > 0) {
+      sprintf(buf, "%u", fa05Status.stripNum);
+      if (fa05Status.stripNum < 10) {
+        backgroundLayer.drawString(30, 18, LED_PURPLE_HIGH, buf);
+      } else {
+        backgroundLayer.drawString(27, 18, LED_PURPLE_HIGH, buf);
+      }
+    }
+    backgroundLayer.swapBuffers();
+    lastStrip = fa05Status.stripNum;
+  }
+}
+
+void displayStatusScreen(unsigned long duration) {
+  char buf[24];
+  SM_RGB txtColor;
+
+  backgroundLayer.fillScreen(LED_BLACK);
+  backgroundLayer.setFont(font6x10);
+  if (isConnected) {
+    backgroundLayer.drawString(0, 0, LED_GREEN_HIGH, "Connected");
+    backgroundLayer.drawString(0, 10, LED_BLUE_HIGH, RxBLEClient->getPeerAddress().toString().c_str());
+    sprintf(buf, "RS=%3.0f", aveRSSI);
+
+    if (aveRSSI > -97) {
+      txtColor = LED_RED_MED;
+    }
+    if (aveRSSI > -92) {
+      txtColor = LED_ORANGE_HIGH;
+    }
+    if (aveRSSI > -90) {
+      txtColor = LED_GREEN_MED;
+    }
+    if (aveRSSI > -85) {
+      txtColor = LED_GREEN_HIGH;
+    }
+    backgroundLayer.drawString(0, 20, txtColor, buf);
+  } else {
+    backgroundLayer.drawString(0, 0, LED_RED_MED, "Not connected");
+    if (txPaired) {
+      backgroundLayer.drawString(0, 10, LED_BLUE_MED, "Paired");
+    } else {
+      backgroundLayer.drawString(0, 10, LED_RED_MED, "Un-paired");
+    }
+
+  }
+  backgroundLayer.swapBuffers();
+  delay(duration);
   backgroundLayer.fillScreen(LED_BLACK);
   backgroundLayer.swapBuffers();
 }
@@ -102,24 +189,15 @@ void updateScore() {
   char buf[5];
 
   //Process cards first
-  if (cardState != fa05Score.cardState) {
+  if (cardState != fa05Score.rawBytes[matchDataBLEPacketSize - 1]) {
     updateCards();
-    cardState = fa05Score.cardState;
+    cardState = fa05Score.rawBytes[matchDataBLEPacketSize - 1];
   }
   // Process clock next
   clockColor = LED_ORANGE_HIGH;
   if (fa05Score.clockRunning) {
     clockColor = LED_GREEN_HIGH;
   }
-
-  /*backgroundLayer.setFont(gohufont11b);
-    backgroundLayer.fillRectangle(24,0,40,0+9, LED_BLACK);
-    sprintf(buf, "%u", fa05Status.stripNum);
-    if (fa05Status.stripNum<10){
-    backgroundLayer.drawString(28, 0, LED_PURPLE_HIGH, buf);
-    } else {
-    backgroundLayer.drawString(25, 0, LED_PURPLE_HIGH, buf);
-    }*/
 
   backgroundLayer.setFont(font5x7);
   backgroundLayer.fillRectangle(27, 26, 26 + 2 * 6, 31, LED_BLACK);
@@ -161,7 +239,7 @@ void updateCards() {
   if (fa05Score.priorityR)
     backgroundLayer.drawString(63 - 2 - 2 * 5, 16, LED_GREEN_MED, "Pr");
   else {
-    backgroundLayer.fillRectangle(63 - 2 - 2 * 5, 16, 63 - 7, 16 + 7, LED_BLACK);
+    backgroundLayer.fillRectangle(63 - 2 - 2 * 5, 16, 63 - 4, 16 + 7, LED_BLACK);
   }
 
   cardColor = (fa05Score.yellowL) ? LED_YELLOW_MED : LED_BLACK;
@@ -170,10 +248,10 @@ void updateCards() {
   cardColor = (fa05Score.redL) ? LED_RED_MED : LED_BLACK;
   backgroundLayer.fillRectangle(0, 31 - 3, 3, 31, cardColor);
 
-  cardColor = (fa05Score.yellowL) ? LED_YELLOW_MED : LED_BLACK;
+  cardColor = (fa05Score.yellowR) ? LED_YELLOW_MED : LED_BLACK;
   backgroundLayer.fillRectangle(63 - 3, 31 - 8, 63, 31 - 5, cardColor);
 
-  cardColor = (fa05Score.redL) ? LED_RED_MED : LED_BLACK;
+  cardColor = (fa05Score.redR) ? LED_RED_MED : LED_BLACK;
   backgroundLayer.fillRectangle(63 - 3, 31 - 3, 63, 31, cardColor);
   //backgroundLayer.swapBuffers();
 }
