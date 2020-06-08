@@ -270,17 +270,26 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   }
 */
 
+void displaySplashScreen() {
+  tft.fillRect(0, 0, 128, 128, BLACK);
+  tft.drawRGBBitmap(0,0,(uint16_t*) &(splashImage.pixel_data[0]),splashImage.width,splashImage.height);
+}
+
 void InitializeDisplay()
 {
   tft.begin();
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.setCursor(0, 0);
-  tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
-  tft.println("Welcome to\n  TTtarm\n");
-  tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
-  tft.println("  G Allen \n     &\n  B Rosen");
-
+  if (DISPLAY_SPLASH_IMAGE) {
+    displaySplashScreen();
+  } else {
+    tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+    tft.println("Welcome to\n  TTtarm\n");
+    tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
+    tft.println("  G Allen \n     &\n  B Rosen");
+  }
+  
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);

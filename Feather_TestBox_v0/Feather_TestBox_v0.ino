@@ -24,7 +24,15 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "string.h"
 #include "CaptureBuffer.h"
 #include "oledGraphClass.h"
-//#include "BluetoothSerial.h"
+
+#define DISPLAY_SPLASH_IMAGE 1
+
+
+#ifdef DISPLAY_SPLASH_IMAGE
+#include "splashScreenImage.c"
+#else 
+#define DISPLAY_SPLASH_IMAGE 0
+#endif
 
 #define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
@@ -458,11 +466,8 @@ void setup() {
   //Enable button interrupts
   pinMode(BUTTON_PIN, INPUT);
 
-  //
-  //SerialBT.begin("ESP32test"); //Bluetooth device name
   Serial.begin(115200);
   InternalFS.begin();
-
 
   //Initialize the various channel settings
   Serial.println("Initializing channels");
@@ -482,6 +487,7 @@ void setup() {
   Serial.println("Setup complete");
 
   //BlinkLEDThenPowerOff();
+  delay(1500);
 }
 
 //Used to clear FPU interrupt so sleep works
