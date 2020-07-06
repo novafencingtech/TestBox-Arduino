@@ -289,6 +289,10 @@ void InitializeDisplay()
     tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
     tft.println("  G Allen \n     &\n  B Rosen");
   }
+  tft.setCursor(65,120);
+  tft.setTextSize(1);
+  tft.setTextColor(MAGENTA,BLACK);
+  tft.print(BUILD_DATE);
   
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);

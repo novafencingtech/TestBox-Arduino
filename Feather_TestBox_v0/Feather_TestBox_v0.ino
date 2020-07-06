@@ -27,6 +27,9 @@ using namespace Adafruit_LittleFS_Namespace;
 
 #define DISPLAY_SPLASH_IMAGE 1
 
+static const char VERSION_NUM[16] = "v1.00.00";
+static const char BUILD_DATE[16] = "2020-07-06";
+
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -483,11 +486,12 @@ void setup() {
   tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
   //tLastActive= 0;
 
+  delay(1000);
   setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
   //BlinkLEDThenPowerOff();
-  delay(1500);
+  delay(500);
 }
 
 //Used to clear FPU interrupt so sleep works
