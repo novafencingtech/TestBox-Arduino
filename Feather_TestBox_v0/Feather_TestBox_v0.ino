@@ -28,7 +28,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define DISPLAY_SPLASH_IMAGE 1
 
 static const char VERSION_NUM[16] = "v1.00.00";
-static const char BUILD_DATE[16] = "2020-07-06";
+static const char BUILD_DATE[16] = "2020-07-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
