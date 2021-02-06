@@ -1,3 +1,6 @@
+The Arduino boards are stored in the following location:
+"C:\Users\<UserName>\AppData\Local\Arduino15"
+
 1) Copy "libarm_cortexM4l_math.a" and "libarm_cortexM4lf_math.a" to the board manager path in the following location:
 \Arduino15\packages\adafruit\hardware\nrf52\0.11.1\variants\feather_nrf52832
 
@@ -11,4 +14,7 @@ recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}"  "-L{build.path}"
 The actual change adds:
 "-L{build.variant.path}" "-larm_cortexM4lf_math"
 
-which is the path for the variant library and the library name to the linker.  
+which is the path for the variant library and the library name to the linker. 
+
+3) Copy the "arm_math.h" file into the  
+"\AppData\Local\Arduino15\packages\adafruit\hardware\nrf52\0.21.0\cores\nRF5\cmsis\Core\Include" directory

@@ -51,9 +51,9 @@ nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABL
                                          .reference = NRF_SAADC_REFERENCE_INTERNAL,
                                          .acq_time = NRF_SAADC_ACQTIME_40US,
                                          .mode = NRF_SAADC_MODE_SINGLE_ENDED,
-                                         .burst = NRF_SAADC_BURST_ENABLED,
-                                         .pin_p = NRF_SAADC_INPUT_AIN0,
-                                         .pin_n = NRF_SAADC_INPUT_DISABLED
+                                         .burst = NRF_SAADC_BURST_ENABLED
+                                         //.pin_p = NRF_SAADC_INPUT_AIN0,
+                                         //.pin_n = NRF_SAADC_INPUT_DISABLED
                                         };
 nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
                                          .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
@@ -61,9 +61,9 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_D
                                          .reference = NRF_SAADC_REFERENCE_INTERNAL,
                                          .acq_time = NRF_SAADC_ACQTIME_20US,
                                          .mode = NRF_SAADC_MODE_SINGLE_ENDED,
-                                         .burst = NRF_SAADC_BURST_ENABLED,
-                                         .pin_p = NRF_SAADC_INPUT_AIN0,
-                                         .pin_n = NRF_SAADC_INPUT_DISABLED
+                                         .burst = NRF_SAADC_BURST_ENABLED
+                                         //.pin_p = NRF_SAADC_INPUT_AIN0,
+                                         //.pin_n = NRF_SAADC_INPUT_DISABLED
                                         };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
 
@@ -335,9 +335,9 @@ void SAADC_IRQHandler(void) {
     return;
   }*/
 
-  if (nrf_saadc_event_check(NRF_SAADC_EVENT_RESULTDONE)) {
-    nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
-    ADCValue = *(nrf_saadc_buffer_pointer_get());
+  if (nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE)) {
+    nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
+    ADCValue = *(nrf_saadc_buffer_pointer_get(NRF_SAADC));
   } else {
     return; //This should never happen
   }
@@ -409,12 +409,12 @@ void SAADC_IRQHandler(void) {
     //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
     NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
 
-    nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
+    nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
   }
 
   //Reset the buffer and trigger sampling
-  nrf_saadc_buffer_init(ADC_Buffer1, 1);
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
+  nrf_saadc_buffer_init(NRF_SAADC,ADC_Buffer1, 1);
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_SAMPLE);
 
   //digitalWrite(DIAG_PIN,LOW);
 }

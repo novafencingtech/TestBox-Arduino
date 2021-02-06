@@ -1,41 +1,41 @@
 void InitializeADC(bool fastAcq) {
   // Configures the basic ADC, does not set ADMUX channels.
 
-  nrf_saadc_enable();
-  nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
+  nrf_saadc_enable(NRF_SAADC);
+  nrf_saadc_int_disable(NRF_SAADC,NRF_SAADC_INT_ALL);
   //NVIC_SetPriority(ADC_IRQn, 6);
 
   //ADC Configuration code
   if (fastAcq) {
-    nrf_saadc_channel_init(ADC_UNIT, &FAST_ADC_CONFIG);
+    nrf_saadc_channel_init(NRF_SAADC,ADC_UNIT, &FAST_ADC_CONFIG);
   } else {
-    nrf_saadc_channel_init(ADC_UNIT, &ADC_CONFIG);
+    nrf_saadc_channel_init(NRF_SAADC,ADC_UNIT, &ADC_CONFIG);
   }
   // Set the resolution to 12-bit (0..4095)
-  nrf_saadc_resolution_set(NRF_SAADC_RESOLUTION_12BIT);
+  nrf_saadc_resolution_set(NRF_SAADC,NRF_SAADC_RESOLUTION_12BIT);
   NRF_SAADC->SAMPLERATE = (SAADC_SAMPLERATE_MODE_Task << SAADC_SAMPLERATE_MODE_Pos);
   //Calibrate the ADC
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_CALIBRATEOFFSET);
-  while (!nrf_saadc_event_check(NRF_SAADC_EVENT_CALIBRATEDONE)) {
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_CALIBRATEOFFSET);
+  while (!nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_CALIBRATEDONE)) {
     delay(10);
   }
-  nrf_saadc_event_clear(NRF_SAADC_EVENT_CALIBRATEDONE);
+  nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_CALIBRATEDONE);
 
-  nrf_saadc_oversample_set(NRF_SAADC_OVERSAMPLE_4X);
+  nrf_saadc_oversample_set(NRF_SAADC,NRF_SAADC_OVERSAMPLE_4X);
 
-  nrf_saadc_burst_set(ADC_UNIT, NRF_SAADC_BURST_ENABLED);
+  nrf_saadc_burst_set(NRF_SAADC,ADC_UNIT, NRF_SAADC_BURST_ENABLED);
 }
 
 void StartADC() {
-  nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
-  nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
-  nrf_saadc_int_enable(NRF_SAADC_INT_RESULTDONE);
+  nrf_saadc_int_disable(NRF_SAADC,NRF_SAADC_INT_ALL);
+  nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
+  nrf_saadc_int_enable(NRF_SAADC,NRF_SAADC_INT_RESULTDONE);
   NVIC_ClearPendingIRQ(ADC_IRQn);
   NVIC_EnableIRQ(ADC_IRQn);
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
   
-  nrf_saadc_buffer_init(ADC_Buffer1, 1);
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
+  nrf_saadc_buffer_init(NRF_SAADC,ADC_Buffer1, 1);
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_SAMPLE);
   //Serial.println("ADC Started");
 }
 
@@ -94,8 +94,8 @@ void InitializeWeaponData() {
 void StopADC() {
   NVIC_DisableIRQ(ADC_IRQn);
   NVIC_ClearPendingIRQ(ADC_IRQn);
-  nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_STOP);
+  nrf_saadc_int_disable(NRF_SAADC,NRF_SAADC_INT_ALL);
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_STOP);
 }
 
 void InitializeChannels() {
@@ -198,7 +198,7 @@ void calibrateSystem() {
     tft.fillRect(0, 0, 128, 128, BLACK); //Clears the screen
     tft.setTextSize(2); //Medium size text
 
-    nrf_saadc_task_trigger(NRF_SAADC_TASK_STOP);
+    nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_STOP);
     //Set the proper channel MUX
     digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
     shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, CalChan->muxSetting);
@@ -229,21 +229,21 @@ void calibrateSystem() {
       while (digitalRead(BUTTON_PIN) == LOW) {}; //Wait until button pressed
 
       NRF_SAADC->CH[ADC_UNIT].PSELP = CalChan->AIn;
-      nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
+      nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
       ave_data = 0;
       sampleCount = 0;
       tic = micros();
       for (int j = 0; j < numCycles; j++) {
-        nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE);
-        nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
-        nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
-        nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
-        while (!nrf_saadc_event_check(NRF_SAADC_EVENT_END)) {
-          nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
-          while (nrf_saadc_busy_check()) {}
+        nrf_saadc_buffer_init(NRF_SAADC,ADC_Buffer1, ADC_BUFFER_SIZE);
+        nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
+        nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_END);
+        nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
+        while (!nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_END)) {
+          nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_SAMPLE);
+          while (nrf_saadc_busy_check(NRF_SAADC)) {}
         }
-        adcRead = nrf_saadc_buffer_pointer_get();
-        for (int m = 0; m < nrf_saadc_amount_get(); m++) {
+        adcRead = nrf_saadc_buffer_pointer_get(NRF_SAADC);
+        for (int m = 0; m < nrf_saadc_amount_get(NRF_SAADC); m++) {
           adc_val = adcRead[m];
           ave_data += adc_val;
           //Serial.println(m);

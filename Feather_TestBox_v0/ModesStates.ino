@@ -335,7 +335,7 @@ bool checkWeaponConnected() {
   updateWeaponResistance();
   updateWeaponState();
 
-  while (nrf_saadc_busy_check()) {};
+  while (nrf_saadc_busy_check(NRF_SAADC)) {};
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
@@ -571,21 +571,21 @@ void CheckBatteryStatus() {
   //BatteryCheck=true;
 
   NRF_SAADC->CH[ADC_UNIT].PSELP = 7; //AIN 6+1
-  nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
+  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
   ave_data = 0;
   sampleCount = 0;
   tic = micros();
   for (int j = 0; j < numCycles; j++) {
-    nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE);
-    nrf_saadc_event_clear(NRF_SAADC_EVENT_RESULTDONE);
-    nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
-    nrf_saadc_task_trigger(NRF_SAADC_TASK_START);
-    while (!nrf_saadc_event_check(NRF_SAADC_EVENT_END)) {
-      nrf_saadc_task_trigger(NRF_SAADC_TASK_SAMPLE);
-      while (nrf_saadc_busy_check()) {}
+    nrf_saadc_buffer_init(NRF_SAADC,ADC_Buffer1, ADC_BUFFER_SIZE);
+    nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
+    nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_END);
+    nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
+    while (!nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_END)) {
+      nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_SAMPLE);
+      while (nrf_saadc_busy_check(NRF_SAADC)) {}
     }
-    adcRead = nrf_saadc_buffer_pointer_get();
-    for (int m = 0; m < nrf_saadc_amount_get(); m++) {
+    adcRead = nrf_saadc_buffer_pointer_get(NRF_SAADC);
+    for (int m = 0; m < nrf_saadc_amount_get(NRF_SAADC); m++) {
       adc_val = adcRead[m];
       ave_data += adc_val;
       sampleCount++;
