@@ -128,6 +128,7 @@ void CaptureBuffer::AddSample(int value) {
         triggerState = 'd';
         _captureTime = micros();
         FinalizeBuffer();  //Finalize the capture buffer by adding the pre-triggervalues;
+        //StopADC();
         //Serial.println("Capture done");
       }
       break;
@@ -157,14 +158,14 @@ bool CaptureBuffer::CaptureDone() {
 }
 
 void CaptureBuffer::ResetTrigger() {
+  for (int k=0; k<_capBufSize; k++) {
+    _captureBuffer[k]=9999;
+  }
   _capIndx = 0;
   _tBufNum = 0;
   _ptIndx = 0;
   _armCount = 0;
   _trigTime=0;
   triggerState = 'r';
-  for (int k=0; k<_capBufSize; k++) {
-    _captureBuffer[k]=9999;
-  }
-  Serial.println("Trigger reset");
+  //Serial.println("Trigger reset");
 }

@@ -293,6 +293,11 @@ void InitializeDisplay()
   tft.setTextSize(1);
   tft.setTextColor(MAGENTA,BLACK);
   tft.print(BUILD_DATE);
+
+  tft.setCursor(0,120);
+  tft.setTextSize(1);
+  tft.setTextColor(CYAN,BLACK);
+  tft.print(VERSION_NUM);
   
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
@@ -591,6 +596,7 @@ void updateOLED(TestBoxModes Mode) {
           trimVal=FoilADC.getTrim();
           captureDuration=FoilADC.hsBuffer.getTriggerDuration();
           labelTitle("Foil hit", RED);
+          //armed=false;
         }
 
         if (EpeeADC.hsBuffer.CaptureDone()) {
@@ -602,16 +608,20 @@ void updateOLED(TestBoxModes Mode) {
           captureDuration=EpeeADC.hsBuffer.getTriggerDuration();
           sTime = millis();
           labelTitle("Epee hit", RED);
+          //armed=false;
         }
 
         if ( millis() > (dispCaptureHoldTime + lastCapture) ) {
           if (armed == false) {
             FoilADC.hsBuffer.ResetTrigger();
             EpeeADC.hsBuffer.ResetTrigger();
+            //StartADC();
             labelTitle("Armed", GREEN);
             armed = true;
           }
           if (FoilADC.hsBuffer.CaptureDone() || EpeeADC.hsBuffer.CaptureDone())  {
+            lastCapture = millis();
+            armed=false;
             captureGraph.resetGraph();
             for (int k = 0; k < ADC_CAPTURE_LEN; k++) {
               captureGraph.updateGraph((ADC_CaptureBuffer[k]-trimVal)*FoilADC.LOW_GAIN);
@@ -626,9 +636,8 @@ void updateOLED(TestBoxModes Mode) {
               tft.print("+");
             }
             tft.print(" ms");
-            captureGraph.drawTextLabels();
-            lastCapture = millis();
-            armed = false;
+            captureGraph.drawTextLabels();       
+            
             //weaponGraph.updateGraph(weaponState.ohm_Foil);
             //FoilADC.hsBuffer.ResetTrigger();
             //EpeeADC.hsBuffer.ResetTrigger();

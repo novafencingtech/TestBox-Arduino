@@ -27,8 +27,8 @@ using namespace Adafruit_LittleFS_Namespace;
 
 #define DISPLAY_SPLASH_IMAGE 1
 
-static const char VERSION_NUM[16] = "v1.00.00";
-static const char BUILD_DATE[16] = "2020-07-12";
+static const char VERSION_NUM[16] = "1.0-21.0"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2021-02-06";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -178,6 +178,7 @@ const byte DIAG_PIN = 25;
 const byte BUTTON_PIN = 27;
 const byte LED1_PIN = 17;
 const byte LED2_PIN = 19;
+//const byte FASTLED_PIN 
 
 // Basic variables
 volatile long numSamples = 0;
@@ -339,6 +340,7 @@ void SAADC_IRQHandler(void) {
     nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
     ADCValue = *(nrf_saadc_buffer_pointer_get(NRF_SAADC));
   } else {
+    //Serial.println("SAADC fault");
     return; //This should never happen
   }
   //digitalWrite(DIAG_PIN,HIGH);
