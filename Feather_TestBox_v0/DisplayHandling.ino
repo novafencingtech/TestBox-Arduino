@@ -30,6 +30,7 @@
 #include <Adafruit_SPITFT.h>
 #include <SPI.h>
 
+
 // Option 1: use any pins but a little slower
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
 
@@ -277,6 +278,14 @@ void displaySplashScreen() {
 
 void InitializeDisplay()
 {
+  //Initialize FastLED
+  #if FAST_LED_ACTIVE
+  FastLED.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(&lameLED, 1);
+  FastLED.setCorrection( TypicalLEDStrip );
+  lameLED=CRGB(25,10,70);
+  FastLED.show();
+  #endif
+  
   tft.begin();
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);
@@ -305,9 +314,9 @@ void InitializeDisplay()
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
   int bars = 5;
-  float vals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
-  int colors[5] {lameGraph.cGREEN, lameGraph.cYELLOW, lameGraph.cORANGE, lameGraph.cRED, lameGraph.cRED};
-  lameGraph.setHorizontalBarValues(5, vals, colors);
+  float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
+  int lameColors[5] {lameGraph.cGREEN, lameGraph.cYELLOW, lameGraph.cORANGE, lameGraph.cRED, lameGraph.cRED};
+  lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
   //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
 
   float wvals[4] {0.0f, 2.0f, 5.0f, 10.0f};
@@ -317,12 +326,19 @@ void InitializeDisplay()
   float cvals[4] {0.0f, 10.0f, 20.0f, 40.0f};
   int ccolors[4] {captureGraph.cGREEN, captureGraph.cORANGE, captureGraph.cRED, captureGraph.cRED};
   captureGraph.setHorizontalBarValues(4, cvals, ccolors);
+
+  //lameLED=CRGB::Black;
+  //FastLED.show();
 }
 
 void dimOLEDDisplay() {
   //static bool alreadyDimmed=false;
   //Fill the rest of the display with black leaving only the top bar.
   tft.fillRect(0, 17, 128, 128 - 17, BLACK);
+  #if FAST_LED_ACTIVE
+  lameLED=CRGB::Black;
+  FastLED.show();
+  #endif
 }
 
 void displayBatteryStatus() {
@@ -505,6 +521,10 @@ void updateOLED(TestBoxModes Mode) {
     //tft.fillRect(0, 0, 128, 128, BLACK);
     tft.fillScreen(BLACK);
     tft.setCursor(2, 2);
+    #if FAST_LED_ACTIVE
+      lameLED=CRGB::Black;
+      FastLED.show();
+    #endif
     //tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
 
     switch (currentDisplayState) {
@@ -1008,7 +1028,35 @@ void updateLameDisplay() {
     labelTitle("Lame", RED);
   }
   lameGraph.updateGraph(cableState.ohm_CC);
+  #if FAST_LED_ACTIVE
+  updateLED(cableState.ohm_CC);
+  #endif FAST_LED_ACTIVE
 }
+
+#if FAST_LED_ACTIVE
+void updateLED(float value) {
+  const float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
+  const CRGB lameColors[5] {CRGB::Green, CRGB::Yellow, CRGB::Orange, CRGB::OrangeRed, CRGB::DarkRed};
+  static CRGB prevLEDColor=CRGB::Black;
+  uint8_t R,G,B;
+
+  R=G=B=0;
+  lameLED=CRGB::DarkRed;
+  for (int k=0; k<5; k++) {
+    if (value>lameVals[k]) {      
+      lameLED=lameColors[k];
+    } else {
+      break;
+    }
+  }
+  lameLED.nscale8_video(64); //50% brightness reduction
+  if (lameLED!=prevLEDColor) {
+    prevLEDColor=lameLED;
+    //lameLED=CRGB::Green;
+    FastLED.show();    
+  }  
+}
+#endif
 
 void writeSerialOutput(TestBoxModes Mode) {
   // Use Generic format "WF01E00CA00.0B00.0C00.0AB etc

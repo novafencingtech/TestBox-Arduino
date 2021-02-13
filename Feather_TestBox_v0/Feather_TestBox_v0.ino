@@ -26,9 +26,20 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledGraphClass.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
+#define FAST_LED_ACTIVE 1
 
-static const char VERSION_NUM[16] = "1.0-21.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-02-06";
+#if FAST_LED_ACTIVE 
+#include <FastLED.h>
+//Required for FAST LED
+#define LED_TYPE WS2812B
+#define COLOR_ORDER GRB
+#define LED_DATA_PIN 25 //LEDs are on SDA/pin25
+CRGB lameLED;
+#endif
+
+
+static const char VERSION_NUM[16] = "1.1-21.0"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2021-02-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -496,6 +507,11 @@ void setup() {
 
   //BlinkLEDThenPowerOff();
   delay(500);
+  #if FAST_LED_ACTIVE
+  lameLED=CRGB::Black;
+  FastLED.show();
+  #endif
+  
 }
 
 //Used to clear FPU interrupt so sleep works
