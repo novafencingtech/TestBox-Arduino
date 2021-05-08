@@ -39,7 +39,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-21.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-02-12";
+static const char BUILD_DATE[16] = "2021-05-08";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -233,7 +233,8 @@ volatile long tIdle = 0;
 
 
 //ADC parameters
-ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC, Foil, Epee
+ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
+//const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 4, 5, 3, 8, 7, 0, 6}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
@@ -417,7 +418,7 @@ void SAADC_IRQHandler(void) {
     // Switch the MUX to toggle the MOSFETs
     digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
     shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
-    //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_BB);
+    //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_AA);
     digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
     //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
     NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;

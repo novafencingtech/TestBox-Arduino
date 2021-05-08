@@ -538,20 +538,20 @@ void updateOLED(TestBoxModes Mode) {
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
         tft.drawFastVLine(127, 31, 96, CYAN);
-        tft.drawFastVLine(95, 31, 96, CYAN);
-        tft.drawFastVLine(63, 31, 96, CYAN);
-        tft.drawFastVLine(31, 31, 96, CYAN);
+        tft.drawFastVLine(107, 31, 96, CYAN);
+        tft.drawFastVLine(87, 31, 96, CYAN);
+        tft.drawFastVLine(47, 31, 96, CYAN);
         //tft.fillRect(0, X + 16, 128, H, BLACK);
         //Height of bar is 8, height of textsize(2) is 14, 1 pix between text and bar, 1 pix between text/bar and line
         tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
         tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
         tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
         tft.setTextSize(1);
-        tft.setCursor(31 - 14, 120);
-        tft.print("15");
-        tft.setCursor(63 - 14, 120);
+        tft.setCursor(47 - 14, 120);
+        tft.print("20");
+        tft.setCursor(88 - 14, 120);
         tft.print("10");
-        tft.setCursor(95 - 8, 120);
+        tft.setCursor(108 - 8, 120);
         tft.print("5");
         tft.setCursor(127 - 8, 120);
         tft.print("0");

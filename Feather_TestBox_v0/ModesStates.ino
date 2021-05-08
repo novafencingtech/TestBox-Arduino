@@ -131,7 +131,7 @@ void updateCableState() {
 
   if (ChanArray[8].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
     tempValue = ChanArray[8].getValue();
-    arm_biquad_cascade_df1_f32(&(cableState.LineALowPass), &tempValue, &(cableState.ohm_CC), 1);
+    arm_biquad_cascade_df1_f32(&(cableState.LineCLowPass), &tempValue, &(cableState.ohm_CC), 1);
     cableState.ohm_CCMax = ChanArray[8].getDecayMaxValue();
   }
   else {
