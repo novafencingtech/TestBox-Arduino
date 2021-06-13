@@ -1014,11 +1014,19 @@ void createLameDisplay() {
   lameGraph.resetGraph();
 }
 
-void updateLameDisplay() {
+void updateLameDisplay() {  
   static int oldVal = 9999;
-  int lameVal = floatTo10xInt(cableState.ohm_CC);
+  int lameVal;
   static byte i = 0;
+  float lameOhms;
 
+  if (cableState.ohm_Lame<MAX_LAME_RESISTANCE) {
+    lameOhms=cableState.ohm_Lame;
+  } else {
+    lameOhms=OPEN_CIRCUIT_VALUE;
+  }
+
+  lameVal=floatTo10xInt(lameOhms);
   //Serial.println(lameVal);
   barGraph(2, 18, lameVal, oldVal, "Lame");
   oldVal = lameVal;
@@ -1027,15 +1035,15 @@ void updateLameDisplay() {
   } else {
     labelTitle("Lame", RED);
   }
-  lameGraph.updateGraph(cableState.ohm_CC);
+  lameGraph.updateGraph(lameOhms);
   #if FAST_LED_ACTIVE
-  updateLED(cableState.ohm_CC);
+  updateLED(lameOhms);
   #endif FAST_LED_ACTIVE
 }
 
 #if FAST_LED_ACTIVE
 void updateLED(float value) {
-  const float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
+  const float lameVals[5] {-1.0f, 5.0f, 10.0f, 15.0f, 20.0f};
   const CRGB lameColors[5] {CRGB::Green, CRGB::Yellow, CRGB::Orange, CRGB::OrangeRed, CRGB::DarkRed};
   static CRGB prevLEDColor=CRGB::Black;
   uint8_t R,G,B;
@@ -1043,7 +1051,7 @@ void updateLED(float value) {
   R=G=B=0;
   lameLED=CRGB::DarkRed;
   for (int k=0; k<5; k++) {
-    if (value>lameVals[k]) {      
+    if (value>=lameVals[k]) {      
       lameLED=lameColors[k];
     } else {
       break;

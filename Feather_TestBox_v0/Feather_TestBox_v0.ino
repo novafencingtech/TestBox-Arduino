@@ -26,7 +26,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledGraphClass.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 0
+#define FAST_LED_ACTIVE 1
 
 #if FAST_LED_ACTIVE 
 #include <FastLED.h>
@@ -39,7 +39,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-21.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-05-08";
+static const char BUILD_DATE[16] = "2021-06-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -96,6 +96,14 @@ float LowPass1HzCoef[5] = {// Scaled for floating point
 float LowPass0p2HzCoef[5] = {// Scaled for floating point
   0.00015514842347569914, 0.0003102968469513983, 0.00015514842347569914, 1.9644605802052322, -0.9650811738991351// b0, b1, b2, a1, a2
 };
+float LameLPF1HzCoef[5] = {
+  // Scaled for floating point
+    0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0// b0, b1, b2, a1, a2
+};
+float LameLPF2HzCoef[5] = {
+  // Scaled for floating point
+  0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0// b0, b1, b2, a1, a2
+};
 
 
 // Change the calibration valid flag when changing the format of the calibration data
@@ -109,7 +117,7 @@ const byte calibrationRetries = 3; // Exit after this many retries
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
-constexpr long powerOffTimeOut = 5L * 60L * 1000L; //Time before switching off if inactive;
+constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 2000L; //Time out before flagging the cable as disconnected
 const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
@@ -121,8 +129,8 @@ const int t_Error_Display = 2000; //ms - How long to display error/debug message
 const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
-constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
-constexpr long tOledOff = 60L * 1000L; //ms - How often to refresh the OLED display
+//constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
+constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
 const long tIdleModeOn = 20000L; //ms - Switch to idle mode after 30s of in-activity.
@@ -138,6 +146,7 @@ const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit captur
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
 const float OPEN_CIRCUIT_VALUE = 999.9;
+const float MAX_LAME_RESISTANCE = 40.0f;
 
 //MUX Settings if needed
 const SPISettings OLED_SPI_SETTINGS(2000000, MSBFIRST, SPI_MODE0);
@@ -271,9 +280,11 @@ struct CableData {
   float ohm_AA = OPEN_CIRCUIT_VALUE;
   float ohm_BB = OPEN_CIRCUIT_VALUE;
   float ohm_CC = OPEN_CIRCUIT_VALUE;
+  float ohm_Lame = OPEN_CIRCUIT_VALUE;
   float ohm_AAMax = OPEN_CIRCUIT_VALUE;
   float ohm_BBMax = OPEN_CIRCUIT_VALUE;
   float ohm_CCMax = OPEN_CIRCUIT_VALUE;
+  float ohm_LameMax = OPEN_CIRCUIT_VALUE;
   long tLastConnect = 0;
   float cableOhm[9];
 
@@ -283,6 +294,8 @@ struct CableData {
   float LineBLPFState[4];
   arm_biquad_casd_df1_inst_f32 LineCLowPass;
   float LineCLPFState[4];
+  arm_biquad_casd_df1_inst_f32 LameLowPass;
+  float LameLPFState[4];
 };
 
 struct IdleDataStruct {
@@ -507,7 +520,7 @@ void setup() {
   Serial.println("Setup complete");
 
   //BlinkLEDThenPowerOff();
-  delay(500);
+  //delay(500);
   #if FAST_LED_ACTIVE
   lameLED=CRGB::Black;
   FastLED.show();
