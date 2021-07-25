@@ -38,8 +38,8 @@ CRGB lameLED;
 #endif
 
 
-static const char VERSION_NUM[16] = "1.1-21.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-06-12";
+static const char VERSION_NUM[16] = "1.1-24.0"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2021-07-25";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
