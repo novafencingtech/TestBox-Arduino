@@ -44,8 +44,6 @@ static const char BUILD_DATE[16] = "2021-06-12";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
-//#include "NOVA_logo_basic.c"
-//#include "Tim'sBox.c"
 #else 
 #define DISPLAY_SPLASH_IMAGE 0
 #endif
