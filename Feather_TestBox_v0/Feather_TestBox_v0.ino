@@ -26,7 +26,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledGraphClass.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 1
+#define FAST_LED_ACTIVE 0
 
 #if FAST_LED_ACTIVE 
 #include <FastLED.h>
