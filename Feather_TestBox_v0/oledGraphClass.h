@@ -6,7 +6,15 @@
 #define oledGraphClass_h
 
 #define MAX_NUM_BARS 10
-#include <Adafruit_SSD1351.h>
+#define TITLE_BUF_SIZE 7
+#include <Adafruit_ILI9341.h>
+//#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
+
+#include <avr/dtostrf.h>
+
 
 // Color definitions
 /*#define BLACK           0x0000
@@ -35,8 +43,8 @@ class oledGraph
     static const int cYELLOW=0xFFE0;    
     
     oledGraph();
-    oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
-    oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
+    oledGraph(Adafruit_ILI9341 *tft,int X, int Y, int height, int width); 
+    oledGraph(Adafruit_ILI9341 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
     void setGraphLimits(int X, int Y, int H, int W);
     void setVerticalLimits(float minValue, float maxValue);
     void setHorizontalBarValues(int numBars, float values[], int colors[]);
@@ -50,9 +58,9 @@ class oledGraph
     //void drawTextLabels();
 
     int _locX=0;
-    int _maxX=127;
+    int _maxX=319;
     int _locY=0;
-    int _maxY=127;
+    int _maxY=239;
     int _col=0;
     int _height, _width;
     float _limitMax, _limitMin;
@@ -62,7 +70,7 @@ class oledGraph
     int _hBarValues[MAX_NUM_BARS];
     int _hBarColors[MAX_NUM_BARS];
     int _numActiveBars=0;
-    Adafruit_SSD1351 *_tft;
+    Adafruit_ILI9341 *_tft;
 };
 
 class oledBarGraph
@@ -76,37 +84,52 @@ class oledBarGraph
     static const int cRED=0xF800;
     static const int cMAGENTA=0xF81F;
     static const int cORANGE=0xFD20;
-    static const int cYELLOW=0xFFE0;    
+    static const int cYELLOW=0xFFE0;
+    static const int _lblOffset=-18; //Shift the graph label up by 16 pixels
+    
     
     oledBarGraph();
-    oledBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
-    oledBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
-    void setGraphLimits(int X, int Y, int H, int W);
-    void setVerticalLimits(float minValue, float maxValue);
+    oledBarGraph(Adafruit_ILI9341 *tft,int X, int Y, int height, int width); 
+    oledBarGraph(Adafruit_ILI9341 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
+    void setGraphLimits(float minValue, float maxValue);
     void setHorizontalBarValues(int numBars, float values[], int colors[]);
     void updateGraph(float newValue);
     void resetGraph();
     //void drawTextLabels();
-    void drawHLines();
-    void drawTextLabels();
+    void drawTickMarks();
+    void setTitle(char *newTitle);
+    void updateTextValue(float value);
+    void setTitlePosition(int X, int Y);
+    void setTitleSize(int txtSize);
     
   private:
     void drawColumn(float val);
 
+    char _title[TITLE_BUF_SIZE];
+    char _value[5];
     int _locX=0;
-    int _maxX=127;
+    static const int _maxX=319;
     int _locY=0;
-    int _maxY=127;
-    int _col=0;
-    int _height, _width;
+    static const int _maxY=239;
+    int _height=16;
+    int _width=320;   
+    float _lastValue=0;
+    float _noDisplayLimit=32.0;    
     float _limitMax, _limitMin;
     float _pixelScaleFactor=1.0;
     float _offset=0.0;
-    int _hBarY[MAX_NUM_BARS];
-    int _hBarValues[MAX_NUM_BARS];
+    int _hBarX[MAX_NUM_BARS];
+    float _hBarValues[MAX_NUM_BARS];
     int _hBarColors[MAX_NUM_BARS];
     int _numActiveBars=0;
-    Adafruit_SSD1351 *_tft;
+    int _prevColor;
+    int _prevEnd;
+    int _titleTextPosX;
+    int _titleTextPosY;
+    int _valTextPosX;
+    int _valTextPosY;
+    int _txtSize=3;    
+    Adafruit_ILI9341 *_tft;
 };
 
 

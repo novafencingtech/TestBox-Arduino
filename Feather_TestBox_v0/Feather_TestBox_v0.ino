@@ -38,8 +38,8 @@ CRGB lameLED;
 #endif
 
 
-static const char VERSION_NUM[16] = "1.1-21.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-06-12";
+static const char VERSION_NUM[16] = "2.0-24.0"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2022-02-27";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -223,6 +223,10 @@ volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=Weapon
 oledGraph lameGraph;
 oledGraph weaponGraph;
 oledGraph captureGraph;
+oledBarGraph barGraphA;
+oledBarGraph barGraphB;
+oledBarGraph barGraphC;
+oledBarGraph barGraphLame;
 
 // ADC timer settings;
 
