@@ -544,8 +544,8 @@ void checkButtonState() {
 void setPowerOff() {
   //setBoxMode('w');
   #if FAST_LED_ACTIVE
-  lameLED=CRGB::Black;
-  FastLED.show();
+    lameLED=CRGB::Black;
+    FastLED.show();
   #endif
   tft.fillScreen(BLACK);
   tft.setCursor(25, 50);

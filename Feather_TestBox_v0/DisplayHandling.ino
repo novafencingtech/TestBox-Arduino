@@ -177,9 +177,10 @@ void InitializeDisplay()
   barGraphA.setHorizontalBarValues(5, cableVals, cableColors);
   barGraphB.setHorizontalBarValues(5, cableVals, cableColors);
   barGraphC.setHorizontalBarValues(5, cableVals, cableColors);
-
-  lameLED=CRGB::Black;
-  FastLED.show();
+  #if FAST_LED_ACTIVE
+    lameLED=CRGB::Black;
+    FastLED.show();
+  #endif
 }
 
 void dimOLEDDisplay() {
