@@ -26,7 +26,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledGraphClass.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 1
+#define FAST_LED_ACTIVE 0
 
 #if FAST_LED_ACTIVE 
 #include <FastLED.h>
@@ -38,8 +38,8 @@ CRGB lameLED;
 #endif
 
 
-static const char VERSION_NUM[16] = "1.1-24.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-07-25";
+static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2021-03-19";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -463,8 +463,10 @@ void setup() {
   delay(500);
 
   //Required to fix FPU prevent sleep bug
-  NVIC_SetPriority(FPU_IRQn, 100);
-  NVIC_EnableIRQ(FPU_IRQn);
+  //Likely no longer necessary with release 0.24
+  //Enabling causes the code to hang
+  //NVIC_SetPriority(FPU_IRQn, 100);
+  //NVIC_EnableIRQ(FPU_IRQn);
 
   // Enable timing diagnostics
   pinMode(DIAG_PIN, OUTPUT);
@@ -501,7 +503,7 @@ void setup() {
 
   //Initialize the various channel settings
   Serial.println("Initializing channels");
-
+  //delay(500);
   InitializeChannels();
   InitializeADC(false);
 
@@ -526,6 +528,7 @@ void setup() {
   
 }
 
+/*
 //Used to clear FPU interrupt so sleep works
 #ifdef __cplusplus
 extern "C" {
@@ -543,7 +546,7 @@ void FPU_IRQHandler(void)
 #ifdef __cplusplus
 }
 #endif
-
+*/
 
 // Pin change interrupt handler.  Used for weapon test mode.
 // New function needed for ESP32

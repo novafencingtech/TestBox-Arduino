@@ -23,7 +23,8 @@ ADC_Channel* getCalibrationChannel(int num) {
       return &WeaponAC;
       break;
   }
-
+  //It should never get here, but just in case
+  return &(ChanArray[0]);
 }
 
 void writeCalibrationData() {

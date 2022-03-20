@@ -552,8 +552,9 @@ void setPowerOff() {
   tft.setTextSize(3);
   tft.setTextColor(CYAN);
   tft.print("Good-bye");
-  delay(2000);
+  delay(1000);
   digitalWrite(POWER_CONTROL, LOW); //Turn the box off*/
+  delay(5000);
 }
 
 void CheckBatteryStatus() {
