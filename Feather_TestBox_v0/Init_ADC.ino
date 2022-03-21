@@ -152,6 +152,7 @@ void InitializeChannels() {
   WeaponAC.nextChannel = &EpeeADC;
   WeaponAC.setRangeHigh();
 
+  loadCalibrationData();
 
   for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {
     ChanArray[k].nextChannel = &(ChanArray[ChannelScanOrder[k]]);

@@ -46,8 +46,8 @@ void writeCalibrationData() {
     Serial.println("Write Calibration Data");
     for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
       CalChannel=getCalibrationChannel(k);
-      buf[p++] = lowByte(CalChannel->getTrim());
       buf[p++] = highByte(CalChannel->getTrim());
+      buf[p++] = lowByte(CalChannel->getTrim());
     }
     int fsiz = 1 + (NUM_CAL_CHANNELS * 2);
     int actual=file.write(buf, fsiz);
@@ -72,6 +72,7 @@ void loadCalibrationData() {
   bool calValid = false;
   int p = 0;
   uint8_t buf[100];
+  char txtBuffer[50];
   ADC_Channel *CalChannel;
   
   if (!isInitialized) {
@@ -86,13 +87,19 @@ void loadCalibrationData() {
     int n = buf[p++];
     for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
       CalChannel=getCalibrationChannel(k);
-      if (k<n) cal = buf[p++] | (buf[p++] >> 8); 
+      //if (k<n) cal = buf[p++] | (buf[p++] >> 8); 
+      if (k<n) cal = (buf[p++] << 8) | (buf[p++]); 
       else {
         Serial.println("Fewer calibrations in file than in code");
         cal=0;
       }
-      if (cal >= calibrationErrorValue) cal = 0;
+      if (cal >= calibrationErrorValue) { 
+        cal = 0;
+        Serial.println("Error: invalid calibration value read");
+      }
       CalChannel->setTrim(cal);
+      sprintf(txtBuffer,"Cal Offset %s = %u",CalChannel->ch_label,cal);
+      Serial.println(txtBuffer);
     }
     file.close();
   } else Serial.println("Can't open Calibration Data File");

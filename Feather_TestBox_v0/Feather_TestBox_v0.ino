@@ -456,11 +456,11 @@ void setup() {
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-
+  //delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(500);
+  delay(200);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -510,12 +510,13 @@ void setup() {
   CheckBatteryStatus();
   //displayBatteryStatus();
 
+  
   InitializeCableData();
   InitializeWeaponData();
   tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
   //tLastActive= 0;
 
-  delay(1000);
+  //delay(1000);
   setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
