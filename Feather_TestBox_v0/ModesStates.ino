@@ -554,7 +554,10 @@ void setPowerOff() {
   tft.print("Good-bye");
   delay(200);
   digitalWrite(POWER_CONTROL, LOW); //Turn the box off*/
-  delay(5000);
+  for (int k=0; k<10; k++) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+    delay(1000);    
+  }
 }
 
 void CheckBatteryStatus() {

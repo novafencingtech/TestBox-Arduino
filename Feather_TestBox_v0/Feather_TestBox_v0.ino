@@ -29,6 +29,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define FAST_LED_ACTIVE 0
 
 #if FAST_LED_ACTIVE 
+#define FASTLED_INTERRUPT_RETRY_COUNT 3
 #include <FastLED.h>
 //Required for FAST LED
 #define LED_TYPE WS2812B
@@ -39,7 +40,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-03-19";
+static const char BUILD_DATE[16] = "2021-04-09";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -138,6 +139,7 @@ const int tPowerOffPress = 1500; //ms - How long to hold the button down before 
 const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
+const int wdtTimerResetInterval = 3; //s
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit capture displays for
 
@@ -451,16 +453,18 @@ void SAADC_IRQHandler(void) {
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(POWER_CONTROL, OUTPUT);
+  digitalWrite(POWER_CONTROL, LOW);
 
   //Activate display
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-  //delay(100);
+  delay(300);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(200);
+  //delay(200);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -509,7 +513,7 @@ void setup() {
 
   CheckBatteryStatus();
   //displayBatteryStatus();
-
+  wdt_init();
   
   InitializeCableData();
   InitializeWeaponData();
@@ -584,6 +588,16 @@ void ISR_FoilHitDetect() {
     weaponState.tFoilTrigger = t_now;
   }
 }
+
+void wdt_init(void)
+{
+  NRF_WDT->CONFIG = (WDT_CONFIG_HALT_Pause << WDT_CONFIG_HALT_Pos) | ( WDT_CONFIG_SLEEP_Run << WDT_CONFIG_SLEEP_Pos);
+  NRF_WDT->CRV = wdtTimerResetInterval*32768; // Watchdog timer reset interval
+  NRF_WDT->RREN |= WDT_RREN_RR0_Msk; //Enable reload register 0
+  NRF_WDT->TASKS_START = 1;
+}
+
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -713,6 +727,7 @@ void loop() {
     //}
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
 }

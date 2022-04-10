@@ -468,7 +468,9 @@ void updateOLED(TestBoxModes Mode) {
   static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
-  static unsigned long dispHoldTime; //Don't allow display to switch mode if this is set
+  const unsigned long dispChangeHold = 500; //Don't allow display to switch mode if this is set
+  static long dispHoldTime = 500; //Don't allow display to switch mode if this is set
+  static unsigned long tDisplaySwitch = 0; //Last time the display mode changed
   static unsigned long lastCapture = 0;
   bool inter;
   static long tIdleLEDOn = 0;
@@ -520,7 +522,7 @@ void updateOLED(TestBoxModes Mode) {
   }
 
   //Change the display state
-  if (oldDisplayState != currentDisplayState) {
+  if ( (oldDisplayState != currentDisplayState) && ((millis()-tDisplaySwitch)>dispChangeHold) ) {
     //Serial.println("Setting new mode");
     //tft.fillRect(0, 0, 128, 128, BLACK);
     tft.fillScreen(BLACK);
@@ -587,6 +589,7 @@ void updateOLED(TestBoxModes Mode) {
     }
     oldDisplayState = currentDisplayState;
     displayBatteryStatus();
+    tDisplaySwitch=millis();
   }
 
   switch (currentDisplayState) {
