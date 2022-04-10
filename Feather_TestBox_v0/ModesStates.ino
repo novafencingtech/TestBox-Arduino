@@ -522,7 +522,8 @@ void checkButtonState() {
       //lcd.print(F("  Power off  "));
       tftDisplayMessage("Power off");
       while (digitalRead(BUTTON_PIN) == HIGH) {
-        delay(100);
+        NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+        delay(100);        
         if ((millis() - tButtonPress) > tEnterCalibrationMode) {
           //lcd.clear();
           //lcd.setCursor(0, 0);
@@ -532,7 +533,10 @@ void checkButtonState() {
         }
       }
       if (calibrationMode) {
+        //Start the watchdog override
+        //app_timer_start(wdtOverrideTimer,6554,true); 
         calibrateSystem();
+        //app_timer_stop(wdtOverrideTimer);
       } else {
         setPowerOff();
       }

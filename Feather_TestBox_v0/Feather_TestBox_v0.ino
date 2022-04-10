@@ -77,7 +77,6 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_D
                                         };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
 
-
 //Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
 // http://www.micromodeler.com/dsp/
 float LowPass8HzCoef[5] = {// Scaled for floating point
@@ -210,6 +209,8 @@ volatile long timing_seg = 0;
 volatile long tic = 0;
 volatile long toc = 0;
 volatile long tLastActive = 0; //ms - Time that an event was last detected
+
+bool wdtOverride = false;
 
 // Store the box state
 typedef enum TestBoxModes {
@@ -449,7 +450,12 @@ void SAADC_IRQHandler(void) {
 }
 #endif
 
-
+void wdtOverrideCallback(void *p_context) {
+  //if (wdtOverride) {
+    //Manually kick the watch dog
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+  //}
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -460,11 +466,11 @@ void setup() {
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-  delay(300);
+  delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  //delay(200);
+  delay(100);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -514,6 +520,7 @@ void setup() {
   CheckBatteryStatus();
   //displayBatteryStatus();
   wdt_init();
+  //app_timer_start(wdtOverrideTimer,6554,true);
   
   InitializeCableData();
   InitializeWeaponData();
