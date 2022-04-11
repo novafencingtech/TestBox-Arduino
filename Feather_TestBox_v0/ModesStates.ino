@@ -215,7 +215,7 @@ void updateCableState() {
   uint16_t statusMask = ~( (1<<BITAA) | (1<<BITBB) | (1<<BITCC));
   if  ((cableState.statusByte & statusMask)==0) {
     if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_BB >= OPEN_CIRCUIT_VALUE)) {     
-      if ((cableState.ohm_CC < OPEN_CIRCUIT_VALUE) && (millis()-tLastActive>tLameWaitTime) ) {
+      if ((cableState.ohm_CC < OPEN_CIRCUIT_VALUE) && ( (millis()-tLastActive)>tLameWaitTime) ) {
           cableState.lameMode = true;
           cableState.maskMode = false;
         }
