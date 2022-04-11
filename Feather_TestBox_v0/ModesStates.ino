@@ -215,7 +215,7 @@ void updateCableState() {
   uint16_t statusMask = ~( (1<<BITAA) | (1<<BITBB) | (1<<BITCC));
   if  ((cableState.statusByte & statusMask)==0) {
     if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_BB >= OPEN_CIRCUIT_VALUE)) {     
-      if (cableState.ohm_CC < OPEN_CIRCUIT_VALUE) { 
+      if ((cableState.ohm_CC < OPEN_CIRCUIT_VALUE) && (millis()-tLastActive>tLameWaitTime) ) {
           cableState.lameMode = true;
           cableState.maskMode = false;
         }
@@ -341,7 +341,7 @@ bool checkWeaponConnected() {
   updateWeaponResistance();
   updateWeaponState();
 
-  while (nrf_saadc_busy_check(NRF_SAADC)) {};
+  //while (nrf_saadc_busy_check(NRF_SAADC)) {};
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);

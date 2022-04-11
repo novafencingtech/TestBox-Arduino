@@ -141,6 +141,7 @@ const int tIdleLEDBlink = 750; //ms
 const int wdtTimerResetInterval = 3; //s
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit capture displays for
+const long tLameWaitTime = 1000; //ms -- Duration before switch to lame mode from cable mode.
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
