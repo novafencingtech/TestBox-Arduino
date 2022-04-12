@@ -68,9 +68,12 @@ int scaleWidth(int val) {  //tenths don't divide by 4 very well
     case 8: return (sVal + 3); break;  //x7, x.8 is x 3/4
     case 9: return (sVal + 4); break;  //x.9 is x+1
   }
+
+  //Should never get here
+  return 0;
 }
 
-void tftDisplayMessage(char *msg) {
+void tftDisplayMessage(const char *msg) {
   tft.setTextSize(2);
   tft.setCursor(2, 2);
   tft.setTextColor(ORANGE, DARKBLUE);
@@ -78,7 +81,7 @@ void tftDisplayMessage(char *msg) {
 
 }
 
-void printVal(int x, int y, int valColor, char *lab, int val) {
+void printVal(int x, int y, int valColor, const char *lab, int val) {
   tft.setTextSize(2);
   tft.setCursor(y, x);
   tft.setTextColor(YELLOW, BLACK);
@@ -116,7 +119,7 @@ void printVal(int x, int y, int valColor, char *lab, int val) {
 //  oldVal = last value in tenths of an ohm
 //  newVal = current value
 // with 128 pixel wide screen, show 32 ohms * 4 pixels/ohm
-void barGraph(int X, int H, int newVal, int &oldVal, char *conn) {
+void barGraph(int X, int H, int newVal, int &oldVal, const char *conn) {
   int difVal, rOld, rNew, bc = ORANGE; bool newColor = false;
   //Serial.print(conn); Serial.print("||New value = ");Serial.println(newVal);
   if (newVal > cableOrangeThresh) {  //if the new value is greater than the orange threshold
@@ -395,7 +398,7 @@ int floatTo10xInt(float g) {
   if (g < 0.0) g = 0.0;
   return ((int) (g * 10.0 + .5));
 }
-int gv(char *s) {
+int gv(const char *s) {
   //arduino does not support strings in switch statements
   /*switch (s[0]) {
     case 'A':
@@ -424,11 +427,12 @@ int gv(char *s) {
     if (s == "CA") return floatTo10xInt(cableState.ohm_CC);
     if (s == "CB") return floatTo10xInt(cableState.ohm_CC);
     if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
+    return -999;
 }
 
 
-void labelTitle(char *s, int color) {
-  static char *oldFault;
+void labelTitle(const char *s, int color) {
+  static const char *oldFault;
   if (s == oldFault) return; //no change
   oldFault = s;
   tft.setTextSize(2);
@@ -442,13 +446,13 @@ static int oldA = 0, oldB = 0, oldC = 0;
 #define ABAR 25
 #define BBAR 60
 #define CBAR 95
-void graph1(char *s) {
+void graph1(const char *s) {
   barGraph(ABAR, 8, gv(s), oldA, s);
 }
-void graph2(char *s) {
+void graph2(const char *s) {
   barGraph(BBAR, 8, gv(s), oldB, s);
 }
-void graph3(char *s) {
+void graph3(const char *s) {
   barGraph(CBAR, 8, gv(s), oldC, s);
 }
 
@@ -464,7 +468,9 @@ void updateOLED(TestBoxModes Mode) {
   static displayStates oldDisplayState = disp_unk;
   static int foilIndicator, epeeIndicator, foilInterIndicator, epeeInterIndicator;
   static unsigned long sTime; //start time of last seen foil/epee connection
-  static unsigned long dispHoldTime; //Don't allow display to switch mode if this is set
+  const unsigned long dispChangeHold = 500; //Don't allow display to switch mode if this is set
+  static long dispHoldTime = 500; //Don't allow display to switch mode if this is set
+  static unsigned long tDisplaySwitch = 0; //Last time the display mode changed
   static unsigned long lastCapture = 0;
   bool inter;
   static long tIdleLEDOn = 0;
@@ -516,7 +522,7 @@ void updateOLED(TestBoxModes Mode) {
   }
 
   //Change the display state
-  if (oldDisplayState != currentDisplayState) {
+  if ( (oldDisplayState != currentDisplayState) && ((millis()-tDisplaySwitch)>dispChangeHold) ) {
     //Serial.println("Setting new mode");
     //tft.fillRect(0, 0, 128, 128, BLACK);
     tft.fillScreen(BLACK);
@@ -583,6 +589,7 @@ void updateOLED(TestBoxModes Mode) {
     }
     oldDisplayState = currentDisplayState;
     displayBatteryStatus();
+    tDisplaySwitch=millis();
   }
 
   switch (currentDisplayState) {
@@ -1037,8 +1044,8 @@ void updateLameDisplay() {
   }
   lameGraph.updateGraph(lameOhms);
   #if FAST_LED_ACTIVE
-  updateLED(lameOhms);
-  #endif FAST_LED_ACTIVE
+    updateLED(lameOhms);
+  #endif 
 }
 
 #if FAST_LED_ACTIVE
