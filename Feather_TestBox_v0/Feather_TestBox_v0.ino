@@ -14,6 +14,7 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 #include <nrfx_gpiote.h>
+//#include <string.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
