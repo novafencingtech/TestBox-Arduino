@@ -41,7 +41,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-04-10";
+static const char BUILD_DATE[16] = "2021-04-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -132,8 +132,8 @@ const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
-const long tIdleModeOn = 20000L; //ms - Switch to idle mode after 30s of in-activity.
-const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
+const long tIdleModeOn = 20000L; //ms - Switch to idle mode after 20s of in-activity.
+const long tIdleWakeUpInterval = 20; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
