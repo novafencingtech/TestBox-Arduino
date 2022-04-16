@@ -469,11 +469,11 @@ void setup() {
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-  delay(100);
+  //delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(100);
+  delay(250);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
