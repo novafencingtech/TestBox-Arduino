@@ -14,6 +14,7 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 #include <nrfx_gpiote.h>
+//#include <string.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -40,7 +41,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2021-04-10";
+static const char BUILD_DATE[16] = "2021-04-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -116,7 +117,7 @@ const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
-const long cableDisconnectTimeOut = 2000L; //Time out before flagging the cable as disconnected
+const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
 const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
@@ -131,8 +132,9 @@ const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
-const long tIdleModeOn = 20000L; //ms - Switch to idle mode after 30s of in-activity.
-const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
+const long tIdleModeOn = 5000L; //ms - Switch to idle mode after 5s of in-activity.
+//const uint8_t weaponIdleMultiplier = 4; //ms - Switch to idle mode after 20s of in-activity.
+const long tIdleWakeUpInterval = 20; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
@@ -467,11 +469,11 @@ void setup() {
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-  delay(100);
+  //delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(100);
+  delay(250);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -634,8 +636,8 @@ void loop() {
       }
       if (updateReady) {
         updateCableState();
-        toc = micros();
-        timing_seg = toc - tic;
+        //toc = micros();
+        //timing_seg = toc - tic;
         //updateOLED(BoxState);
         if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval) && ((t_now-tLastActive)>cableDisconnectTimeOut)) {
           //Serial.println("Checking idle connections");
@@ -675,6 +677,7 @@ void loop() {
     case BOX_IDLE:
       delay(tIdleWakeUpInterval);
       updateIdleMode();
+      //timing_seg=toc-tic;
       break;
   }
 

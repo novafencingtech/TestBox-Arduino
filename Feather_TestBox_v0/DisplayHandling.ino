@@ -276,19 +276,19 @@ void drawVLine(int col, int startRow, int endRow, int color) {
 
 void displaySplashScreen() {
   tft.fillRect(0, 0, 128, 128, BLACK);
-  tft.drawRGBBitmap(0,0,(uint16_t*) &(splashImage.pixel_data[0]),splashImage.width,splashImage.height);
+  tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
 }
 
 void InitializeDisplay()
 {
   //Initialize FastLED
-  #if FAST_LED_ACTIVE
+#if FAST_LED_ACTIVE
   FastLED.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(&lameLED, 1);
   FastLED.setCorrection( TypicalLEDStrip );
-  lameLED=CRGB(25,10,70);
+  lameLED = CRGB(25, 10, 70);
   FastLED.show();
-  #endif
-  
+#endif
+
   tft.begin();
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);
@@ -301,16 +301,16 @@ void InitializeDisplay()
     tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
     tft.println("  G Allen \n     &\n  B Rosen");
   }
-  tft.setCursor(65,120);
+  tft.setCursor(65, 120);
   tft.setTextSize(1);
-  tft.setTextColor(MAGENTA,BLACK);
+  tft.setTextColor(MAGENTA, BLACK);
   tft.print(BUILD_DATE);
 
-  tft.setCursor(0,120);
+  tft.setCursor(0, 120);
   tft.setTextSize(1);
-  tft.setTextColor(CYAN,BLACK);
+  tft.setTextColor(CYAN, BLACK);
   tft.print(VERSION_NUM);
-  
+
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
@@ -338,10 +338,10 @@ void dimOLEDDisplay() {
   //static bool alreadyDimmed=false;
   //Fill the rest of the display with black leaving only the top bar.
   tft.fillRect(0, 17, 128, 128 - 17, BLACK);
-  #if FAST_LED_ACTIVE
-  lameLED=CRGB::Black;
+#if FAST_LED_ACTIVE
+  lameLED = CRGB::Black;
   FastLED.show();
-  #endif
+#endif
 }
 
 void displayBatteryStatus() {
@@ -427,19 +427,28 @@ int gv(const char *s) {
     if (s == "CA") return floatTo10xInt(cableState.ohm_CC);
     if (s == "CB") return floatTo10xInt(cableState.ohm_CC);
     if (s == "CC") return floatTo10xInt(cableState.ohm_CC);*/
-    return -999;
+  return -999;
 }
 
 
 void labelTitle(const char *s, int color) {
-  static const char *oldFault;
-  if (s == oldFault) return; //no change
-  oldFault = s;
+  const int LBL_MAX = 15;
+  static char lblBuffer[LBL_MAX + 1];
+  static int oldColor = BLACK;
+  //if (s == oldFault) return; //no change
+  if ((strcmp(lblBuffer, s) == 0) && (oldColor == color) ) return;
+  oldColor = color;
+  if (strlen(s) <= LBL_MAX) {
+    strcpy(lblBuffer, s);
+  } else {
+    strncpy(lblBuffer, s, LBL_MAX);
+    lblBuffer[LBL_MAX] = '\0';
+  }
   tft.setTextSize(2);
   tft.fillRect(0, 0, 115, 20, BLACK); //clear label area
   tft.setCursor(2, 2);
   tft.setTextColor(color, BLACK);
-  tft.println(s);
+  tft.println(lblBuffer);
 }
 
 static int oldA = 0, oldB = 0, oldC = 0;
@@ -522,15 +531,15 @@ void updateOLED(TestBoxModes Mode) {
   }
 
   //Change the display state
-  if ( (oldDisplayState != currentDisplayState) && ((millis()-tDisplaySwitch)>dispChangeHold) ) {
+  if ( (oldDisplayState != currentDisplayState) && ((millis() - tDisplaySwitch) > dispChangeHold) ) {
     //Serial.println("Setting new mode");
     //tft.fillRect(0, 0, 128, 128, BLACK);
     tft.fillScreen(BLACK);
     tft.setCursor(2, 2);
-    #if FAST_LED_ACTIVE
-      lameLED=CRGB::Black;
-      FastLED.show();
-    #endif
+#if FAST_LED_ACTIVE
+    lameLED = CRGB::Black;
+    FastLED.show();
+#endif
     //tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
 
     switch (currentDisplayState) {
@@ -553,6 +562,7 @@ void updateOLED(TestBoxModes Mode) {
         tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
         tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
         tft.setTextSize(1);
+        tft.setTextColor(WHITE);
         tft.setCursor(47 - 14, 120);
         tft.print("20");
         tft.setCursor(88 - 14, 120);
@@ -589,7 +599,7 @@ void updateOLED(TestBoxModes Mode) {
     }
     oldDisplayState = currentDisplayState;
     displayBatteryStatus();
-    tDisplaySwitch=millis();
+    tDisplaySwitch = millis();
   }
 
   switch (currentDisplayState) {
@@ -611,17 +621,17 @@ void updateOLED(TestBoxModes Mode) {
     case disp_capture: {
         updateWeaponIndicators();
         static bool armed = false;
-        long captureDuration=0;
-        int trigIndx,lastIndx,trimVal;
+        long captureDuration = 0;
+        int trigIndx, lastIndx, trimVal;
 
         if (FoilADC.hsBuffer.CaptureDone()) {
           newConnection = foil;
           lastConnection = foil;
           sTime = millis();
-          trigIndx=FoilADC.hsBuffer.getTriggerIndex();
-          lastIndx=FoilADC.hsBuffer.getLastTriggerIndex();
-          trimVal=FoilADC.getTrim();
-          captureDuration=FoilADC.hsBuffer.getTriggerDuration();
+          trigIndx = FoilADC.hsBuffer.getTriggerIndex();
+          lastIndx = FoilADC.hsBuffer.getLastTriggerIndex();
+          trimVal = FoilADC.getTrim();
+          captureDuration = FoilADC.hsBuffer.getTriggerDuration();
           labelTitle("Foil hit", RED);
           //armed=false;
         }
@@ -629,10 +639,10 @@ void updateOLED(TestBoxModes Mode) {
         if (EpeeADC.hsBuffer.CaptureDone()) {
           newConnection = epee;
           lastConnection = epee;
-          trigIndx=EpeeADC.hsBuffer.getTriggerIndex();
-          lastIndx=EpeeADC.hsBuffer.getLastTriggerIndex();
-          trimVal=EpeeADC.getTrim();
-          captureDuration=EpeeADC.hsBuffer.getTriggerDuration();
+          trigIndx = EpeeADC.hsBuffer.getTriggerIndex();
+          lastIndx = EpeeADC.hsBuffer.getLastTriggerIndex();
+          trimVal = EpeeADC.getTrim();
+          captureDuration = EpeeADC.hsBuffer.getTriggerDuration();
           sTime = millis();
           labelTitle("Epee hit", RED);
           //armed=false;
@@ -648,23 +658,23 @@ void updateOLED(TestBoxModes Mode) {
           }
           if (FoilADC.hsBuffer.CaptureDone() || EpeeADC.hsBuffer.CaptureDone())  {
             lastCapture = millis();
-            armed=false;
+            armed = false;
             captureGraph.resetGraph();
             for (int k = 0; k < ADC_CAPTURE_LEN; k++) {
-              captureGraph.updateGraph((ADC_CaptureBuffer[k]-trimVal)*FoilADC.LOW_GAIN);
-            }            
+              captureGraph.updateGraph((ADC_CaptureBuffer[k] - trimVal)*FoilADC.LOW_GAIN);
+            }
             tft.drawFastVLine(trigIndx, 28, 127, CYAN);
             tft.drawFastVLine(lastIndx, 28, 127, CYAN);
             tft.setTextSize(1);
             tft.setTextColor(CYAN);
-            tft.setCursor(trigIndx+20,65);            
-            tft.print(captureDuration/1000);
-            if (lastIndx>=(ADC_CAPTURE_LEN-1)) {
+            tft.setCursor(trigIndx + 20, 65);
+            tft.print(captureDuration / 1000);
+            if (lastIndx >= (ADC_CAPTURE_LEN - 1)) {
               tft.print("+");
             }
             tft.print(" ms");
-            captureGraph.drawTextLabels();       
-            
+            captureGraph.drawTextLabels();
+
             //weaponGraph.updateGraph(weaponState.ohm_Foil);
             //FoilADC.hsBuffer.ResetTrigger();
             //EpeeADC.hsBuffer.ResetTrigger();
@@ -681,7 +691,7 @@ void updateOLED(TestBoxModes Mode) {
             //weaponGraph.updateGraph(weaponState.ohm_Epee);
             printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);
             break;
-        }*/
+          }*/
       }
       break;
     case disp_wpnR:
@@ -690,21 +700,21 @@ void updateOLED(TestBoxModes Mode) {
       newConnection = lastConnection;
       if (weaponState.foilOn) {
         //lastConnection = foil;
-        sTime = millis();        
-        newConnection = foil;        
+        sTime = millis();
+        newConnection = foil;
       }
       if (weaponState.epeeOn) {
         //lastConnection = epee;
         newConnection = epee;
         sTime = millis();
       }
-      if ((lastConnection==shorted) && (sTime < dispHoldTime)) {
-        newConnection=shorted;
+      if ((lastConnection == shorted) && (sTime < dispHoldTime)) {
+        newConnection = shorted;
       }
-      
+
       if ((weaponState.foilOn) && (weaponState.epeeOn)) { //short
         newConnection = shorted;
-        dispHoldTime=millis()+5000ul;
+        dispHoldTime = millis() + 5000ul;
         //lastConnection = shorted;
       }
 
@@ -884,6 +894,7 @@ void updateWeaponTestLights() {
 
 void updateDisplayCableMode() {
   //static char displayMode = 'c';
+  const uint16_t faultCheck = ~( (1 << BITAA) | (1 << BITBB) | (1 << BITCC) );
   bool ABcross = CheckCableStatusByte( (1 << BITAB) );
   bool ACcross = CheckCableStatusByte( (1 << BITAC)  );
   bool BAcross = CheckCableStatusByte( (1 << BITBA)  );
@@ -894,8 +905,21 @@ void updateDisplayCableMode() {
   bool BCshort = (CheckCableStatusByte((1 << BITBC)) || CheckCableStatusByte((1 << BITCB))) && ((!CheckCableStatusByte((1 << BITBB))) || (!CheckCableStatusByte((1 << BITCC))));
   bool ACshort = (CheckCableStatusByte((1 << BITAC)) || CheckCableStatusByte((1 << BITCA))) && ((!CheckCableStatusByte((1 << BITAA))) || (!CheckCableStatusByte((1 << BITCC))));
 
-  tft.setTextSize(2);
-  if (ABshort) //AB short
+  //tft.setTextSize(2);
+
+  if ((cableState.statusByte & faultCheck)==0) { //Only faults are high resistance
+    if (cableState.statusByte == 0) {
+      labelTitle("Cable OK", GREEN);
+    } else {
+      labelTitle("Cable", YELLOW);  
+    }   
+    graph1("AA");
+    graph2("BB");
+    graph3("CC");
+    return;
+  }
+
+  if (ABshort) { //AB short
     if (BCshort) {//if AB and BC then AC has to be shorted
       //A - B - C short
       labelTitle("Short ABC", RED);
@@ -910,101 +934,83 @@ void updateDisplayCableMode() {
       graph2("BB");
       graph3("CC");
     }
-  else if (BCshort) {
+  } else if (BCshort) {
     //BC and not AB (and therefore not AC), AA okay or open
     labelTitle("Short BC", RED);
     graph1("AA");
     graph2("BC");
     graph3("CC");
-  }
-  else if (ACshort) {
+  } else if (ACshort) {
     //AC and not AB, and therefore not BC, BB okay or open
     labelTitle("Short AC", RED);
     graph1("AC");
     graph2("BB");
     graph3("CC");
-  }
-  else //no shorts
-    if (ABcross)
-      if (BAcross) {
-        //AB cross, CC okay or open
-        labelTitle("AB Cross", RED);
-        graph1("AB");
-        graph2("BA");
-        graph3("CC");
-      }
-      else if (CAcross) {
-        //A->B C->A, could be B->C or open
-        labelTitle("ABC Cross", RED);
-        graph1("AB");
-        graph2("BC");
-        graph3("CA");
-      }
-      else {
-        //AB cross, don't know what happened to BA
-        labelTitle("AB Cross", RED);
-        graph1("AB");
-        graph2("BB"); //always going to be open
-        graph3("CC");
-      }
-    else if (BCcross) {
-      //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
-      labelTitle("BC Cross", RED);
-      graph1("AA");
+  } else if (ABcross) {//no shorts, check crosses
+    if (BAcross) {
+      //AB cross, CC okay or open
+      labelTitle("AB Cross", RED);
+      graph1("AB");
+      graph2("BA");
+      graph3("CC");
+    } else if (CAcross) {
+      //A->B C->A, could be B->C or open
+      labelTitle("ABC Cross", RED);
+      graph1("AB");
       graph2("BC");
-      graph3("CB");
+      graph3("CA");
+    } else {
+      //AB cross, don't know what happened to BA
+      labelTitle("AB Cross", RED);
+      graph1("AB");
+      graph2("BB"); //always going to be open
+      graph3("CC");
     }
-    else if (ACcross)
-      if (CAcross) {
-        //AC cross, BB good or open
-        labelTitle("AC Cross", RED);
-        graph1("AC");
-        graph2("BB");
-        graph3("CA");
-      }
-      else if (BAcross) {
-        //A->C, B->A, C->B
-        labelTitle("ACB Cross", RED);
-        graph1("AC");
-        graph2("BA");
-        graph3("CB");
-      }
-      else {
-        //something is open
-        labelTitle("AC Cross", RED);
-        graph1("AC");
-        graph2("BB");
-        graph3("CA");
-      }
-
-    else  //something is open
-      if (BAcross) {
-        //BA but not AB
-        labelTitle("BA Cross", RED);
-        graph1("AB");
-        graph2("BA");
-        graph3("CC");
-      }
-      else if (CBcross) {
-        //CB but not BC
-        labelTitle("CB Cross", RED);
-        graph1("AA");
-        graph2("BC");
-        graph3("CB");
-      }
-      else if (CAcross) {
-        //CA but not AC
-        labelTitle("CA Cross", RED);
-        graph1("AC");
-        graph2("BB");
-        graph3("CA");
-      }
-      else {//no shorts/no crosses
-        labelTitle("Cable", GREEN);
-        graph1("AA");
-        graph2("BB");
-        graph3("CC");
-      }
+  } else if (BCcross) {
+    //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
+    labelTitle("BC Cross", RED);
+    graph1("AA");
+    graph2("BC");
+    graph3("CB");
+  } else if (ACcross) {
+    if (CAcross) {
+      //AC cross, BB good or open
+      labelTitle("AC Cross", RED);
+      graph1("AC");
+      graph2("BB");
+      graph3("CA");
+    } else if (BAcross) {
+      //A->C, B->A, C->B
+      labelTitle("ACB Cross", RED);
+      graph1("AC");
+      graph2("BA");
+      graph3("CB");
+    } else {
+      //something is open
+      labelTitle("AC Cross", RED);
+      graph1("AC");
+      graph2("BB");
+      graph3("CA");
+    }
+  } else if (BAcross) {//something is open
+    //BA but not AB
+    labelTitle("BA Cross", RED);
+    graph1("AB");
+    graph2("BA");
+    graph3("CC");
+  } else if (CBcross) {
+    //CB but not BC
+    labelTitle("CB Cross", RED);
+    graph1("AA");
+    graph2("BC");
+    graph3("CB");
+  } else if (CAcross) {
+    //CA but not AC
+    labelTitle("CA Cross", RED);
+    graph1("AC");
+    graph2("BB");
+    graph3("CA");
+  }
 }
 
 void createWeaponDisplay() {
@@ -1017,59 +1023,59 @@ void createWeaponDisplay() {
 
 // barGraph(X, H, oldVal, newVal, oldVal)
 void createLameDisplay() {
-  labelTitle("Lame", YELLOW);
+  labelTitle("", YELLOW);
   lameGraph.resetGraph();
 }
 
-void updateLameDisplay() {  
+void updateLameDisplay() {
   static int oldVal = 9999;
   int lameVal;
   static byte i = 0;
   float lameOhms;
 
-  if (cableState.ohm_Lame<MAX_LAME_RESISTANCE) {
-    lameOhms=cableState.ohm_Lame;
+  if (cableState.ohm_Lame < MAX_LAME_RESISTANCE) {
+    lameOhms = cableState.ohm_Lame;
   } else {
-    lameOhms=OPEN_CIRCUIT_VALUE;
+    lameOhms = OPEN_CIRCUIT_VALUE;
   }
 
-  lameVal=floatTo10xInt(lameOhms);
+  lameVal = floatTo10xInt(lameOhms);
   //Serial.println(lameVal);
   barGraph(2, 18, lameVal, oldVal, "Lame");
   oldVal = lameVal;
   if (lameVal > 50) {
-    labelTitle("Lame", GREEN);
+    //labelTitle("Lame", GREEN);
   } else {
-    labelTitle("Lame", RED);
+    //labelTitle("Lame", RED);
   }
   lameGraph.updateGraph(lameOhms);
-  #if FAST_LED_ACTIVE
-    updateLED(lameOhms);
-  #endif 
+#if FAST_LED_ACTIVE
+  updateLED(lameOhms);
+#endif
 }
 
 #if FAST_LED_ACTIVE
 void updateLED(float value) {
-  const float lameVals[5] {-1.0f, 5.0f, 10.0f, 15.0f, 20.0f};
+  const float lameVals[5] { -1.0f, 5.0f, 10.0f, 15.0f, 20.0f};
   const CRGB lameColors[5] {CRGB::Green, CRGB::Yellow, CRGB::Orange, CRGB::OrangeRed, CRGB::DarkRed};
-  static CRGB prevLEDColor=CRGB::Black;
-  uint8_t R,G,B;
+  static CRGB prevLEDColor = CRGB::Black;
+  uint8_t R, G, B;
 
-  R=G=B=0;
-  lameLED=CRGB::DarkRed;
-  for (int k=0; k<5; k++) {
-    if (value>=lameVals[k]) {      
-      lameLED=lameColors[k];
+  R = G = B = 0;
+  lameLED = CRGB::DarkRed;
+  for (int k = 0; k < 5; k++) {
+    if (value >= lameVals[k]) {
+      lameLED = lameColors[k];
     } else {
       break;
     }
   }
   lameLED.nscale8_video(64); //50% brightness reduction
-  if (lameLED!=prevLEDColor) {
-    prevLEDColor=lameLED;
+  if (lameLED != prevLEDColor) {
+    prevLEDColor = lameLED;
     //lameLED=CRGB::Green;
-    FastLED.show();    
-  }  
+    FastLED.show();
+  }
 }
 #endif
 
