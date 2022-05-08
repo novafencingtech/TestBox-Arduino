@@ -6,9 +6,10 @@
 //#define SCLK_PIN 12
 //#define MOSI_PIN 13
 // Need to modify variant.cpp to add the pin numbers for additional ports
-#define DC_PIN   22 //PA13
-#define CS_PIN   9 //PA19
-#define RST_PIN  21 //PA12
+#define DC_PIN   20 //0.20
+#define CS_PIN   31 //0.31
+#define RST_PIN  -1 //PA12
+#define LCD_LED_PIN 26 
 
 // Color definitions
 #define BLACK           0x0000
@@ -119,6 +120,8 @@ void InitializeDisplay()
   FastLED.show();
 #endif
 
+  pinMode(LCD_LED_PIN, OUTPUT);
+  digitalWrite(LCD_LED_PIN, HIGH);  // Turn on the backlight
   tft.begin();
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   //tft.fillRect(0, 0, 320, 240, BLACK);
@@ -177,10 +180,10 @@ void InitializeDisplay()
   barGraphA.setHorizontalBarValues(5, cableVals, cableColors);
   barGraphB.setHorizontalBarValues(5, cableVals, cableColors);
   barGraphC.setHorizontalBarValues(5, cableVals, cableColors);
-  #if FAST_LED_ACTIVE
-    lameLED=CRGB::Black;
-    FastLED.show();
-  #endif
+#if FAST_LED_ACTIVE
+  lameLED = CRGB::Black;
+  FastLED.show();
+#endif
 }
 
 void dimOLEDDisplay() {
@@ -284,13 +287,13 @@ float getOhms(char *s) {
 
 
 void labelTitle(char *s, int color) {
-  const int sizeX=118;
+  const int sizeX = 118;
   static char *oldFault;
   static GFXcanvas1 canvas(sizeX, 20);
-  static int prevColor=BLACK;
+  static int prevColor = BLACK;
 
-  if ((strcmp(oldFault,s)==0) && (color==prevColor)) return; //no change
-  
+  if ((strcmp(oldFault, s) == 0) && (color == prevColor)) return; //no change
+
   canvas.setFont(&FreeSansBold12pt7b);
   oldFault = s;
   //tft.setTextSize(2);
@@ -389,9 +392,9 @@ void updateOLED(TestBoxModes Mode) {
         barGraphA.resetGraph();
         barGraphA.setTitle("AA=");
         barGraphB.resetGraph();
-        barGraphB.setTitle("BB=");        
+        barGraphB.setTitle("BB=");
         barGraphC.resetGraph();
-        barGraphC.setTitle("CC=");    
+        barGraphC.setTitle("CC=");
 
         break;
       case disp_capture:
@@ -733,15 +736,38 @@ void updateDisplayCableMode() {
 
   //tft.setTextSize(2);
 
-  if ((cableState.statusByte & faultCheck)==0) { //Only faults are high resistance
-    if (cableState.statusByte == 0) {
-      labelTitle("Cable OK", GREEN);
+  if ((cableState.statusByte & faultCheck) == 0) { //Only faults are high resistance
+    //labelTitle("Cable", GREEN);
+    barGraphA.setTitle("AA=");
+    barGraphA.updateGraph(cableState.ohm_AA);
+
+    barGraphB.setTitle("BB=");
+    barGraphB.updateGraph(cableState.ohm_BB);
+
+    barGraphC.setTitle("CC=");
+    barGraphC.updateGraph(cableState.ohm_CC);
+
+    strcpy(buf, "Fault ");
+    bool cableFault = false;
+
+    if (CheckCableStatusByte((1 << BITAA))) {
+      sprintf(buf, "%s%c", buf, 'A');
+      cableFault = true;
+    }
+    if (CheckCableStatusByte((1 << BITBB))) {
+      sprintf(buf, "%s%c", buf, 'B');
+      cableFault = true;
+    }
+    if (CheckCableStatusByte((1 << BITCC))) {
+      sprintf(buf, "%s%c", buf, 'C');
+      cableFault = true;
+    }
+    if (cableFault) {
+      //strcat("\0",buf);
+      labelTitle(buf, RED);
     } else {
-      labelTitle("Cable", YELLOW);  
-    }   
-    graph1("AA");
-    graph2("BB");
-    graph3("CC");
+      labelTitle("Cable", GREEN);
+    }
     return;
   }
 
@@ -773,79 +799,139 @@ void updateDisplayCableMode() {
   } else if (BCshort) {
     //BC and not AB (and therefore not AC), AA okay or open
     labelTitle("Short BC", RED);
-    graph1("AA");
-    graph2("BC");
-    graph3("CC");
+    barGraphA.setTitle("AA=");
+    barGraphA.updateGraph(getOhms("AA"));
+
+    barGraphB.setTitle("BC=");
+    barGraphB.updateGraph(getOhms("BC"));
+
+    barGraphC.setTitle("CC=");
+    barGraphC.updateGraph(cableState.ohm_CC);
   } else if (ACshort) {
     //AC and not AB, and therefore not BC, BB okay or open
     labelTitle("Short AC", RED);
-    graph1("AC");
-    graph2("BB");
-    graph3("CC");
+    barGraphA.setTitle("AC=");
+    barGraphA.updateGraph(getOhms("AC"));
+
+    barGraphB.setTitle("BB=");
+    barGraphB.updateGraph(cableState.ohm_BB);
+
+    barGraphC.setTitle("CC=");
+    barGraphC.updateGraph(cableState.ohm_CC);
   } else if (ABcross) {//no shorts, check crosses
     if (BAcross) {
       //AB cross, CC okay or open
       labelTitle("AB Cross", RED);
-      graph1("AB");
-      graph2("BA");
-      graph3("CC");
+      barGraphA.setTitle("AB=");
+      barGraphA.updateGraph(getOhms("AB"));
+
+      barGraphB.setTitle("BA=");
+      barGraphB.updateGraph(getOhms("BA"));
+
+      barGraphC.setTitle("CC=");
+      barGraphC.updateGraph(cableState.ohm_CC);
     } else if (CAcross) {
       //A->B C->A, could be B->C or open
       labelTitle("ABC Cross", RED);
-      graph1("AB");
-      graph2("BC");
-      graph3("CA");
+      barGraphA.setTitle("AB=");
+      barGraphA.updateGraph(getOhms("AB"));
+
+      barGraphB.setTitle("BC=");
+      barGraphB.updateGraph(getOhms("BC"));
+
+      barGraphC.setTitle("CA=");
+      barGraphC.updateGraph(getOhms("CA"));
     } else {
       //AB cross, don't know what happened to BA
       labelTitle("AB Cross", RED);
-      graph1("AB");
-      graph2("BB"); //always going to be open
-      graph3("CC");
+      barGraphA.setTitle("AB=");
+      barGraphA.updateGraph(getOhms("AB"));
+
+      barGraphB.setTitle("BB=");
+      barGraphB.updateGraph(cableState.ohm_BB);
+
+      barGraphC.setTitle("CC=");
+      barGraphC.updateGraph(cableState.ohm_CC);
     }
   } else if (BCcross) {
     //we could test CB, and know it was a real BC cross, but if that failed, something has to be open
     labelTitle("BC Cross", RED);
-    graph1("AA");
-    graph2("BC");
-    graph3("CB");
+    barGraphA.setTitle("AA=");
+    barGraphA.updateGraph(cableState.ohm_AA);
+
+    barGraphB.setTitle("BC=");
+    barGraphB.updateGraph(getOhms("BC"));
+
+    barGraphC.setTitle("CB=");
+    barGraphC.updateGraph(getOhms("CB"));
   } else if (ACcross) {
     if (CAcross) {
       //AC cross, BB good or open
       labelTitle("AC Cross", RED);
-      graph1("AC");
-      graph2("BB");
-      graph3("CA");
+      barGraphA.setTitle("AC=");
+      barGraphA.updateGraph(getOhms("AC"));
+
+      barGraphB.setTitle("BB=");
+      barGraphB.updateGraph(cableState.ohm_BB);
+
+      barGraphC.setTitle("CA=");
+      barGraphC.updateGraph(getOhms("CA"));
     } else if (BAcross) {
       //A->C, B->A, C->B
       labelTitle("ACB Cross", RED);
-      graph1("AC");
-      graph2("BA");
-      graph3("CB");
+      barGraphA.setTitle("AC=");
+      barGraphA.updateGraph(getOhms("AC"));
+
+      barGraphB.setTitle("BA=");
+      barGraphB.updateGraph(getOhms("BA"));
+
+      barGraphC.setTitle("CB=");
+      barGraphC.updateGraph(getOhms("CB"));
     } else {
       //something is open
       labelTitle("AC Cross", RED);
-      graph1("AC");
-      graph2("BB");
-      graph3("CA");
+      barGraphA.setTitle("AC=");
+      barGraphA.updateGraph(getOhms("AC"));
+
+      barGraphB.setTitle("BB=");
+      barGraphB.updateGraph(cableState.ohm_BB);
+
+      barGraphC.setTitle("CA=");
+      barGraphC.updateGraph(getOhms("CA"));
     }
   } else if (BAcross) {//something is open
     //BA but not AB
     labelTitle("BA Cross", RED);
-    graph1("AB");
-    graph2("BA");
-    graph3("CC");
+    barGraphA.setTitle("AB=");
+    barGraphA.updateGraph(getOhms("AB"));
+
+    barGraphB.setTitle("BA=");
+    barGraphB.updateGraph(getOhms("BA"));
+
+    barGraphC.setTitle("CC=");
+    barGraphC.updateGraph(cableState.ohm_CC);
   } else if (CBcross) {
     //CB but not BC
     labelTitle("CB Cross", RED);
-    graph1("AA");
-    graph2("BC");
-    graph3("CB");
+    barGraphA.setTitle("AA=");
+    barGraphA.updateGraph(cableState.ohm_AA);
+
+    barGraphB.setTitle("BC=");
+    barGraphB.updateGraph(getOhms("BC"));
+
+    barGraphC.setTitle("CB=");
+    barGraphC.updateGraph(getOhms("CB"));
   } else if (CAcross) {
     //CA but not AC
     labelTitle("CA Cross", RED);
-    graph1("AC");
-    graph2("BB");
-    graph3("CA");
+    barGraphA.setTitle("AC=");
+    barGraphA.updateGraph(getOhms("AC"));
+
+    barGraphB.setTitle("BB=");
+    barGraphB.updateGraph(cableState.ohm_BB);
+
+    barGraphC.setTitle("CA=");
+    barGraphC.updateGraph(getOhms("CA"));
   }
 }
 
@@ -869,10 +955,10 @@ void updateLameDisplay() {
   float lameVal;
   static byte i = 0;
 
-  if (cableState.ohm_Lame<MAX_LAME_RESISTANCE) {
-    lameVal=cableState.ohm_Lame;
+  if (cableState.ohm_Lame < MAX_LAME_RESISTANCE) {
+    lameVal = cableState.ohm_Lame;
   } else {
-    lameVal=OPEN_CIRCUIT_VALUE;
+    lameVal = OPEN_CIRCUIT_VALUE;
   }
 
   if (lameVal <= 5.0) {
@@ -950,8 +1036,8 @@ void writeSerialOutput(TestBoxModes Mode) {
     numSamples = 0;
 
     Serial.println("Sample buffer[0]:");
-    for (int k=0;k<13; k++) {
-      Serial.println( (ChanArray[0].sampleBuffer[k] >>8));
+    for (int k = 0; k < 13; k++) {
+      Serial.println( (ChanArray[0].sampleBuffer[k] >> 8));
     }
   }
 
