@@ -76,7 +76,7 @@ int ADC_Channel::getTrim() {
 }
 
 float ADC_Channel::getValue() {
-  return ( (float(filterValue)-_ADCOffset)*(_gain));  
+  return ( (float(filterValue-_ADCOffset)*(_gain)) );  
 }
 
 float ADC_Channel::getDecayMaxValue() {

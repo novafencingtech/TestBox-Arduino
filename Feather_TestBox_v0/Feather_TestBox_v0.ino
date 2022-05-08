@@ -14,6 +14,7 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 #include <nrfx_gpiote.h>
+//#include <string.h>
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -29,6 +30,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define FAST_LED_ACTIVE 0
 
 #if FAST_LED_ACTIVE 
+#define FASTLED_INTERRUPT_RETRY_COUNT 3
 #include <FastLED.h>
 //Required for FAST LED
 #define LED_TYPE WS2812B
@@ -38,8 +40,8 @@ CRGB lameLED;
 #endif
 
 
-static const char VERSION_NUM[16] = "2.0-24.0"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2022-02-27";
+static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2021-04-12";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -75,7 +77,6 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_D
                                          //.pin_n = NRF_SAADC_INPUT_DISABLED
                                         };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
-
 
 //Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
 // http://www.micromodeler.com/dsp/
@@ -116,7 +117,7 @@ const int maxADCthreshold = 4000; //Used for switching between high/low gain
 const int shortADCthreshold = 3000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
-const long cableDisconnectTimeOut = 2000L; //Time out before flagging the cable as disconnected
+const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
 const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
 const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
 const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
@@ -131,15 +132,18 @@ const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
-const long tIdleModeOn = 20000L; //ms - Switch to idle mode after 30s of in-activity.
-const long tIdleWakeUpInterval = 200; //ms - How often to check inputs for changes while idle
+const long tIdleModeOn = 5000L; //ms - Switch to idle mode after 5s of in-activity.
+//const uint8_t weaponIdleMultiplier = 4; //ms - Switch to idle mode after 20s of in-activity.
+const long tIdleWakeUpInterval = 20; //ms - How often to check inputs for changes while idle
 const int tSerialRefresh = 500; //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 4000; //ms - How long to hold before entering calibration mode
 const int tIdleLEDBlink = 750; //ms
+const int wdtTimerResetInterval = 3; //s
 const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
 const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit capture displays for
+const long tLameWaitTime = 1000; //ms -- Duration before switch to lame mode from cable mode.
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
@@ -208,6 +212,8 @@ volatile long timing_seg = 0;
 volatile long tic = 0;
 volatile long toc = 0;
 volatile long tLastActive = 0; //ms - Time that an event was last detected
+
+bool wdtOverride = false;
 
 // Store the box state
 typedef enum TestBoxModes {
@@ -451,24 +457,33 @@ void SAADC_IRQHandler(void) {
 }
 #endif
 
-
+void wdtOverrideCallback(void *p_context) {
+  //if (wdtOverride) {
+    //Manually kick the watch dog
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+  //}
+}
 
 void setup() {
   // put your setup code here, to run once:
+  pinMode(POWER_CONTROL, OUTPUT);
+  digitalWrite(POWER_CONTROL, LOW);
 
   //Activate display
   //delay(50); //Hold for half second to power on
   //Initialize the display
   InitializeDisplay();
-
+  //delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(500);
+  delay(250);
 
   //Required to fix FPU prevent sleep bug
-  NVIC_SetPriority(FPU_IRQn, 100);
-  NVIC_EnableIRQ(FPU_IRQn);
+  //Likely no longer necessary with release 0.24
+  //Enabling causes the code to hang
+  //NVIC_SetPriority(FPU_IRQn, 100);
+  //NVIC_EnableIRQ(FPU_IRQn);
 
   // Enable timing diagnostics
   pinMode(DIAG_PIN, OUTPUT);
@@ -505,19 +520,21 @@ void setup() {
 
   //Initialize the various channel settings
   Serial.println("Initializing channels");
-
+  //delay(500);
   InitializeChannels();
   InitializeADC(false);
 
   CheckBatteryStatus();
   //displayBatteryStatus();
-
+  wdt_init();
+  //app_timer_start(wdtOverrideTimer,6554,true);
+  
   InitializeCableData();
   InitializeWeaponData();
   tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
   //tLastActive= 0;
 
-  delay(1000);
+  //delay(1000);
   setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
@@ -530,6 +547,7 @@ void setup() {
   
 }
 
+/*
 //Used to clear FPU interrupt so sleep works
 #ifdef __cplusplus
 extern "C" {
@@ -547,7 +565,7 @@ void FPU_IRQHandler(void)
 #ifdef __cplusplus
 }
 #endif
-
+*/
 
 // Pin change interrupt handler.  Used for weapon test mode.
 // New function needed for ESP32
@@ -585,6 +603,16 @@ void ISR_FoilHitDetect() {
   }
 }
 
+void wdt_init(void)
+{
+  NRF_WDT->CONFIG = (WDT_CONFIG_HALT_Pause << WDT_CONFIG_HALT_Pos) | ( WDT_CONFIG_SLEEP_Run << WDT_CONFIG_SLEEP_Pos);
+  NRF_WDT->CRV = wdtTimerResetInterval*32768; // Watchdog timer reset interval
+  NRF_WDT->RREN |= WDT_RREN_RR0_Msk; //Enable reload register 0
+  NRF_WDT->TASKS_START = 1;
+}
+
+
+
 void loop() {
   // put your main code here, to run repeatedly:
   long t_now = millis();
@@ -612,8 +640,8 @@ void loop() {
       }
       if (updateReady) {
         updateCableState();
-        toc = micros();
-        timing_seg = toc - tic;
+        //toc = micros();
+        //timing_seg = toc - tic;
         //updateOLED(BoxState);
         if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval) && ((t_now-tLastActive)>cableDisconnectTimeOut)) {
           //Serial.println("Checking idle connections");
@@ -653,6 +681,7 @@ void loop() {
     case BOX_IDLE:
       delay(tIdleWakeUpInterval);
       updateIdleMode();
+      //timing_seg=toc-tic;
       break;
   }
 
@@ -713,6 +742,7 @@ void loop() {
     //}
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
 }

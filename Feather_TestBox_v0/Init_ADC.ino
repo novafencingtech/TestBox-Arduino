@@ -152,6 +152,7 @@ void InitializeChannels() {
   WeaponAC.nextChannel = &EpeeADC;
   WeaponAC.setRangeHigh();
 
+  loadCalibrationData();
 
   for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {
     ChanArray[k].nextChannel = &(ChanArray[ChannelScanOrder[k]]);
@@ -191,8 +192,8 @@ void calibrateSystem() {
   setCableTestMode();
   StopADC();
 
-  //nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE);
-
+  //nrf_saadc_buffer_init(ADC_Buffer1, ADC_BUFFER_SIZE); 
+  
   for (int k = 0; k < NUM_CAL_CHANNELS; k++) {
     CalChan = getCalibrationChannel(k);
 
@@ -215,7 +216,7 @@ void calibrateSystem() {
     while (!cal_valid) {
       //sprintf(buf,"Connect %s\n Press button",label);
       //Serial.write(buf);
-
+      NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
       tft.fillScreen(BLACK);
       tft.setCursor(2, 2);
       tft.setTextColor(CYAN, BLACK);
@@ -227,7 +228,9 @@ void calibrateSystem() {
       tft.println("Press Btn");
 
 
-      while (digitalRead(BUTTON_PIN) == LOW) {}; //Wait until button pressed
+      while (digitalRead(BUTTON_PIN) == LOW) {
+        NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+      }; //Wait until button pressed
 
       NRF_SAADC->CH[ADC_UNIT].PSELP = CalChan->AIn;
       nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
@@ -254,7 +257,7 @@ void calibrateSystem() {
       toc = micros();
       Serial.print("Samples= "); Serial.print(sampleCount); Serial.print(" | "); Serial.print(toc - tic); Serial.println("us");
       adc_val = (ave_data / sampleCount);
-
+      NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
       //snprintf(buf, 16, "Cal value: %u", adc_val);
       tft.print("Value=");
       //tft.println(adc_val);
@@ -266,7 +269,7 @@ void calibrateSystem() {
         tft.println("Success!");
         CalChan->setTrim(adc_val);
         cal_valid = true;
-        delay(1500);
+        delay(1000);
       } else {
         errorCount++;
         tft.setTextColor(RED, BLACK);
@@ -279,7 +282,7 @@ void calibrateSystem() {
           //Serial.println("Cal Failed.  Exiting....");
           tft.println("Failed");
           tft.println("Exiting...");
-          delay(2000);
+          delay(1000);
           loadCalibrationData();
           return;
         }
@@ -290,25 +293,30 @@ void calibrateSystem() {
   tft.setCursor(2, 2);
   tft.println("Tap to save\nor hold to discard");
 
-  while (digitalRead(BUTTON_PIN) == LOW) {}; //Wait until button pressed
+  while (digitalRead(BUTTON_PIN) == LOW) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+  }; //Wait until button pressed
   tPress = millis();
   while (digitalRead(BUTTON_PIN) == HIGH) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
     if ((millis() - tPress) > tPowerOffPress) {
       tft.setTextColor(RED, BLACK);
       Serial.println("Discarding");
       tft.println("Discarding");
-      delay(5000); //let user see message
+      delay(1000); //let user see message
     }
     delay(100);
   }
 
   if ((millis() - tPress) < tPowerOffPress) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
     writeCalibrationData();
     tft.setTextColor(GREEN, BLACK);
     Serial.println("Saved");
     tft.println("Cal saved.");
-    delay(5000);
+    delay(1000);
   } else {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
     Serial.println("skipping");
     loadCalibrationData();
     delay(500);
