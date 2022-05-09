@@ -39,6 +39,26 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
+//Graphics items for the display
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
+#include <Adafruit_SPITFT.h>
+#include <SPI.h>
+#include "oledGraphClass.h"
+// Screen dimensions
+#define SCREEN_WIDTH  320
+#define SCREEN_HEIGHT 240 // Change this to 96 for 1.27" OLED.
+
+// You can use any (4 or) 5 pins
+//#define SCLK_PIN 12
+//#define MOSI_PIN 13
+// Need to modify variant.cpp to add the pin numbers for additional ports
+#define DC_PIN   20 //0.20
+#define CS_PIN   31 //0.31
+#define RST_PIN  -1 //PA12
+#define LCD_LED_PIN 26 
+
+Adafruit_ILI9341 tft = Adafruit_ILI9341(CS_PIN, DC_PIN);
 
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
 static const char BUILD_DATE[16] = "2021-05-07";

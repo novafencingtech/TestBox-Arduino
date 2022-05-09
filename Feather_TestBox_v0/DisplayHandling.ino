@@ -27,11 +27,6 @@
 #define BARCOLOR  YELLOW
 #define GRAPHCOLOR  RED
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_SPITFT.h>
-#include <SPI.h>
-#include "oledGraphClass.h"
 
 
 // Option 1: use any pins but a little slower
@@ -42,7 +37,8 @@
 // an output. This is much faster - also required if you want
 // to use the microSD card (see the image drawing example)
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
-Adafruit_ILI9341 tft = Adafruit_ILI9341(CS_PIN, DC_PIN, RST_PIN);
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(CS_PIN, DC_PIN);
+//Adafruit_ILI9341 tft = Adafruit_ILI9341(CS_PIN, DC_PIN,MOSI_PIN,SCLK_PIN);
 bool CheckCableStatusByte(uint16_t errorCheck) {
   return ((cableState.statusByte & errorCheck) == errorCheck);
 }
