@@ -215,7 +215,7 @@ void updateCableState() {
   uint16_t statusMask = ~( (1<<BITAA) | (1<<BITBB) | (1<<BITCC));
   if  ((cableState.statusByte & statusMask)==0) {
     if ((cableState.ohm_AA >= OPEN_CIRCUIT_VALUE) && (cableState.ohm_BB >= OPEN_CIRCUIT_VALUE)) {     
-      if (cableState.ohm_CC < OPEN_CIRCUIT_VALUE) { 
+      if ((cableState.ohm_CC < OPEN_CIRCUIT_VALUE) && ( (millis()-tLastActive)>tLameWaitTime) ) {
           cableState.lameMode = true;
           cableState.maskMode = false;
         }
@@ -341,7 +341,7 @@ bool checkWeaponConnected() {
   updateWeaponResistance();
   updateWeaponState();
 
-  while (nrf_saadc_busy_check(NRF_SAADC)) {};
+  //while (nrf_saadc_busy_check(NRF_SAADC)) {};
 
   digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
@@ -522,7 +522,8 @@ void checkButtonState() {
       //lcd.print(F("  Power off  "));
       tftDisplayMessage("Power off");
       while (digitalRead(BUTTON_PIN) == HIGH) {
-        delay(100);
+        NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+        delay(100);        
         if ((millis() - tButtonPress) > tEnterCalibrationMode) {
           //lcd.clear();
           //lcd.setCursor(0, 0);
@@ -532,7 +533,10 @@ void checkButtonState() {
         }
       }
       if (calibrationMode) {
+        //Start the watchdog override
+        //app_timer_start(wdtOverrideTimer,6554,true); 
         calibrateSystem();
+        //app_timer_stop(wdtOverrideTimer);
       } else {
         setPowerOff();
       }
@@ -552,8 +556,12 @@ void setPowerOff() {
   tft.setTextSize(3);
   tft.setTextColor(CYAN);
   tft.print("Good-bye");
-  delay(2000);
+  delay(200);
   digitalWrite(POWER_CONTROL, LOW); //Turn the box off*/
+  for (int k=0; k<10; k++) {
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+    delay(1000);    
+  }
 }
 
 void CheckBatteryStatus() {
