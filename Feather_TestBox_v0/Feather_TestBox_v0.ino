@@ -41,7 +41,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2022-04-16";
+static const char BUILD_DATE[16] = "2022-09-07";
 
 
 #ifdef DISPLAY_SPLASH_IMAGE
@@ -119,7 +119,7 @@ const int shortADCthreshold = 3000; //ADC values below this will show as a short
 constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
 const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
-const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
+const int weaponStateHoldTime = 500; //ms - How long the light remains lit after a weapon-press
 const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
 static constexpr int usFoilDebounce = weaponFoilDebounce * 1000; //Foil debounce in us
@@ -129,7 +129,7 @@ const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 //constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
-constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
+constexpr long tOledOff = 5L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
 const long tIdleModeOn = 5000L; //ms - Switch to idle mode after 5s of in-activity.
@@ -322,7 +322,7 @@ struct weapon_test {
   bool lineAC = false;
   //byte epeeInterruptBit = PCINT4;
   //byte foilInterruptBit = PCINT6;
-  long tLightChange = 300; //ms -- time for the intermittent LED to be on
+  long tLightChange = weaponStateHoldTime; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
   int ohm10xFoil = 0;
@@ -687,17 +687,15 @@ void loop() {
     setPowerOff();
   }
 
-  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState != BOX_IDLE) ) {
+  if ((t_now - tLastActive) > tIdleModeOn) {
     if ((BoxState == CABLE) && (cableState.cableDC)) {
       setBoxMode(BOX_IDLE);
     }
-    if (weaponState.cableDC) {
-      if (BoxState == WPN_GRAPH) {
-        setBoxMode(BOX_IDLE);
-      }
+    if ((BoxState == WPN_GRAPH) && (weaponState.cableDC))  {
+      setBoxMode(BOX_IDLE);
     }
     if ((BoxState == WPN_TEST) && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
-      setBoxMode(BOX_IDLE);
+      //setBoxMode(BOX_IDLE);
     }
     //Serial.println("Setting idle mode");
   } else {
