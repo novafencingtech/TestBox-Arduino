@@ -102,6 +102,30 @@ void setCableTestMode() {
   StartADC();
 }
 
+void setProbeMode() {
+  detachInterrupt(LineADetect);
+  detachInterrupt(LineCDetect);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
+  digitalWrite(MUX_LATCH, HIGH);
+
+  StopADC();
+
+  // Re-initialize the ADC
+  InitializeADC(false);
+  loadCalibrationData();
+
+  ActiveCh = &(ProbeArray[0]);
+
+  weaponState.cableDC = true;
+  
+  BoxState = PROBE;
+  StartADC();
+}
+
 void updateCableState() {
   uint16_t statusCheck;
   //static long tLastConnect = 0;
@@ -257,6 +281,9 @@ void setBoxMode(TestBoxModes newMode) {
     case BOX_IDLE:
       setIdleMode();
       break;
+    case PROBE:
+      setProbeMode();
+      break;
     case HIT_CAPTURE:
       setWeaponResistanceMode(true);
       break;
@@ -382,6 +409,14 @@ void updateWeaponResistance() {
     }
   }
 }
+
+void updateProbe(){
+
+
+
+}
+
+
 
 void updateWeaponState() {
   //Update this code to use the A, B, C line displays

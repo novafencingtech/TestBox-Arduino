@@ -4,6 +4,15 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
+#define TTArmBoardRev 2
+
+// Used for defining board revision specific changes and features
+#if (TTArmBoardRev>=2)
+  #define TTArmMOSFETWeaponAC 1 //Present on rev2 boards, Rev 2 boards have a battery disconnect switch
+#else
+  #define TTArmMOSFETWeaponAC 0 
+#endif
+
 #include <arm_math.h>
 
 #include <Arduino.h>
@@ -39,10 +48,8 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
-
 static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2022-04-16";
-
+static const char BUILD_DATE[16] = "PrBeta-2022-11";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -54,6 +61,7 @@ static const char BUILD_DATE[16] = "2022-04-16";
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
 #define SERIAL_OUTPUT_BUFFER_SIZE 256 //Length of serial buffer
 #define ADC_BUFFER_SIZE 8
+#define OPEN_CIRCUIT 999.9
 
 const uint8_t ADC_UNIT = 0;
 nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
@@ -156,7 +164,8 @@ const uint8_t MUX_LATCH = 16;
 const uint8_t MUX_CLK = 15;
 const uint8_t MUX_DATA = 7;
 
-//MUX is MSBFIRST, bit 0=NC, bits 1-3=source, bits 4-6=sink, bit 7=weapon
+//MUX is MSBFIRST, bit 0=NC, bits 1-3=source,bit 4=weaponB, bits 5-7=sink, 
+//For rev 2 board MUX is MSBFIRST, bit 0=WeaponC GND, bits 1-3=source A/B/C,bit 4=WeaponB GND, bits 5-7=Cable A/B/C
 const byte MUX_DISABLED = 0x0;
 const byte MUX_CABLE_AA = B00100010;
 const byte MUX_CABLE_AB = B01000010;
@@ -167,11 +176,14 @@ const byte MUX_CABLE_BC = B10000100;
 const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
-const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 4=Link
-const byte MUX_WEAPON_AB = B01010010;
-const byte MUX_WEAPON_AC = B00000010; //Only A is source, C relies on pull-down resistor
-const byte MUX_WEAPON_CB = B01011000;
-
+const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B
+const byte MUX_WEAPON_AB = B00010010;
+const byte MUX_WEAPON_CB = B00011000;
+#if TTArmMOSFETWeaponAC
+  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+#else
+  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+#endif
 
 const uint32_t LineADetect = 5;
 const uint32_t LineCDetect = 29;
@@ -221,6 +233,7 @@ typedef enum TestBoxModes {
   WPN_TEST,
   WPN_GRAPH,
   HIT_CAPTURE,
+  PROBE,
   BOX_IDLE,
   BOX_OFF
 };
@@ -229,6 +242,10 @@ volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=Weapon
 oledGraph lameGraph;
 oledGraph weaponGraph;
 oledGraph captureGraph;
+
+oledReverseHBarGraph lineAGraph;
+oledReverseHBarGraph lineBGraph;
+oledReverseHBarGraph lineCGraph;
 
 // ADC timer settings;
 
@@ -246,7 +263,9 @@ volatile long tIdle = 0;
 
 
 //ADC parameters
+//ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
 ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
+ADC_Channel ProbeArray[6] {0, 2, 5, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
 //const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 4, 5, 3, 8, 7, 0, 6}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(2);
@@ -340,6 +359,38 @@ struct weapon_test {
 };
 
 volatile weapon_test weaponState;
+
+struct probeDataStruct {
+  int line_AA = 4095;
+  int line_AB = 4095;
+  int line_AC = 4095;
+  int line_BA = 4095;
+  int line_BB = 4095;
+  int line_BC = 4095;
+  int line_CA = 4095;
+  int line_CB = 4095;
+  int line_CC = 4095;
+
+  float ohm_APr = OPEN_CIRCUIT_VALUE;
+  float ohm_BPr = OPEN_CIRCUIT_VALUE;
+  float ohm_CPr = OPEN_CIRCUIT_VALUE;
+  float ohm_Foil = OPEN_CIRCUIT_VALUE;
+  float ohm_Epee = OPEN_CIRCUIT_VALUE;
+  float ohm_WpnAC = OPEN_CIRCUIT_VALUE; 
+
+  arm_biquad_casd_df1_inst_f32 ProbeALPF;
+  float ProbeALPFState[4];
+  arm_biquad_casd_df1_inst_f32 ProbeBLPF;
+  float ProbeBLPFState[4];
+  arm_biquad_casd_df1_inst_f32 ProbeCLPF;
+  float ProbeCLPFState[4];
+  arm_biquad_casd_df1_inst_f32 FoilLPF;
+  float FoilLPFState[4];
+  arm_biquad_casd_df1_inst_f32 EpeeLPF;
+  float EpeeLPFState[4];
+  arm_biquad_casd_df1_inst_f32 WpnACLPF;
+  float WpnACLPFState[4];
+} probeData;
 
 //bool BatteryCheck=false;
 
@@ -456,7 +507,7 @@ void SAADC_IRQHandler(void) {
 void wdtOverrideCallback(void *p_context) {
   //if (wdtOverride) {
     //Manually kick the watch dog
-    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+    //NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
   //}
 }
 
@@ -672,7 +723,8 @@ void loop() {
     case WPN_TEST:
       updateWeaponStateDigital();
       break;
-    case 's':
+    case PROBE:
+      updateProbe();
       break;
     case BOX_IDLE:
       delay(tIdleWakeUpInterval);

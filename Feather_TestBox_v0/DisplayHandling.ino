@@ -25,6 +25,11 @@
 #define BARCOLOR  YELLOW
 #define GRAPHCOLOR  RED
 
+const int ABAR=25; //Vertical location of first bar graph
+const int BBAR=60;
+const int CBAR=95;
+const int barHeight=12;
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
 #include <Adafruit_SPITFT.h>
@@ -168,111 +173,6 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   if (color == BLACK) s = "BLACK";
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
-/*
-  void drawColumn(int col, int val) {
-  //Assumes we have only one graph EVER
-  static int oldVal = 0;
-  static int oldRow = 0;
-  //0-9.9 ohm, rows 27-127
-  int valRow = 127 - min(val, 99); //convert ohms in tenths to row
-  //int oldRow = 127 - min(oldVal, 99); //same with old val
-  int topRow, botRow, orangeRow, greenRow;
-  //sort ends so we're always drawing from top to bottom
-  if (valRow > oldRow) {
-    topRow = oldRow;
-    botRow = valRow;
-  } else {
-    topRow = valRow;
-    botRow = oldRow;
-  }
-  //  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
-  orangeRow = 127 - weaponOrangeThresh; //first line of orange
-  greenRow = 127 - weaponGreenThresh; //first line of green
-  tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
-  drawVLine(col, 28, topRow - 1, BLACK); //clear out above topRow
-  if (topRow > 77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
-  if (topRow > 107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
-  if (topRow < orangeRow) { //some red
-    drawVLine(col, topRow, min(botRow, orangeRow - 1), RED);
-    if (botRow >= orangeRow) {
-      if (botRow >= greenRow) { //extends to green
-        drawVLine(col, orangeRow, greenRow - 1, ORANGE); //complete orange section
-        drawVLine(col, greenRow, botRow, GREEN);
-      } else { //ends in orange
-        drawVLine(col, orangeRow, botRow, ORANGE);
-      }
-    }
-  } else {  //no red
-    if (topRow < greenRow) { //some orange
-      drawVLine(col, topRow, min(botRow, greenRow - 1), ORANGE);
-      if (botRow > greenRow) { //extends to green
-        drawVLine(col, greenRow, botRow, GREEN);
-      }
-    } else { //green only
-      drawVLine(col, topRow, botRow, GREEN);
-    }
-  }
-  if (botRow < 127) { //fill black to bottom
-    drawVLine(col, botRow + 1, 127, BLACK);
-    if (botRow < 77) tft.drawPixel(col, 77, WHITE); //restore 5 ohm line
-    if (botRow < 107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
-    tft.drawPixel(col, 127, WHITE); //restore 0 ohm line
-  }
-  if (col < 127) {
-    int icol = col + 1; int irow = max(valRow - 1, 28);
-    //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    tft.drawFastVLine(icol, irow, 2, CYAN);
-  }  //show where we are as 2x1 cyan line at col+1
-  oldRow = valRow;
-  oldVal = val;
-  }*/
-
-//Draw a static line graph from an array
-//  rData = array with resistance values in tenths of an ohm
-//  oThresh = resistance of Orange threshold im tenths of an ohm
-//  gThresh = resistance of Green threshold in tenths of an ohm
-/* void LineGraph(int rData[127]) {
-  int i, val, maxVal, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
-  maxVal = 0;
-  for (i = 0; i < 128; i++) if ((rData[i] > val) && (rData[i] != 990)) maxVal = rData[i]; //find biggest value
-  // We reserve 28 rows for text, leaving 100 rows for graph
-  // Graphs are scaled to the max resistance in the array
-  //    Max R  Precision (1 pixel)
-  //      10    .1 ohm
-  //      20   .25 ohm
-  //     100    1 ohm
-  //     500    5 ohm
-  startTime = micros();
-  vMax = 100;  // assume 10 ohm scale
-  if (maxVal > 100) vMax = 500;  //possible 20 ohm scale
-  if (maxVal > 200) vMax = 1000;  //possible 100 scale
-  if (maxVal > 1000) vMax = 5000;  //nope, it's 500 ohm scale
-  if (vMax != oldScale) {  //don't change scale fast
-    if (slowShift++ < SLOWCOUNT) {
-      vMax = oldScale;  //use the old scale for a while
-    }
-    else {  //new scale
-      oldScale = vMax;  //change scale
-      slowShift = 0;  //restart slow filter
-    }
-  } else slowShift = 0;  //stay in your lane
-  vRatio = vMax / 100;  //tenths of an ohm per row
-  oY = 100 - (weaponOrangeThresh / vRatio);  //calculate row # of orange threshold
-  gY = 100 - (weaponGreenThresh / vRatio);  // same for green threshold
-  //oldVal = rData[0]; //force first column to be a point
-  for (i = 0; i < 128; i++) {
-    val = rData[i];
-    if (val == 990) val = maxVal; //if not connected, use max value in array
-    drawColumn(i, val);
-    //oldVal = val;
-  }
-  endTime = micros();
-  if (startTime < endTime) {
-    totalTime = endTime - startTime;
-    timeSamples = 1ul;
-  };
-  }
-*/
 
 void displaySplashScreen() {
   tft.fillRect(0, 0, 128, 128, BLACK);
@@ -315,6 +215,25 @@ void InitializeDisplay()
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
+
+  lineAGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
+  lineBGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
+  lineCGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
+  float cableLimits[5] = {999.0f, 20.0f, 15.0f, 10.0f, 5.0f};
+  int cableColors[5] = {lineAGraph.cRED, lineAGraph.cRED, lineAGraph.cORANGE, lineAGraph.cYELLOW,lineAGraph.cGREEN};
+  lineAGraph.setBarColors(5,cableLimits,cableColors);
+  lineBGraph.setBarColors(5,cableLimits,cableColors);
+  lineCGraph.setBarColors(5,cableLimits,cableColors);
+
+  //lineBGraph = oledBarGraph(&tft, )
+  //lineCGraph = oledBarGraph(&tft, )
+
+  //prEpeeBar = oledBarGraph(&tft,)
+  //prFoilBar = oledBarGraph(&tft,)
+  //prACBar = oledBarGraph(&tft,)
+  //prABar = oledBarGraph(&tft,)
+  //prBBar = oledBarGraph(&tft,)
+  //prCBar = oledBarGraph()
 
   int bars = 5;
   float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
@@ -452,11 +371,10 @@ void labelTitle(const char *s, int color) {
 }
 
 static int oldA = 0, oldB = 0, oldC = 0;
-#define ABAR 25
-#define BBAR 60
-#define CBAR 95
-void graph1(const char *s) {
-  barGraph(ABAR, 8, gv(s), oldA, s);
+
+void graph1(const char *s) {    
+  lineAGraph.updateGraph(float(gv(s))/10);
+  //barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(const char *s) {
   barGraph(BBAR, 8, gv(s), oldB, s);

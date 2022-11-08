@@ -154,6 +154,8 @@ void InitializeChannels() {
 
   loadCalibrationData();
 
+  initializeProbeChannels();
+
   for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {
     ChanArray[k].nextChannel = &(ChanArray[ChannelScanOrder[k]]);
     ChanArray[k].ADC_Scan = true;
@@ -173,6 +175,44 @@ void InitializeChannels() {
   arm_biquad_cascade_df1_init_f32(&(cableState.LameLowPass), 1, LameLPF2HzCoef, cableState.LameLPFState);
 }
 
+void initializeProbeChannels() {
+  //ADC_Channel ProbeArray[6] {0, 2, 5, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
+  snprintf(ProbeArray[0].ch_label, 4, "EAB");
+  ProbeArray[0].muxSetting = MUX_WEAPON_AB;
+  arm_biquad_cascade_df1_init_f32(&(probeData.EpeeLPF), 1, LowPass8HzCoef, probeData.EpeeLPFState);
+  ProbeArray[0].setTrim(EpeeADC.getTrim());
+
+  snprintf(ProbeArray[1].ch_label, 4, "FBC");
+  ProbeArray[1].muxSetting = MUX_WEAPON_CB;
+  ProbeArray[1].setTrim(FoilADC.getTrim());
+  arm_biquad_cascade_df1_init_f32(&(probeData.FoilLPF), 1, LowPass8HzCoef, probeData.FoilLPFState);
+
+  snprintf(ProbeArray[2].ch_label, 4, "WAC");
+  ProbeArray[2].muxSetting = MUX_WEAPON_AC;
+  ProbeArray[2].setTrim(WeaponAC.getTrim());
+  arm_biquad_cascade_df1_init_f32(&(probeData.WpnACLPF), 1, LowPass8HzCoef, probeData.WpnACLPFState);
+
+  snprintf(ProbeArray[3].ch_label, 4, "BPr");
+  ProbeArray[3].muxSetting = MUX_CABLE_BA;
+  ProbeArray[3].setTrim(ChanArray[4].getTrim());
+  arm_biquad_cascade_df1_init_f32(&(probeData.ProbeBLPF), 1, LowPass5HzCoef, probeData.ProbeBLPFState);
+
+  snprintf(ProbeArray[4].ch_label, 4, "APr");
+  ProbeArray[4].muxSetting = MUX_CABLE_AA;
+  ProbeArray[4].setTrim(ChanArray[0].getTrim());
+  arm_biquad_cascade_df1_init_f32(&(probeData.ProbeALPF), 1, LowPass5HzCoef, probeData.ProbeALPFState);
+
+  snprintf(ProbeArray[5].ch_label, 4, "CPr");
+  ProbeArray[5].muxSetting = MUX_CABLE_CA;
+  ProbeArray[5].setTrim(ChanArray[8].getTrim());
+  arm_biquad_cascade_df1_init_f32(&(probeData.ProbeCLPF), 1, LowPass5HzCoef, probeData.ProbeCLPFState);
+
+  for (int k = 0; k < (6); k++) {
+    ProbeArray[k].nextChannel = &(ProbeArray[k+1]);
+    ProbeArray[k].ADC_Scan = true;
+  }
+  ProbeArray[5].nextChannel = &(ProbeArray[0]);
+}
 
 
 void calibrateSystem() {
