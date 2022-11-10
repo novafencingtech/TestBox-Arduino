@@ -212,19 +212,21 @@ void oledReverseHBarGraph::setBarColors(int numBars, float values[], int colors[
 
 void oledReverseHBarGraph::resetGraph() {
   _tft->fillRect(_locX, _locY, _width, _height, cBLACK);
+  _barValue = _limitMax;
+  _barEnd = _locX; 
 }
 
 int oledReverseHBarGraph::getLineColor(int col){
   int lineColor=cBLACK;
   for (int k=0; k<_numActiveBars; k++) {    
-    if (col<_hBarX[k]) { 
-      return lineColor;  //Next bar is farther, return the prior color 
-      Serial.print("Color set = "); Serial.println(lineColor, HEX);
+    if (col>_hBarX[k]) { 
+      return lineColor;  //Next bar is to the left, return the prior color 
+      //Serial.print("Color set = "); Serial.println(lineColor, HEX);
     } else {
-      lineColor=_hBarColors[k]; 
-    }      
+      lineColor=_hBarColors[k];
+    }
   }
-  return lineColor; //Return the last color bar if it's beyond it
+  return _hBarColors[_numActiveBars-1]; //Return the last color bar if it's beyond it
 }
 
 int oledReverseHBarGraph::getBarEnd(float val){
@@ -243,8 +245,6 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
 
   //printVal(X, 0, bc, conn, newValue);
   if (newValue > _limitMax) {
-    //tft.fillRect(_locX, X + 16, 128, H, BLACK);
-    //resetGraph();
     if (_barValue <= _limitMax) {
       //Serial.println("Graph Reset");
       resetGraph(); //If we previously had a value, blank the graph
@@ -262,13 +262,10 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
     _tft->fillRect(newEnd+1, _locY, _barEnd-newEnd, _height, cBLACK);  //Black out the prior bar     
   }  
   if (difVal > 0)  {//increase bar graph length
-    //if (newColor) tft.fillRect(0, X + 16, scaleWidth(rNew), H, bc); //if color change, draw complete bar in new color
-    //else tft.fillRect(scaleWidth(rOld), X + 16, scaleWidth(rNew) - scaleWidth(rOld), H, bc); //just draw extension
-    Serial.print("Bar increase = "); Serial.println(difVal);
+    //Serial.print("Bar increase = "); Serial.println(difVal);
     for (int dCol=_barEnd; dCol<=newEnd; dCol++) {
       gColor=getLineColor(dCol);
-      _tft->drawFastVLine(dCol, _locY, _height, gColor);
-      //_tft->drawFastVLine(dCol, _locY, _height, cGREEN);
+      _tft->drawFastVLine(dCol, _locY, _height, gColor);      
     }  
   } 
   _barEnd=newEnd;
@@ -282,15 +279,27 @@ oledGraphLabel::oledGraphLabel(Adafruit_SSD1351 *tft,uint16_t x, uint16_t y, int
   _fontSize=size;
   _lblColor=color;
 }
+oledGraphLabel::oledGraphLabel() {
+
+}
 
 void oledGraphLabel::setFontSize(int size) {
   _fontSize=size;
 }
 
+void oledGraphLabel::setColors(int numBars, float values[], int colors[]){
+  _numColors=numBars;
+  for (int k=0;k<numBars;k++){
+    _colorValues[k]=values[k];
+    _colorList[k]=colors[k];
+  }
+  //memcpy(_colorValues,values,numBars*sizeof(values[0]));
+  //memcpy(_valColors,colors,numBars*sizeof(colors[0]));  
+}
+
 void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uint16_t newColor) {
   uint16_t lblColor=cYELLOW;
   
-  //int val10xInt=int(val*10.0+0.5f); //Convert to a 10x integer for easier manipulation
   char strBuf[5]="";
 
   _tft->setTextSize(_fontSize);
@@ -303,8 +312,9 @@ void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uin
   } else {
     lblColor=cRED;
     for (int k=0; k<_numColors; k++) {
-      if (val<_colorValues[k]) {
-        lblColor=_colorValues[k];
+      if (val>=_colorValues[k]) {
+        lblColor=_colorList[k];        
+      } else {
         break;
       }
     }

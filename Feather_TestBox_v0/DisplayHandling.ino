@@ -25,10 +25,11 @@
 #define BARCOLOR  YELLOW
 #define GRAPHCOLOR  RED
 
-const int ABAR=25; //Vertical location of first bar graph
-const int BBAR=60;
-const int CBAR=95;
-const int barHeight=12;
+const int barHeight=10;
+const int ABAR=20; //Vertical location of first bar graph
+const int BBAR=ABAR+16+barHeight+10;
+const int CBAR=BBAR+16+barHeight+10;
+
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
@@ -83,7 +84,6 @@ void tftDisplayMessage(const char *msg) {
   tft.setCursor(2, 2);
   tft.setTextColor(ORANGE, DARKBLUE);
   tft.print(msg);
-
 }
 
 void printVal(int x, int y, int valColor, const char *lab, int val) {
@@ -216,14 +216,21 @@ void InitializeDisplay()
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
-  lineAGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
-  lineBGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
-  lineCGraph = oledReverseHBarGraph(&tft, 0, ABAR, barHeight, 128, 0.0f, 25.0f);
-  float cableLimits[5] = {999.0f, 20.0f, 15.0f, 10.0f, 5.0f};
-  int cableColors[5] = {lineAGraph.cRED, lineAGraph.cRED, lineAGraph.cORANGE, lineAGraph.cYELLOW,lineAGraph.cGREEN};
+  
+  lineALabel = oledGraphLabel(&tft,0,ABAR);
+  lineAGraph = oledReverseHBarGraph(&tft, 0, ABAR+17, barHeight, 128, 0.0f, 25.0f);
+  lineBLabel = oledGraphLabel(&tft,0,BBAR);
+  lineBGraph = oledReverseHBarGraph(&tft, 0, BBAR+17, barHeight, 128, 0.0f, 25.0f);
+  lineCLabel = oledGraphLabel(&tft,0,CBAR);
+  lineCGraph = oledReverseHBarGraph(&tft, 0, CBAR+17, barHeight, 128, 0.0f, 25.0f);
+  float cableLimits[5] = {0.0f, 5.0f, 15.0f, 20.0f, 999.9f};
+  int cableColors[5] = {lineAGraph.cGREEN, lineAGraph.cYELLOW, lineAGraph.cORANGE,lineAGraph.cRED, lineAGraph.cRED};
   lineAGraph.setBarColors(5,cableLimits,cableColors);
+  lineALabel.setColors(5,cableLimits,cableColors);
   lineBGraph.setBarColors(5,cableLimits,cableColors);
+  lineBLabel.setColors(5,cableLimits,cableColors);
   lineCGraph.setBarColors(5,cableLimits,cableColors);
+  lineCLabel.setColors(5,cableLimits,cableColors);
 
   //lineBGraph = oledBarGraph(&tft, )
   //lineCGraph = oledBarGraph(&tft, )
@@ -239,7 +246,10 @@ void InitializeDisplay()
   float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
   int lameColors[5] {lameGraph.cGREEN, lameGraph.cYELLOW, lameGraph.cORANGE, lameGraph.cRED, lameGraph.cRED};
   lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
-  //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
+  lameHGraph = oledReverseHBarGraph(&tft, 0, 16, 22, 128, 0.0f, 20.0f);
+  lameHGraph.setBarColors(5, lameVals, lameColors);
+  lameLabel=oledGraphLabel(&tft,0,0);
+  lameLabel.setColors(5, lameVals, lameColors);
 
   float wvals[4] {0.0f, 2.0f, 5.0f, 10.0f};
   int wcolors[4] {weaponGraph.cGREEN, weaponGraph.cORANGE, weaponGraph.cRED, weaponGraph.cRED};
@@ -374,13 +384,18 @@ static int oldA = 0, oldB = 0, oldC = 0;
 
 void graph1(const char *s) {    
   lineAGraph.updateGraph(float(gv(s))/10);
+  lineALabel.printLabel(s,float(gv(s))/10);
   //barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(const char *s) {
-  barGraph(BBAR, 8, gv(s), oldB, s);
+  lineBGraph.updateGraph(float(gv(s))/10);
+  lineBLabel.printLabel(s,float(gv(s))/10);
+  //barGraph(BBAR, 8, gv(s), oldB, s);
 }
 void graph3(const char *s) {
-  barGraph(CBAR, 8, gv(s), oldC, s);
+  lineCGraph.updateGraph(float(gv(s))/10);
+  lineCLabel.printLabel(s,float(gv(s))/10);
+  //barGraph(CBAR, 8, gv(s), oldC, s);
 }
 
 void updateOLED(TestBoxModes Mode) {
@@ -470,22 +485,25 @@ void updateOLED(TestBoxModes Mode) {
         labelTitle("Cable", YELLOW);
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
-        tft.drawFastVLine(127, 31, 96, CYAN);
-        tft.drawFastVLine(107, 31, 96, CYAN);
-        tft.drawFastVLine(87, 31, 96, CYAN);
-        tft.drawFastVLine(47, 31, 96, CYAN);
+        tft.drawFastVLine(127, 31, 96, CYAN); //0.0f line
+        tft.drawFastVLine(102, 31, 96, CYAN); //5.0f line
+        tft.drawFastVLine(77, 31, 96, CYAN);  //10.0f line
+        tft.drawFastVLine(26, 31, 96, CYAN);  //20.f line
         //tft.fillRect(0, X + 16, 128, H, BLACK);
         //Height of bar is 8, height of textsize(2) is 14, 1 pix between text and bar, 1 pix between text/bar and line
-        tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
-        tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
-        tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
+        lineAGraph.resetGraph();
+        lineBGraph.resetGraph();
+        lineCGraph.resetGraph();
+        //tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
+        //tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
+        //tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
         tft.setTextSize(1);
         tft.setTextColor(WHITE);
-        tft.setCursor(47 - 14, 120);
+        tft.setCursor(26 - 14, 120);
         tft.print("20");
-        tft.setCursor(88 - 14, 120);
+        tft.setCursor(77 - 14, 120);
         tft.print("10");
-        tft.setCursor(108 - 8, 120);
+        tft.setCursor(102 - 8, 120);
         tft.print("5");
         tft.setCursor(127 - 8, 120);
         tft.print("0");
@@ -959,7 +977,9 @@ void updateLameDisplay() {
 
   lameVal = floatTo10xInt(lameOhms);
   //Serial.println(lameVal);
-  barGraph(2, 18, lameVal, oldVal, "Lame");
+  //barGraph(2, 18, lameVal, oldVal, "Lame");
+  lameHGraph.updateGraph(lameOhms);
+  lameLabel.printLabel("Lame",lameOhms);
   oldVal = lameVal;
   if (lameVal > 50) {
     //labelTitle("Lame", GREEN);

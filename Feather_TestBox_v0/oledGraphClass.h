@@ -130,12 +130,13 @@ class oledGraphLabel {
     oledGraphLabel(Adafruit_SSD1351 *tft,uint16_t x, uint16_t y, int size=2, uint16_t color=cYELLOW);
     void setFontSize(int size);
     void printLabel(const char *lab, float val, bool forceColor=false, uint16_t newColor=cYELLOW);
-    void setLabelColor(uint16_t newColor);        
+    void setLabelColor(uint16_t newColor);
+    void setColors(int numBars, float values[], int colors[]);
 
   private:
     Adafruit_SSD1351 *_tft;
     float _colorValues[MAX_NUM_BARS]={5.0f, 10.0f, 20.0f};
-    uint16_t _valColors[MAX_NUM_BARS]={cGREEN, cYELLOW, cRED};
+    uint16_t _colorList[MAX_NUM_BARS]={cGREEN, cYELLOW, cRED};
     uint16_t _lblColor=cYELLOW;
     int _numColors=3;
     uint8_t _fontSize=2;

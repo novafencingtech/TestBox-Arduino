@@ -240,12 +240,17 @@ typedef enum TestBoxModes {
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
 oledGraph lameGraph;
+oledReverseHBarGraph lameHGraph;
+oledGraphLabel lameLabel;
 oledGraph weaponGraph;
 oledGraph captureGraph;
 
 oledReverseHBarGraph lineAGraph;
+oledGraphLabel lineALabel;
 oledReverseHBarGraph lineBGraph;
+oledGraphLabel lineBLabel;
 oledReverseHBarGraph lineCGraph;
+oledGraphLabel lineCLabel;
 
 // ADC timer settings;
 
