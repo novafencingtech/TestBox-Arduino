@@ -4,7 +4,7 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 2
+#define TTArmBoardRev 1 
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -34,6 +34,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "string.h"
 #include "CaptureBuffer.h"
 #include "oledGraphClass.h"
+#include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
 #define FAST_LED_ACTIVE 0
@@ -239,18 +240,43 @@ typedef enum TestBoxModes {
 };
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
+// Option 1: use any pins but a little slower
+//Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
+
+// Option 2: must use the hardware SPI pins
+// (for UNO thats sclk = 13 and sid = 11) and pin 10 must be
+// an output. This is much faster - also required if you want
+// to use the microSD card (see the image drawing example)
+Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
+
+oledColorList colorList;
 oledGraph lameGraph;
-oledReverseHBarGraph lameHGraph;
+oledReverseHBarGraph lameBar;
 oledGraphLabel lameLabel;
 oledGraph weaponGraph;
 oledGraph captureGraph;
 
-oledReverseHBarGraph lineAGraph;
+oledReverseHBarGraph lineABar;
 oledGraphLabel lineALabel;
-oledReverseHBarGraph lineBGraph;
+oledReverseHBarGraph lineBBar;
 oledGraphLabel lineBLabel;
-oledReverseHBarGraph lineCGraph;
+oledReverseHBarGraph lineCBar;
 oledGraphLabel lineCLabel;
+
+oledReverseHBarGraph prEpeeBar;
+oledGraphLabel prEpeeLabel;
+oledReverseHBarGraph prFoilBar;
+oledGraphLabel prFoilLabel;
+oledReverseHBarGraph prACBar;
+oledGraphLabel prACLabel;
+oledReverseHBarGraph prABar;
+oledGraphLabel prALabel;
+oledReverseHBarGraph prBBar;
+oledGraphLabel prBLabel;
+oledReverseHBarGraph prCBar;
+oledGraphLabel prCLabel;
+
+
 
 // ADC timer settings;
 
@@ -366,16 +392,6 @@ struct weapon_test {
 volatile weapon_test weaponState;
 
 struct probeDataStruct {
-  int line_AA = 4095;
-  int line_AB = 4095;
-  int line_AC = 4095;
-  int line_BA = 4095;
-  int line_BB = 4095;
-  int line_BC = 4095;
-  int line_CA = 4095;
-  int line_CB = 4095;
-  int line_CC = 4095;
-
   float ohm_APr = OPEN_CIRCUIT_VALUE;
   float ohm_BPr = OPEN_CIRCUIT_VALUE;
   float ohm_CPr = OPEN_CIRCUIT_VALUE;

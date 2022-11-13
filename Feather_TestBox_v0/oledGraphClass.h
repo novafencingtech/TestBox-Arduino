@@ -22,8 +22,7 @@
 #define GREY            0x79EF
 #define DARKBLUE        0x0007*/
 
-class oledGraph
-{
+class oledColorList {
   public:
     static const int cBLACK=0x0000;
     static const int cWHITE=0xFFFF;
@@ -33,8 +32,14 @@ class oledGraph
     static const int cRED=0xF800;
     static const int cMAGENTA=0xF81F;
     static const int cORANGE=0xFD20;
-    static const int cYELLOW=0xFFE0;    
-    
+    static const int cYELLOW=0xFFE0;  
+    static const int cLIGHTRED=0xF807;
+    static const int cLIGHTGREEN=0x1FE8;
+};
+
+class oledGraph: oledColorList
+{
+  public:    
     oledGraph();
     oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
     oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
@@ -66,19 +71,10 @@ class oledGraph
     Adafruit_SSD1351 *_tft;
 };
 
-class oledReverseHBarGraph
+class oledReverseHBarGraph: oledColorList
 {
   public:
-    static const int cBLACK=0x0000;
-    static const int cWHITE=0xFFFF;
-    static const int cBLUE=0x001F;
-    static const int cGREEN=0x07E0;
-    static const int cCYAN=0x07FF;
-    static const int cRED=0xF800;
-    static const int cMAGENTA=0xF81F;
-    static const int cORANGE=0xFD20;
-    static const int cYELLOW=0xFFE0;    
-    
+   
     oledReverseHBarGraph();
     oledReverseHBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
     oledReverseHBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
@@ -114,34 +110,25 @@ class oledReverseHBarGraph
     Adafruit_SSD1351 *_tft;
 };
 
-class oledGraphLabel {
+class oledGraphLabel: oledColorList {
   public:
-    static const int cBLACK=0x0000;
-    static const int cWHITE=0xFFFF;
-    static const int cBLUE=0x001F;
-    static const int cGREEN=0x07E0;
-    static const int cCYAN=0x07FF;
-    static const int cRED=0xF800;
-    static const int cMAGENTA=0xF81F;
-    static const int cORANGE=0xFD20;
-    static const int cYELLOW=0xFFE0;    
-
     oledGraphLabel();
     oledGraphLabel(Adafruit_SSD1351 *tft,uint16_t x, uint16_t y, int size=2, uint16_t color=cYELLOW);
     void setFontSize(int size);
     void printLabel(const char *lab, float val, bool forceColor=false, uint16_t newColor=cYELLOW);
     void setLabelColor(uint16_t newColor);
     void setColors(int numBars, float values[], int colors[]);
-
+    
   private:
     Adafruit_SSD1351 *_tft;
     float _colorValues[MAX_NUM_BARS]={5.0f, 10.0f, 20.0f};
-    uint16_t _colorList[MAX_NUM_BARS]={cGREEN, cYELLOW, cRED};
+    uint16_t _colorList[MAX_NUM_BARS]={cGREEN, cYELLOW, cLIGHTRED};
     uint16_t _lblColor=cYELLOW;
     int _numColors=3;
     uint8_t _fontSize=2;
     uint16_t _locX=0;
     uint16_t _locY=0;
+    //bool _openTxt=false;
 };
 
 

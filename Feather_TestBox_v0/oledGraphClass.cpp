@@ -233,7 +233,7 @@ int oledReverseHBarGraph::getBarEnd(float val){
   //Serial.print("Bar end = "); Serial.println(colValue);
   int colValue=_locX;
   if (val<_limitMax) {
-    colValue=int((_limitMax-val)*_pixelScaleFactor+0.5f);
+    colValue=int((_limitMax-val)*_pixelScaleFactor+0.5f+_locX);
     colValue=min(colValue,_maxX);    
   }
   //Serial.print("Bar end = "); Serial.println(colValue);
@@ -298,8 +298,7 @@ void oledGraphLabel::setColors(int numBars, float values[], int colors[]){
 }
 
 void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uint16_t newColor) {
-  uint16_t lblColor=cYELLOW;
-  
+  uint16_t lblColor=cYELLOW;  
   char strBuf[5]="";
 
   _tft->setTextSize(_fontSize);
@@ -327,13 +326,15 @@ void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uin
   //"XXXX", "XXX ", "XX  " or "X.XX"
   if (val > 500) {
     _tft->print("OPEN");
+    //_openTxt=true;
     return;
   }
+
   if (val>10) {    
-    dtostrf(val,4,0,strBuf); //Don't display decimal points
+    dtostrf(val,-4,0,strBuf); //Don't display decimal points
   } else {
-    dtostrf(val,4,1,strBuf);
+    dtostrf(val,-4,1,strBuf);
   }
-  _tft->print(strBuf);
+  _tft->print(strBuf);     
   return;
 }
