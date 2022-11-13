@@ -308,11 +308,11 @@ void displayBatteryStatus() {
   //tft.setTextColor(CYAN,BLACK);
   //tft.print(battPercent);
 }
-int floatTo10xInt(float g) {
+/*int floatTo10xInt(float g) {
   if (g < 0.0) g = 0.0;
   return ((int) (g * 10.0 + .5));
-}
-int gv(const char *s) {
+}*/
+float gv(const char *s) {
   //arduino does not support strings in switch statements
   /*switch (s[0]) {
     case 'A':
@@ -323,13 +323,13 @@ int gv(const char *s) {
     case 'C':
       return floatTo10xInt(cableState.ohm_CC);
     }*/
-  if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
-  if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
-  if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
+  if (s == "AA") return cableState.ohm_AA;
+  if (s == "BB") return cableState.ohm_BB;
+  if (s == "CC") return cableState.ohm_CC;
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     if ((s[0] == ChanArray[k].ch_label[1]) && (s[1] == ChanArray[k].ch_label[2]) ) {
-      return floatTo10xInt(cableState.cableOhm[k]);
+      return cableState.cableOhm[k];
     }
   }
   /*if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
@@ -368,18 +368,18 @@ void labelTitle(const char *s, int color) {
 static int oldA = 0, oldB = 0, oldC = 0;
 
 void graph1(const char *s) {    
-  lineABar.updateGraph(float(gv(s))/10);
-  lineALabel.printLabel(s,float(gv(s))/10);
+  lineABar.updateGraph(gv(s));
+  lineALabel.printLabel(s,gv(s));
   //barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(const char *s) {
-  lineBBar.updateGraph(float(gv(s))/10);
-  lineBLabel.printLabel(s,float(gv(s))/10);
+  lineBBar.updateGraph(gv(s));
+  lineBLabel.printLabel(s,gv(s));
   //barGraph(BBAR, 8, gv(s), oldB, s);
 }
 void graph3(const char *s) {
-  lineCBar.updateGraph(float(gv(s))/10);
-  lineCLabel.printLabel(s,float(gv(s))/10);
+  lineCBar.updateGraph(gv(s));
+  lineCLabel.printLabel(s,gv(s));
   //barGraph(CBAR, 8, gv(s), oldC, s);
 }
 
