@@ -236,7 +236,7 @@ void initializeProbeScreen() {
   prEpeeLabel=oledGraphLabel(&tft,0,barYStart);
   prEpeeBar.setBarColors(3, limits, colors);
   prEpeeLabel.setColors(3, limits, colors);
-  prFoilBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prFoilBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace, barHeight, 128-barLeftEdge, 0.0f, 20.0f);
   prFoilLabel=oledGraphLabel(&tft,0,barYStart+barSpace);
   prFoilBar.setBarColors(3, limits, colors);
   prFoilLabel.setColors(3, limits, colors);
