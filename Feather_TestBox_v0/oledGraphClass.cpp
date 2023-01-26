@@ -256,6 +256,48 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
 
   newEnd = getBarEnd(newValue);
   difVal = newEnd - _barEnd;
+  gColor = getLineColor(newEnd);
+  
+  if (difVal < 0) {
+    //Serial.print("New end = "); Serial.println(newEnd);
+    _tft->fillRect(newEnd+1, _locY, _barEnd-newEnd, _height, cBLACK);  //Black out the prior bar     
+  }
+  if (gColor != _barColor) {
+    _tft->fillRect(_locX, _locY, newEnd-_locX,_height,gColor);
+    _barColor=gColor; 
+  } else {
+    if (difVal > 0)  {//increase bar graph length
+      _tft->fillRect(_barEnd,_locY,newEnd-_barEnd,_height,gColor);  
+    }
+  }
+  _barColor=gColor;  
+  _barEnd=newEnd;
+  _barValue=newValue;  //and we're done, save old value
+}
+
+
+
+
+/* Function for adjusting the color in segments, 
+ *  moving to archive
+ *  
+
+void oledReverseHBarGraph::updateGraph(float newValue) {
+  int difVal, newEnd, gColor;
+
+  //printVal(X, 0, bc, conn, newValue);
+  if (newValue > _limitMax) {
+    if (_barValue <= _limitMax) {
+      //Serial.println("Graph Reset");
+      resetGraph(); //If we previously had a value, blank the graph
+    }
+    _barValue = newValue;
+    _barEnd = _locX; 
+    return; // no bar if beyond 32 ohms
+  } 
+
+  newEnd = getBarEnd(newValue);
+  difVal = newEnd - _barEnd;
 
   if (difVal < 0) {
     //Serial.print("New end = "); Serial.println(newEnd);
@@ -271,6 +313,7 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
   _barEnd=newEnd;
   _barValue=newValue;  //and we're done, save old value
 }
+*/
 
 oledGraphLabel::oledGraphLabel(Adafruit_SSD1351 *tft,uint16_t x, uint16_t y, int size, uint16_t color) {
   _tft=tft;
@@ -296,6 +339,15 @@ void oledGraphLabel::setColors(int numBars, float values[], int colors[]){
   //memcpy(_colorValues,values,numBars*sizeof(values[0]));
   //memcpy(_valColors,colors,numBars*sizeof(colors[0]));  
 }
+
+void oledGraphLabel::clearLabel() {
+  _tft->setTextSize(_fontSize);
+  _tft->setCursor(_locX, _locY);  
+  for (int k=0; k<10; k++) {
+    _tft->print(" ");  
+  }  
+}
+
 
 void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uint16_t newColor) {
   uint16_t lblColor=cYELLOW;  

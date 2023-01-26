@@ -107,6 +107,7 @@ class oledReverseHBarGraph: oledColorList
     int _numActiveBars=0;
     float _barValue=0.0f;
     int _barEnd=0;
+    int _barColor=cBLACK;
     Adafruit_SSD1351 *_tft;
 };
 
@@ -118,6 +119,7 @@ class oledGraphLabel: oledColorList {
     void printLabel(const char *lab, float val, bool forceColor=false, uint16_t newColor=cYELLOW);
     void setLabelColor(uint16_t newColor);
     void setColors(int numBars, float values[], int colors[]);
+    void clearLabel();
     
   private:
     Adafruit_SSD1351 *_tft;

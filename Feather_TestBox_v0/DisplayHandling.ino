@@ -232,7 +232,7 @@ void initializeProbeScreen() {
   int barYStart=19;
   int barLeftEdge=97;
   int barHeight=16;
-  prEpeeBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prEpeeBar = oledReverseHBarGraph(&tft, 0, barYStart+barSpace, barHeight, 128, 0.0f, 15.0f);
   prEpeeLabel=oledGraphLabel(&tft,0,barYStart);
   prEpeeBar.setBarColors(3, limits, colors);
   prEpeeLabel.setColors(3, limits, colors);
@@ -959,13 +959,13 @@ void createWeaponDisplay() {
 void createProbeDisplay() {
   tft.fillRect(0, 27, 128, 100, colorList.cBLACK);
   labelTitle("Probe", colorList.cMAGENTA);
-  prEpeeLabel.printLabel("Ep", OPEN_CIRCUIT_VALUE);
-  prEpeeBar.updateGraph(OPEN_CIRCUIT_VALUE);
-  prFoilLabel.printLabel("Fl", OPEN_CIRCUIT_VALUE);
-  prFoilBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  //prEpeeLabel.printLabel("Ep", OPEN_CIRCUIT_VALUE);
+  //prEpeeBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  //prFoilLabel.printLabel("Fl", OPEN_CIRCUIT_VALUE);
+  //prFoilBar.updateGraph(OPEN_CIRCUIT_VALUE);
   if (TTArmMOSFETWeaponAC) {
-    prACLabel.printLabel("GND", OPEN_CIRCUIT_VALUE);
-    prACBar.updateGraph(OPEN_CIRCUIT_VALUE);
+    //prACLabel.printLabel("GND", OPEN_CIRCUIT_VALUE);
+    //prACBar.updateGraph(OPEN_CIRCUIT_VALUE);
   }
   prALabel.printLabel("PrA", OPEN_CIRCUIT_VALUE);
   prABar.updateGraph(OPEN_CIRCUIT_VALUE);
@@ -976,13 +976,51 @@ void createProbeDisplay() {
 }
 
 void updateProbeDisplay() {
-  prEpeeLabel.printLabel("Ep", probeData.ohm_Epee);
-  prEpeeBar.updateGraph(probeData.ohm_Epee);  
-  prFoilLabel.printLabel("Fl", probeData.ohm_Foil);
-  prFoilBar.updateGraph(probeData.ohm_Foil);
-  if (TTArmMOSFETWeaponAC) {
-    prACLabel.printLabel("GND", OPEN_CIRCUIT_VALUE);
-    prACBar.updateGraph(probeData.ohm_WpnAC);    
+  enum connectionType {none,epee,foil,shorted};
+  static connectionType lastConnected=none;
+  connectionType newConnection = lastConnected;
+  static long tLastChanged=0;
+
+  if (probeData.ohm_Epee<OPEN_CIRCUIT_VALUE) {
+    newConnection=epee;    
+  }
+  if (probeData.ohm_Foil<OPEN_CIRCUIT_VALUE) {
+    newConnection=foil;
+  }
+  //If we were shorted, hold that configuration 
+  if (lastConnected==shorted && ((millis()-tLastChanged)<tIdleModeOn) ) {
+    newConnection=shorted; 
+  }
+  if (probeData.ohm_Epee<OPEN_CIRCUIT_VALUE && probeData.ohm_Foil<OPEN_CIRCUIT_VALUE)  {
+    newConnection=shorted;
+  }
+  if (probeData.ohm_WpnAC<OPEN_CIRCUIT_VALUE) {
+    newConnection=shorted;
+  }
+  if (newConnection!=lastConnected) {
+    prEpeeBar.resetGraph();
+    lastConnected=newConnection;
+    prEpeeLabel.clearLabel();    
+    prFoilLabel.clearLabel();
+    prACLabel.clearLabel();
+    tLastChanged=millis();
+  }
+  switch (lastConnected) {
+    case epee:
+      prEpeeLabel.printLabel("Epee", probeData.ohm_Epee);
+      prEpeeBar.updateGraph(probeData.ohm_Epee);  
+      break;
+    case foil:    
+      prEpeeLabel.printLabel("Foil", probeData.ohm_Foil);
+      prEpeeBar.updateGraph(probeData.ohm_Foil);  
+      break;
+    case shorted:
+      prEpeeLabel.printLabel("Epee", probeData.ohm_Epee);
+      prFoilLabel.printLabel("Foil", probeData.ohm_Foil);
+      if (TTArmMOSFETWeaponAC) {
+        prACLabel.printLabel("GND", probeData.ohm_WpnAC);
+        //prACBar.updateGraph(probeData.ohm_WpnAC);    
+      }
   }
   prALabel.printLabel("PrA", probeData.ohm_APr);
   prABar.updateGraph(probeData.ohm_APr);  
