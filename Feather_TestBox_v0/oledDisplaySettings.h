@@ -2,12 +2,14 @@
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 128 // Change this to 96 for 1.27" OLED.
 
+/*
 // You can use any (4 or) 5 pins
 #define SCLK_PIN 12
 #define MOSI_PIN 13
 #define DC_PIN   20
 #define CS_PIN   31
 //#define RST_PIN  20
+*/
 
 // Color definitions
 #define BLACK           0x0000

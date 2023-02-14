@@ -4,7 +4,7 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 1 
+#define TTArmBoardRev 2 
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -16,8 +16,8 @@
 #include <arm_math.h>
 
 #include <Arduino.h>
+#include "boardSelection.h"
 #include <SPI.h>
-#include <nrf52.h>
 #include <nrf_saadc.h>
 #include <avr/dtostrf.h>
 #include <Adafruit_LittleFS.h>
@@ -37,7 +37,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 0
+#define FAST_LED_ACTIVE 1
 
 #if FAST_LED_ACTIVE 
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
@@ -45,12 +45,12 @@ using namespace Adafruit_LittleFS_Namespace;
 //Required for FAST LED
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
-#define LED_DATA_PIN 25 //LEDs are on SDA/pin25
+//#define LED_DATA_PIN 25 //LEDs are on SDA/pin25
 CRGB lameLED;
 #endif
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2023-01-25";
+static const char BUILD_DATE[16] = "2023-02-13";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -161,9 +161,9 @@ const float MAX_LAME_RESISTANCE = 40.0f;
 
 //MUX Settings if needed
 const SPISettings OLED_SPI_SETTINGS(2000000, MSBFIRST, SPI_MODE0);
-const uint8_t MUX_LATCH = 16;
-const uint8_t MUX_CLK = 15;
-const uint8_t MUX_DATA = 7;
+//const uint8_t MUX_LATCH = 16;
+//const uint8_t MUX_CLK = 15;
+//const uint8_t MUX_DATA = 7;
 
 //MUX is MSBFIRST, bit 0=NC, bits 1-3=source,bit 4=weaponB, bits 5-7=sink, 
 //For rev 2 board MUX is MSBFIRST, bit 0=WeaponC GND, bits 1-3=source A/B/C,bit 4=WeaponB GND, bits 5-7=Cable A/B/C
@@ -208,11 +208,12 @@ const byte BITCB = 7;
 const byte BITCC = 8;
 
 //Pin defintions, as needed
-const byte POWER_CONTROL = 11;
-const byte DIAG_PIN = 25;
-const byte BUTTON_PIN = 27;
-const byte LED1_PIN = 17;
-const byte LED2_PIN = 19;
+//Defined in "boardSelection.h"
+//const byte POWER_CONTROL = 11;
+//const byte DIAG_PIN = 25;
+//const byte BUTTON_PIN = 27;
+//const byte LED1_PIN = 17;
+//const byte LED2_PIN = 19;
 //const byte FASTLED_PIN 
 
 // Basic variables
@@ -295,13 +296,13 @@ volatile long tIdle = 0;
 
 //ADC parameters
 //ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
-ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
-ADC_Channel ProbeArray[6] {0, 2, 0, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
+ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {AINpinA_amp, AINpinA_raw, AINpinA_raw, AINpinB_raw, AINpinB_amp, AINpinB_raw, AINpinC_raw, AINpinC_raw, AINpinC_amp}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
+ADC_Channel ProbeArray[6] {AINpinA_amp, AINpinC_amp, AINpinA_amp, AINpinB_amp, AINpinA_amp, AINpinC_amp}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
 //const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 4, 5, 3, 8, 7, 0, 6}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
-ADC_Channel FoilADC(2);
-ADC_Channel EpeeADC(0);
-ADC_Channel WeaponAC(5);
+ADC_Channel FoilADC(AINpinC_amp);
+ADC_Channel EpeeADC(AINpinA_amp);
+ADC_Channel WeaponAC(AINpinC_raw);
 //ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
