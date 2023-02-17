@@ -32,7 +32,5 @@ const int ABAR=20; //Vertical location of first bar graph
 const int BBAR=ABAR+16+barHeight+10;
 const int CBAR=BBAR+16+barHeight+10;
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1351.h>
-#include <Adafruit_SPITFT.h>
-#include <SPI.h>
+//#include <Adafruit_SPITFT.h>
+//#include <SPI.h>

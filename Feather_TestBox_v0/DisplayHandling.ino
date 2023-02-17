@@ -142,6 +142,7 @@ void InitializeDisplay()
   FastLED.show();
 #endif
 
+  oledSPI.begin();
   tft.begin();
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);

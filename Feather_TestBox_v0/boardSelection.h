@@ -34,11 +34,12 @@
   #define LED_DATA_PIN 8 //LEDs are on SDA/pin25
 
   //SPI pin definitions
-  #define SCLK_PIN 26
-  #define MOSI_PIN 25
-  #define DC_PIN   2
-  #define CS_PIN  9
-  //#define RST_PIN  20
+  #define SCLK_PIN (26)
+  #define MOSI_PIN (25)
+  #define DC_PIN   (2)
+  //#define DC_PIN   (13)
+  #define CS_PIN  (9)
+  //#define RST_PIN  (-1)
   
 #else 
   const uint8_t AINpinA_amp=0; //AIN0

@@ -5,6 +5,7 @@
 #define __FPU_PRESENT 1
 
 #define TTArmBoardRev 2 
+#define FAST_LED_ACTIVE 1
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -18,6 +19,8 @@
 #include <Arduino.h>
 #include "boardSelection.h"
 #include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1351.h>
 #include <nrf_saadc.h>
 #include <avr/dtostrf.h>
 #include <Adafruit_LittleFS.h>
@@ -37,7 +40,6 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 1
 
 #if FAST_LED_ACTIVE 
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
@@ -50,7 +52,7 @@ CRGB lameLED;
 #endif
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2023-02-13";
+static const char BUILD_DATE[16] = "2023-02-14";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -248,7 +250,10 @@ volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=Weapon
 // (for UNO thats sclk = 13 and sid = 11) and pin 10 must be
 // an output. This is much faster - also required if you want
 // to use the microSD card (see the image drawing example)
-Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
+SPIClass oledSPI = SPIClass(NRF_SPIM0, PIN_SPI_MISO, SCLK_PIN, MOSI_PIN);
+//oledSPI->begin();
+//Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
+Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
 
 oledColorList colorList;
 oledGraph lameGraph;
@@ -561,6 +566,8 @@ void setup() {
   digitalWrite(LED1_PIN, LOW);
   pinMode(LED2_PIN, OUTPUT);
   digitalWrite(LED2_PIN, LOW);
+
+
 
   //EEPROM.begin(EEPROM_SIZE);
 
