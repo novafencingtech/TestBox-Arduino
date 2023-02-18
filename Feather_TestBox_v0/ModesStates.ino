@@ -410,6 +410,16 @@ void updateWeaponResistance() {
       //Serial.println("No weapon connected");
     }
   }
+
+  for (int k=0; k<3; k++) {
+    if (CableCheck[k].getRawValue() < shortADCthreshold) {
+      weaponState.cableDC = true;
+      Serial.println("Cable connection detected");
+      //setBoxMode(CABLE);
+    }
+    
+  }
+  
 }
 
 //ADC_Channel ProbeArray[6] {0, 2, 5, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA

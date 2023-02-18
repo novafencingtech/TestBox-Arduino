@@ -63,6 +63,7 @@ void InitializeCableData() {
 
   cableState.cableDC = true;
   cableState.tLastConnect = -1 * (cableDisconnectTimeOut);
+  Serial.println("Cable data initialized");
 }
 
 void InitializeWeaponData() {
@@ -79,16 +80,17 @@ void InitializeWeaponData() {
   for (int m = 0; m < 20; m++) {
     while ( (!FoilADC.valueReady) && (!EpeeADC.valueReady) ) {
     }
-    FoilADC.valueReady = false;
-    EpeeADC.valueReady=false;
     updateWeaponResistance();
     updateWeaponState();
+    FoilADC.valueReady = false;
+    EpeeADC.valueReady=false;
   }
 
   StopADC();
 
   weaponState.cableDC = true;
   weaponState.tLastConnect = -1 * (weaponDisconnectTimeOut);
+  Serial.println("Weapon data initialized");
 }
 
 void StopADC() {
@@ -149,11 +151,35 @@ void InitializeChannels() {
 
   WeaponAC.muxSetting = MUX_WEAPON_AC;
   snprintf(WeaponAC.ch_label, 4, "WAC");
-  WeaponAC.nextChannel = &EpeeADC;
+  WeaponAC.nextChannel = &(CableCheck[0]);
   WeaponAC.setRangeHigh();
 
-  loadCalibrationData();
+  CableCheck[0].muxSetting = MUX_CABLE_AA;
+  snprintf(CableCheck[0].ch_label, 4, "WAA");
+  CableCheck[0].nextChannel = &(CableCheck[1]);
 
+  CableCheck[1].muxSetting = MUX_CABLE_BB;
+  snprintf(CableCheck[1].ch_label, 4, "WBB");
+  CableCheck[1].nextChannel = &(CableCheck[2]);
+
+  CableCheck[2].muxSetting = MUX_CABLE_CC;
+  snprintf(CableCheck[2].ch_label, 4, "WCC");
+  CableCheck[2].nextChannel = &EpeeADC;  
+
+  loadCalibrationData();
+  CableCheck[0].setTrim(ChanArray[0].getTrim()); //AA
+  CableCheck[1].setTrim(ChanArray[4].getTrim()); //BB  
+  CableCheck[2].setTrim(ChanArray[8].getTrim());  //CC
+  /*
+  Serial.print("Channel ");Serial.print(EpeeADC.ch_label);Serial.print("=");Serial.print((long)&(EpeeADC),HEX);Serial.print("\tNext=");Serial.println((long)EpeeADC.nextChannel,HEX);
+  Serial.print("Channel ");Serial.print(FoilADC.ch_label);Serial.print("=");Serial.print((long)&(FoilADC),HEX);Serial.print("\tNext=");Serial.println((long)FoilADC.nextChannel,HEX);
+  Serial.print("Channel ");Serial.print(WeaponAC.ch_label);Serial.print("=");Serial.print((long)&(WeaponAC),HEX);Serial.print("\tNext=");Serial.println((long)WeaponAC.nextChannel,HEX);
+  for (int k=0;k<=2;k++) {
+    Serial.print("Channel ");Serial.print(k);Serial.print("=");Serial.print((long)&(CableCheck[k]),HEX);
+    //Serial.print("\tGPIO =");Serial.print(CableCheck[k].AIn);
+    Serial.print("\tNext=");Serial.println((long)CableCheck[k].nextChannel,HEX);
+  }*/
+  
   initializeProbeChannels();
 
   for (int k = 0; k < (NUM_ADC_SCAN_CHANNELS); k++) {

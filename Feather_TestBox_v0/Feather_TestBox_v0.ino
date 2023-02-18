@@ -49,8 +49,8 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
-static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2023-01-25";
+static const char VERSION_NUM[16] = "1.2-1.3dev"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2023-02-17";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -302,6 +302,7 @@ const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}
 ADC_Channel FoilADC(2);
 ADC_Channel EpeeADC(0);
 ADC_Channel WeaponAC(5);
+ADC_Channel CableCheck[3] {0,1,2};
 //ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
@@ -593,8 +594,7 @@ void setup() {
   InitializeADC(false);
 
   CheckBatteryStatus();
-  //displayBatteryStatus();
-  wdt_init();
+  //displayBatteryStatus();  
   //app_timer_start(wdtOverrideTimer,6554,true);
   
   InitializeCableData();
@@ -603,6 +603,8 @@ void setup() {
   //tLastActive= 0;
 
   //delay(1000);
+  
+  wdt_init();
   setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
