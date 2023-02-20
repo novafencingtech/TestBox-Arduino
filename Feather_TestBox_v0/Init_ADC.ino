@@ -142,16 +142,21 @@ void InitializeChannels() {
 
   FoilADC.muxSetting = MUX_WEAPON_CB;
   snprintf(FoilADC.ch_label, 4, "FBC");
-  FoilADC.nextChannel = &WeaponAC;
+  #if (TTArmMOSFETWeaponAC)
+    FoilADC.nextChannel = &WeaponAC;
+  #else
+    FoilADC.nextChannel = &EpeeADC;
+  #endif
   FoilADC.hsBuffer.SetBuffers(ADC_CaptureBuffer, ADC_CAPTURE_LEN, &(ADC_PreTrigFoil[0][0]), &(ADC_PreTrigFoil[1][0]), PRE_TRIGGER_SIZE);
   FoilADC.hsBuffer.setTrigger(maxADCthreshold, false); //If signal goes above this the circuit is effectively open
   FoilADC.bufferEnabled = true;
 
-  WeaponAC.muxSetting = MUX_WEAPON_AC;
-  snprintf(WeaponAC.ch_label, 4, "WAC");
-  WeaponAC.nextChannel = &EpeeADC;
-  WeaponAC.setRangeHigh();
-
+  #if (TTArmMOSFETWeaponAC)
+    WeaponAC.muxSetting = MUX_WEAPON_AC;
+    snprintf(WeaponAC.ch_label, 4, "WAC");
+    WeaponAC.nextChannel = &EpeeADC;
+    WeaponAC.setRangeHigh();
+  #endif
   loadCalibrationData();
 
   initializeProbeChannels();
@@ -187,10 +192,12 @@ void initializeProbeChannels() {
   ProbeArray[1].setTrim(FoilADC.getTrim());
   arm_biquad_cascade_df1_init_f32(&(probeData.FoilLPF), 1, LowPass8HzCoef, probeData.FoilLPFState);
 
-  snprintf(ProbeArray[2].ch_label, 4, "WAC");
-  ProbeArray[2].muxSetting = MUX_WEAPON_AC;
-  ProbeArray[2].setTrim(WeaponAC.getTrim());
-  arm_biquad_cascade_df1_init_f32(&(probeData.WpnACLPF), 1, LowPass8HzCoef, probeData.WpnACLPFState);
+  #if (TTArmMOSFETWeaponAC)
+    snprintf(ProbeArray[2].ch_label, 4, "WAC");
+    ProbeArray[2].muxSetting = MUX_WEAPON_AC;
+    ProbeArray[2].setTrim(WeaponAC.getTrim());
+    arm_biquad_cascade_df1_init_f32(&(probeData.WpnACLPF), 1, LowPass8HzCoef, probeData.WpnACLPFState);
+  #endif 
 
   snprintf(ProbeArray[3].ch_label, 4, "BPr");
   ProbeArray[3].muxSetting = MUX_CABLE_BA;

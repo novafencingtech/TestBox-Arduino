@@ -402,8 +402,10 @@ void updateWeaponResistance() {
   weaponState.ohm10xEpee = int(weaponState.ohm_Epee * 10 + 0.5);
   weaponState.ohm10xFoil = int(weaponState.ohm_Foil * 10 + 0.5);
 
-  weaponState.lineAC = (WeaponAC.getRawValue() < shortADCthreshold);
-
+  #if (TTArmMOSFETWeaponAC)
+    weaponState.lineAC = (WeaponAC.getRawValue() < shortADCthreshold);
+  #endif
+  
   if ( (weaponState.ohm_Epee == OPEN_CIRCUIT_VALUE) && (weaponState.ohm_Foil == OPEN_CIRCUIT_VALUE) ) {
     if ((t_now - weaponState.tLastConnect) > weaponDisconnectTimeOut) {
       weaponState.cableDC = true;
