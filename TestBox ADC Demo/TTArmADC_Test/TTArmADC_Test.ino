@@ -62,10 +62,11 @@ const uint8_t AVE_COUNT=3; //2^3 averages
 void setup() {
   // put your setup code here, to run once:
 
-  initScreen();
+  initScreen();  
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  //delay(250);
+  Serial.begin(115200);
+  delay(100);
 
   initMUX();
   initADC();  
@@ -136,18 +137,20 @@ void loop() {
   }
   toc=micros();
   digitalWrite(PIN_LED2,LOW);
-  if ((millis()-tDisplay)<255) {
+  if ((millis()-tDisplay)<50) {
     return;  //Skip updating the display
   }
-  tft.setTextSize(2);
-  
+  Serial.print(millis());Serial.print(" , ");
+  Serial.print(muxLabels[muxSetting]);Serial.print(" , ");
+  tft.setTextSize(2);  
   uint8_t yOffset=20;
   uint8_t txtSpace=18;
   for (int k=0; k<ADC_COUNT; k++) {
-     tft.setTextSize(2);
+    tft.setTextSize(2);
     tft.setCursor(0, yOffset+k*txtSpace);
     tft.setTextColor(WHITE,BLACK);
     snprintf(displayBuf,16,"%s=",adcName[k]);
+    Serial.print(displayBuf); Serial.print(",\t");
     tft.print(displayBuf);
     if (adcVal[k]>200) {
       tft.setTextColor(RED,BLACK);
@@ -155,11 +158,15 @@ void loop() {
       tft.setTextColor(GREEN,BLACK);
     }
     snprintf(displayBuf,16,"%4u",adcVal[k]);
+    Serial.print(displayBuf); Serial.print(",\t");
+
     tft.println(displayBuf);
     tft.setTextSize(1);
     tft.setTextColor(WHITE,BLACK);
     tft.setCursor(100, 120);
     snprintf(displayBuf,16,"%u",toc-tic);
     tft.println(displayBuf);
-  }  
+    tDisplay=millis();
+  }
+  Serial.println();  
 }
