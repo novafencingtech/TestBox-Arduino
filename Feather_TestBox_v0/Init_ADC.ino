@@ -100,6 +100,8 @@ void StopADC() {
 
 void InitializeChannels() {
 
+  initSelfTest();
+
   snprintf(ChanArray[0].ch_label, 4, "AAA");
   ChanArray[0].muxSetting = MUX_CABLE_AA;
 
@@ -370,4 +372,76 @@ void calibrateSystem() {
   }
   // Automatically go to cable test mode
   setBoxMode(CABLE);
+}
+
+void initSelfTest() {
+  selfTestResults[1].adcLbl = "A0";
+  selfTestResults[1].adcPin=PIN_A0;
+  selfTestResults[1].muxHigh=0x2;
+  
+  selfTestResults[2].adcLbl = "A1";
+  selfTestResults[2].adcPin=PIN_A1;
+  selfTestResults[2].muxHigh=0x4;
+
+  selfTestResults[3].adcLbl = "A2";
+  selfTestResults[3].adcPin=PIN_A2;
+  selfTestResults[3].muxHigh=0x8;
+
+  selfTestResults[4].adcLbl = "A3";
+  selfTestResults[4].adcPin=PIN_A3;
+  selfTestResults[4].muxHigh=0x2;
+
+  selfTestResults[5].adcLbl = "A4";
+  selfTestResults[5].adcPin=PIN_A4;
+  selfTestResults[5].muxHigh=0x8;
+
+  selfTestResults[6].adcLbl = "A5";
+  selfTestResults[6].adcPin=PIN_A5;
+  selfTestResults[6].muxHigh=0x8;
+}
+
+adcSelfTestResult adcSelfTest() {
+  #define NUM_ADC_UNITS 6
+  const uint8_t adcList[NUM_ADC_UNITS]={PIN_A0,PIN_A1,PIN_A2,PIN_A3,PIN_A4,PIN_A5};
+  const char adcName[NUM_ADC_UNITS][8]={"Alow","Ahi","Blow","Bhi","Clow","Chi"};
+  uint16_t adcVal;
+  const uint8_t muxList[NUM_ADC_UNITS]={0x2, 0x4, 0x8, 0x2, 0x4, 0x8} ;
+  adcSelfTestResult[NUM_ADC_UNITS]={NoTest,NoTest,NoTest,NoTest
+  
+  StopADC();
+  analogCalibrateOffset();
+  analogReference(AR_INTERNAL_2_4);
+  analogReadResolution(12);
+  analogOversampling(32);
+  analogSampleTime(20);
+
+  for (int k=0; k<NUM_ADC_UNITS; k++) {
+    //Check low limits
+    adcVal=checkADCValue(adcList[k],0x0);
+    if (adcVal >= 10) {
+         adcSelfTestResult[k]=FaultLow;
+    }
+    //Check high limits
+    adcVal=checkADCValue(adcList[k],muxList[k]);
+    if (adcVal >=ADC_FAULT_THRESHOLD) 
+    {
+        adcSelfTestResult[k]=FaultHigh;
+    }
+  }
+}
+
+uint16_t checkADCValue(adcPin, muxSetting) {
+  const uint8_t AVE_COUNT=3; //2^3 averages
+
+  uint32_t adcResult=0;
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, muxSetting);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  delay(5);
+  for (n=0; n<2^AVE_COUNT; n++)} {
+    adcResult+=analogRead(adcPin);
+  }
+  adcResult=(adcResult >> AVE_COUNT);
+
+  return adcResult;
 }

@@ -123,7 +123,7 @@ const byte calibrationRetries = 3; // Exit after this many retries
 
 // Pile of various parameters and constants for the box to use
 const int maxADCthreshold = 4000; //Used for switching between high/low gain
-const int shortADCthreshold = 3000; //ADC values below this will show as a short
+const int shortADCthreshold = 1000; //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
@@ -158,6 +158,7 @@ const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
 const float OPEN_CIRCUIT_VALUE = 999.9;
 const float MAX_LAME_RESISTANCE = 40.0f;
+const uint16_t ADC_FAULT_THRESHOLD = 3500;
 
 //MUX Settings if needed
 const SPISettings OLED_SPI_SETTINGS(2000000, MSBFIRST, SPI_MODE0);
@@ -239,6 +240,26 @@ typedef enum TestBoxModes {
   BOX_OFF
 };
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
+
+typedef enum adcTestStatusEnum {
+  NoTest,
+  Pass,
+  FaultLow,
+  FaultHigh,
+  FaultBoth
+};
+
+struct adcSelfTestStruct {
+  adcTestStatusEnum resultFlag;
+  uint8_t adcPin;
+  uint8_t muxHigh;
+  char[3] adcLbl="";
+  uint16_t lowTestValue=4096;
+  uint16_t highTestValue=0; 
+};
+
+adcSelfTestStuct selfTestResults[6];
+
 
 // Option 1: use any pins but a little slower
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
