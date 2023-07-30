@@ -4,6 +4,15 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
+#define TTArmBoardRev 1 
+
+// Used for defining board revision specific changes and features
+#if (TTArmBoardRev>=2)
+  #define TTArmMOSFETWeaponAC 1 //Present on rev2 boards, Rev 2 boards have a battery disconnect switch
+#else
+  #define TTArmMOSFETWeaponAC 0 
+#endif
+
 #include <arm_math.h>
 
 #include <Arduino.h>
@@ -25,6 +34,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "string.h"
 #include "CaptureBuffer.h"
 #include "oledGraphClass.h"
+#include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
 #define FAST_LED_ACTIVE 0
@@ -39,10 +49,8 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
-
-static const char VERSION_NUM[16] = "1.1-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2022-04-16";
-
+static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2023-01-25";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 //#include "splashScreenImage.c"
@@ -55,6 +63,7 @@ static const char BUILD_DATE[16] = "2022-04-16";
 #define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
 #define SERIAL_OUTPUT_BUFFER_SIZE 256 //Length of serial buffer
 #define ADC_BUFFER_SIZE 8
+#define OPEN_CIRCUIT 999.9
 
 const uint8_t ADC_UNIT = 0;
 nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
@@ -120,7 +129,7 @@ const int shortADCthreshold = 3000; //ADC values below this will show as a short
 constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
 const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
-const int weaponStateHoldTime = 250; //ms - How long the light remains lit after a weapon-press
+const int weaponStateHoldTime = 500; //ms - How long the light remains lit after a weapon-press
 const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
 const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
 static constexpr int usFoilDebounce = weaponFoilDebounce * 1000; //Foil debounce in us
@@ -130,7 +139,7 @@ const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
 const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
 const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
 //constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
-constexpr long tOledOff = 2L*60L * 1000L; //ms - How long before the OLED turns off
+constexpr long tOledOff = 5L*60L * 1000L; //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
 const long tBatteryInterval = 10000; //ms - Check battery every 10s
 const long tIdleModeOn = 5000L; //ms - Switch to idle mode after 5s of in-activity.
@@ -157,7 +166,8 @@ const uint8_t MUX_LATCH = 16;
 const uint8_t MUX_CLK = 15;
 const uint8_t MUX_DATA = 7;
 
-//MUX is MSBFIRST, bit 0=NC, bits 1-3=source, bits 4-6=sink, bit 7=weapon
+//MUX is MSBFIRST, bit 0=NC, bits 1-3=source,bit 4=weaponB, bits 5-7=sink, 
+//For rev 2 board MUX is MSBFIRST, bit 0=WeaponC GND, bits 1-3=source A/B/C,bit 4=WeaponB GND, bits 5-7=Cable A/B/C
 const byte MUX_DISABLED = 0x0;
 const byte MUX_CABLE_AA = B00100010;
 const byte MUX_CABLE_AB = B01000010;
@@ -168,11 +178,14 @@ const byte MUX_CABLE_BC = B10000100;
 const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
-const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B, bit 4=Link
-const byte MUX_WEAPON_AB = B01010010;
-const byte MUX_WEAPON_AC = B00000010; //Only A is source, C relies on pull-down resistor
-const byte MUX_WEAPON_CB = B01011000;
-
+const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B
+const byte MUX_WEAPON_AB = B00010010;
+const byte MUX_WEAPON_CB = B00011000;
+#if TTArmMOSFETWeaponAC
+  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+#else
+  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+#endif
 
 const uint32_t LineADetect = 5;
 const uint32_t LineCDetect = 29;
@@ -222,14 +235,49 @@ typedef enum TestBoxModes {
   WPN_TEST,
   WPN_GRAPH,
   HIT_CAPTURE,
+  PROBE,
   BOX_IDLE,
   BOX_OFF
 };
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
+// Option 1: use any pins but a little slower
+//Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
+
+// Option 2: must use the hardware SPI pins
+// (for UNO thats sclk = 13 and sid = 11) and pin 10 must be
+// an output. This is much faster - also required if you want
+// to use the microSD card (see the image drawing example)
+Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
+
+oledColorList colorList;
 oledGraph lameGraph;
+oledReverseHBarGraph lameBar;
+oledGraphLabel lameLabel;
 oledGraph weaponGraph;
 oledGraph captureGraph;
+
+oledReverseHBarGraph lineABar;
+oledGraphLabel lineALabel;
+oledReverseHBarGraph lineBBar;
+oledGraphLabel lineBLabel;
+oledReverseHBarGraph lineCBar;
+oledGraphLabel lineCLabel;
+
+oledReverseHBarGraph prEpeeBar;
+oledGraphLabel prEpeeLabel;
+oledReverseHBarGraph prFoilBar;
+oledGraphLabel prFoilLabel;
+oledReverseHBarGraph prACBar;
+oledGraphLabel prACLabel;
+oledReverseHBarGraph prABar;
+oledGraphLabel prALabel;
+oledReverseHBarGraph prBBar;
+oledGraphLabel prBLabel;
+oledReverseHBarGraph prCBar;
+oledGraphLabel prCLabel;
+
+
 
 // ADC timer settings;
 
@@ -247,7 +295,9 @@ volatile long tIdle = 0;
 
 
 //ADC parameters
+//ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
 ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
+ADC_Channel ProbeArray[6] {0, 2, 0, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
 //const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 4, 5, 3, 8, 7, 0, 6}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(2);
@@ -323,7 +373,7 @@ struct weapon_test {
   bool lineAC = false;
   //byte epeeInterruptBit = PCINT4;
   //byte foilInterruptBit = PCINT6;
-  long tLightChange = 300; //ms -- time for the intermittent LED to be on
+  long tLightChange = weaponStateHoldTime; //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
   int ohm10xFoil = 0;
@@ -341,6 +391,28 @@ struct weapon_test {
 };
 
 volatile weapon_test weaponState;
+
+struct probeDataStruct {
+  float ohm_APr = OPEN_CIRCUIT_VALUE;
+  float ohm_BPr = OPEN_CIRCUIT_VALUE;
+  float ohm_CPr = OPEN_CIRCUIT_VALUE;
+  float ohm_Foil = OPEN_CIRCUIT_VALUE;
+  float ohm_Epee = OPEN_CIRCUIT_VALUE;
+  float ohm_WpnAC = OPEN_CIRCUIT_VALUE; 
+
+  arm_biquad_casd_df1_inst_f32 ProbeALPF;
+  float ProbeALPFState[4];
+  arm_biquad_casd_df1_inst_f32 ProbeBLPF;
+  float ProbeBLPFState[4];
+  arm_biquad_casd_df1_inst_f32 ProbeCLPF;
+  float ProbeCLPFState[4];
+  arm_biquad_casd_df1_inst_f32 FoilLPF;
+  float FoilLPFState[4];
+  arm_biquad_casd_df1_inst_f32 EpeeLPF;
+  float EpeeLPFState[4];
+  arm_biquad_casd_df1_inst_f32 WpnACLPF;
+  float WpnACLPFState[4];
+} probeData;
 
 //bool BatteryCheck=false;
 
@@ -457,7 +529,7 @@ void SAADC_IRQHandler(void) {
 void wdtOverrideCallback(void *p_context) {
   //if (wdtOverride) {
     //Manually kick the watch dog
-    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+    //NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
   //}
 }
 
@@ -673,7 +745,8 @@ void loop() {
     case WPN_TEST:
       updateWeaponStateDigital();
       break;
-    case 's':
+    case PROBE:
+      updateProbe();
       break;
     case BOX_IDLE:
       delay(tIdleWakeUpInterval);
@@ -688,17 +761,15 @@ void loop() {
     setPowerOff();
   }
 
-  if ( ((t_now - tLastActive) > tIdleModeOn) && (BoxState != BOX_IDLE) ) {
+  if ((t_now - tLastActive) > tIdleModeOn) {
     if ((BoxState == CABLE) && (cableState.cableDC)) {
       setBoxMode(BOX_IDLE);
     }
-    if (weaponState.cableDC) {
-      if (BoxState == WPN_GRAPH) {
-        setBoxMode(BOX_IDLE);
-      }
+    if ((BoxState == WPN_GRAPH) && (weaponState.cableDC))  {
+      setBoxMode(BOX_IDLE);
     }
     if ((BoxState == WPN_TEST) && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
-      setBoxMode(BOX_IDLE);
+      //setBoxMode(BOX_IDLE);
     }
     //Serial.println("Setting idle mode");
   } else {

@@ -102,6 +102,30 @@ void setCableTestMode() {
   StartADC();
 }
 
+void setProbeMode() {
+  detachInterrupt(LineADetect);
+  detachInterrupt(LineCDetect);
+  nrf_gpio_cfg(LineADetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg(LineCDetect, NRF_GPIO_PIN_DIR_INPUT, NRF_GPIO_PIN_INPUT_CONNECT, NRF_GPIO_PIN_NOPULL, NRF_GPIO_PIN_S0S1, NRF_GPIO_PIN_SENSE_HIGH);
+
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, (byte) 0x0);
+  digitalWrite(MUX_LATCH, HIGH);
+
+  StopADC();
+
+  // Re-initialize the ADC
+  InitializeADC(false);
+  loadCalibrationData();
+
+  ActiveCh = &(ProbeArray[0]);
+
+  weaponState.cableDC = true;
+  
+  BoxState = PROBE;
+  StartADC();
+}
+
 void updateCableState() {
   uint16_t statusCheck;
   //static long tLastConnect = 0;
@@ -236,6 +260,8 @@ void updateCableState() {
 
 }
 
+
+
 void setWeaponInterrupts() {
   attachInterrupt(LineADetect, &ISR_EpeeHitDetect, CHANGE);
   attachInterrupt(LineCDetect, &ISR_FoilHitDetect, CHANGE);
@@ -256,6 +282,9 @@ void setBoxMode(TestBoxModes newMode) {
       break;
     case BOX_IDLE:
       setIdleMode();
+      break;
+    case PROBE:
+      setProbeMode();
       break;
     case HIT_CAPTURE:
       setWeaponResistanceMode(true);
@@ -383,6 +412,30 @@ void updateWeaponResistance() {
   }
 }
 
+//ADC_Channel ProbeArray[6] {0, 2, 5, 1, 0, 2}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
+void updateProbe()
+{  //The order of filter and data address must match the ADC and mux configuration in ProbeArray.
+  arm_biquad_casd_df1_inst_f32* filterAddr[6]={&(probeData.EpeeLPF),&(probeData.FoilLPF),&(probeData.WpnACLPF),&(probeData.ProbeBLPF),&(probeData.ProbeALPF),&(probeData.ProbeCLPF)};
+  float* dataAddr[6]={&(probeData.ohm_Epee),&(probeData.ohm_Foil),&(probeData.ohm_WpnAC),&(probeData.ohm_BPr),&(probeData.ohm_APr),&(probeData.ohm_CPr)};
+  float tempValue;
+
+  for (int k=0; k<6; k++) {
+      if (!ProbeArray[k].valueReady) {
+        return; //All channels aren't ready to update, bail out
+      }
+  }
+
+  for (int k=0; k<6; k++) {
+    if (ProbeArray[k].getRawValue() < CABLE_DISCONNECT_THRESHOLD) {
+      tempValue = ProbeArray[k].getValue();
+      arm_biquad_cascade_df1_f32(filterAddr[k], &tempValue, dataAddr[k], 1);    
+    }
+    else {
+      *dataAddr[k] = OPEN_CIRCUIT_VALUE;
+    }
+  }
+}
+
 void updateWeaponState() {
   //Update this code to use the A, B, C line displays
   // A = red/Epee
@@ -502,6 +555,9 @@ void checkButtonState() {
             setBoxMode(WPN_TEST);
             break;
           case WPN_TEST:
+            setBoxMode(PROBE);
+            break;
+          case PROBE:
             setBoxMode(CABLE);
             break;
           case BOX_IDLE:

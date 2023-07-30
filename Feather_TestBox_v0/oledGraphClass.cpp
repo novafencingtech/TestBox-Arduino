@@ -1,6 +1,5 @@
 #include "oledGraphClass.h"
 
-
 //Sets the main buffer
 oledGraph::oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width, float minValue, float maxValue){
   _locX=X;
@@ -161,4 +160,233 @@ void oledGraph::drawColumn(float val){
     _tft->drawFastVLine(_col+2, irow, 2, cCYAN);
   }  //show where we are as 2x1 cyan line at col+1
   
+}
+
+/*
+    oledBarGraph();
+    oledBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
+    oledBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
+    void setGraphLimits(int X, int Y, int H, int W);
+    void setVerticalLimits(float minValue, float maxValue);
+    void setHorizontalBarValues(int numBars, float values[], int colors[]);
+    void updateGraph(float newValue);
+    void resetGraph();
+    //void drawTextLabels();
+    void drawHLines();
+    void drawTextLabels();
+
+    private:
+      void drawColumn(float val);
+*/
+
+oledReverseHBarGraph::oledReverseHBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue) {
+  _locX=X;
+  _locY=Y;
+  _height=height;
+  _width=width;
+  _maxX=_locX+width;
+  _maxY=_locY+height;
+  _tft=tft;
+  _pixelScaleFactor=(_width)/(maxValue-minValue);
+  _offset=minValue;
+  _limitMin=minValue;
+  _limitMax=maxValue;
+}
+
+oledReverseHBarGraph::oledReverseHBarGraph() {
+
+}
+
+void oledReverseHBarGraph::setBarColors(int numBars, float values[], int colors[]) {
+  for (int k=0; k<numBars; k++) {    
+    _hBarX[k]=_locX+max(int((_limitMax-values[k])*_pixelScaleFactor+0.5f),0);
+    if (_hBarX[k]<_locX) {_hBarX[k]=_locX;}
+    if (_hBarX[k]>_maxX) {_hBarX[k]=_maxX;}
+    _hBarValues[k]=values[k];
+    _hBarColors[k]=colors[k];
+    //Serial.print("Value = ");Serial.print("_hBarValues[k]");Serial.print(" Loc = ");Serial.println(_hBarY[k]);    
+  }
+  _numActiveBars=numBars;
+}
+
+
+void oledReverseHBarGraph::resetGraph() {
+  _tft->fillRect(_locX, _locY, _width, _height, cBLACK);
+  _barValue = _limitMax;
+  _barEnd = _locX; 
+}
+
+int oledReverseHBarGraph::getLineColor(int col){
+  int lineColor=cBLACK;
+  for (int k=0; k<_numActiveBars; k++) {    
+    if (col>_hBarX[k]) { 
+      return lineColor;  //Next bar is to the left, return the prior color 
+      //Serial.print("Color set = "); Serial.println(lineColor, HEX);
+    } else {
+      lineColor=_hBarColors[k];
+    }
+  }
+  return _hBarColors[_numActiveBars-1]; //Return the last color bar if it's beyond it
+}
+
+int oledReverseHBarGraph::getBarEnd(float val){
+  //Serial.print("Bar end = "); Serial.println(colValue);
+  int colValue=_locX;
+  if (val<_limitMax) {
+    colValue=int((_limitMax-val)*_pixelScaleFactor+0.5f+_locX);
+    colValue=min(colValue,_maxX);    
+  }
+  //Serial.print("Bar end = "); Serial.println(colValue);
+  return colValue;
+}
+
+void oledReverseHBarGraph::updateGraph(float newValue) {
+  int difVal, newEnd, gColor;
+
+  //printVal(X, 0, bc, conn, newValue);
+  if (newValue > _limitMax) {
+    if (_barValue <= _limitMax) {
+      //Serial.println("Graph Reset");
+      resetGraph(); //If we previously had a value, blank the graph
+    }
+    _barValue = newValue;
+    _barEnd = _locX; 
+    return; // no bar if beyond 32 ohms
+  } 
+
+  newEnd = getBarEnd(newValue);
+  difVal = newEnd - _barEnd;
+  gColor = getLineColor(newEnd);
+  
+  if (difVal < 0) {
+    //Serial.print("New end = "); Serial.println(newEnd);
+    _tft->fillRect(newEnd+1, _locY, _barEnd-newEnd, _height, cBLACK);  //Black out the prior bar     
+  }
+  if (gColor != _barColor) {
+    _tft->fillRect(_locX, _locY, newEnd-_locX,_height,gColor);
+    _barColor=gColor; 
+  } else {
+    if (difVal > 0)  {//increase bar graph length
+      _tft->fillRect(_barEnd,_locY,newEnd-_barEnd,_height,gColor);  
+    }
+  }
+  _barColor=gColor;  
+  _barEnd=newEnd;
+  _barValue=newValue;  //and we're done, save old value
+}
+
+
+
+
+/* Function for adjusting the color in segments, 
+ *  moving to archive
+ *  
+
+void oledReverseHBarGraph::updateGraph(float newValue) {
+  int difVal, newEnd, gColor;
+
+  //printVal(X, 0, bc, conn, newValue);
+  if (newValue > _limitMax) {
+    if (_barValue <= _limitMax) {
+      //Serial.println("Graph Reset");
+      resetGraph(); //If we previously had a value, blank the graph
+    }
+    _barValue = newValue;
+    _barEnd = _locX; 
+    return; // no bar if beyond 32 ohms
+  } 
+
+  newEnd = getBarEnd(newValue);
+  difVal = newEnd - _barEnd;
+
+  if (difVal < 0) {
+    //Serial.print("New end = "); Serial.println(newEnd);
+    _tft->fillRect(newEnd+1, _locY, _barEnd-newEnd, _height, cBLACK);  //Black out the prior bar     
+  }  
+  if (difVal > 0)  {//increase bar graph length
+    //Serial.print("Bar increase = "); Serial.println(difVal);
+    for (int dCol=_barEnd; dCol<=newEnd; dCol++) {
+      gColor=getLineColor(dCol);
+      _tft->drawFastVLine(dCol, _locY, _height, gColor);      
+    }  
+  } 
+  _barEnd=newEnd;
+  _barValue=newValue;  //and we're done, save old value
+}
+*/
+
+oledGraphLabel::oledGraphLabel(Adafruit_SSD1351 *tft,uint16_t x, uint16_t y, int size, uint16_t color) {
+  _tft=tft;
+  _locX=x;
+  _locY=y;
+  _fontSize=size;
+  _lblColor=color;
+}
+oledGraphLabel::oledGraphLabel() {
+
+}
+
+void oledGraphLabel::setFontSize(int size) {
+  _fontSize=size;
+}
+
+void oledGraphLabel::setColors(int numBars, float values[], int colors[]){
+  _numColors=numBars;
+  for (int k=0;k<numBars;k++){
+    _colorValues[k]=values[k];
+    _colorList[k]=colors[k];
+  }
+  //memcpy(_colorValues,values,numBars*sizeof(values[0]));
+  //memcpy(_valColors,colors,numBars*sizeof(colors[0]));  
+}
+
+void oledGraphLabel::clearLabel() {
+  _tft->setTextSize(_fontSize);
+  _tft->setCursor(_locX, _locY);  
+  for (int k=0; k<10; k++) {
+    _tft->print(" ");  
+  }  
+}
+
+
+void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uint16_t newColor) {
+  uint16_t lblColor=cYELLOW;  
+  char strBuf[5]="";
+
+  _tft->setTextSize(_fontSize);
+  _tft->setCursor(_locX, _locY);  
+  
+  if (val<0.0) {val =0.0f;}
+
+  if (forceColor) {
+    lblColor=newColor;
+  } else {
+    lblColor=cRED;
+    for (int k=0; k<_numColors; k++) {
+      if (val>=_colorValues[k]) {
+        lblColor=_colorList[k];        
+      } else {
+        break;
+      }
+    }
+  } 
+  
+  _tft->setTextColor(lblColor, cBLACK);
+  _tft->print(lab); _tft->print("="); //display connection string
+  //tft.setTextColor(valColor, BLACK);  //set the text color to right color, black background
+  //Print ohms in a 4 character space
+  //"XXXX", "XXX ", "XX  " or "X.XX"
+  if (val > 500) {
+    _tft->print("OPEN");
+    //_openTxt=true;
+    return;
+  }
+
+  if (val>10) {    
+    dtostrf(val,-4,0,strBuf); //Don't display decimal points
+  } else {
+    dtostrf(val,-4,1,strBuf);
+  }
+  _tft->print(strBuf);     
+  return;
 }

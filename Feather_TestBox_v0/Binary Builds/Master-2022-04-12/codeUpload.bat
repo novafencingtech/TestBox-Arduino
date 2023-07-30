@@ -1,0 +1,1 @@
+adafruit-nrfutil/win32/adafruit-nrfutil.exe --verbose dfu serial -pkg C:\Users\Graham\AppData\Local\Temp\arduino_build_982996/Feather_TestBox_v0.ino.zip -p COM3 -b 115200 --singlebank 

@@ -1,44 +1,3 @@
-// Screen dimensions
-#define SCREEN_WIDTH  128
-#define SCREEN_HEIGHT 128 // Change this to 96 for 1.27" OLED.
-
-// You can use any (4 or) 5 pins
-#define SCLK_PIN 12
-#define MOSI_PIN 13
-#define DC_PIN   20
-#define CS_PIN   31
-//#define RST_PIN  20
-
-// Color definitions
-#define BLACK           0x0000
-#define BLUE            0x001F
-#define RED             0xF800
-#define GREEN           0x07E0
-#define CYAN            0x07FF
-#define MAGENTA         0xF81F
-#define ORANGE          0xFD20
-#define YELLOW          0xFFE0
-#define WHITE           0xFFFF
-#define GREY            0x79EF
-#define DARKBLUE        0x0007
-
-#define BARCOLOR  YELLOW
-#define GRAPHCOLOR  RED
-
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1351.h>
-#include <Adafruit_SPITFT.h>
-#include <SPI.h>
-
-
-// Option 1: use any pins but a little slower
-//Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
-
-// Option 2: must use the hardware SPI pins
-// (for UNO thats sclk = 13 and sid = 11) and pin 10 must be
-// an output. This is much faster - also required if you want
-// to use the microSD card (see the image drawing example)
-Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
 bool CheckCableStatusByte(uint16_t errorCheck) {
   return ((cableState.statusByte & errorCheck) == errorCheck);
 }
@@ -78,7 +37,6 @@ void tftDisplayMessage(const char *msg) {
   tft.setCursor(2, 2);
   tft.setTextColor(ORANGE, DARKBLUE);
   tft.print(msg);
-
 }
 
 void printVal(int x, int y, int valColor, const char *lab, int val) {
@@ -168,111 +126,6 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   if (color == BLACK) s = "BLACK";
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
-/*
-  void drawColumn(int col, int val) {
-  //Assumes we have only one graph EVER
-  static int oldVal = 0;
-  static int oldRow = 0;
-  //0-9.9 ohm, rows 27-127
-  int valRow = 127 - min(val, 99); //convert ohms in tenths to row
-  //int oldRow = 127 - min(oldVal, 99); //same with old val
-  int topRow, botRow, orangeRow, greenRow;
-  //sort ends so we're always drawing from top to bottom
-  if (valRow > oldRow) {
-    topRow = oldRow;
-    botRow = valRow;
-  } else {
-    topRow = valRow;
-    botRow = oldRow;
-  }
-  //  if (weaponState.ohm10xFoil) > 18) { Serial.print("vline ");Serial.print(floatTo10xInt(cableState.ohm_AA));Serial.print("=");Serial.print(topRow);Serial.print(",");Serial.println(botRow);}
-  orangeRow = 127 - weaponOrangeThresh; //first line of orange
-  greenRow = 127 - weaponGreenThresh; //first line of green
-  tft.drawPixel(col, 27, WHITE); //draw top scale (9.9 ohms), could be erased later
-  drawVLine(col, 28, topRow - 1, BLACK); //clear out above topRow
-  if (topRow > 77) tft.drawPixel(col, 77, WHITE); //5 ohms = 50 rows, 127-50 = 77
-  if (topRow > 107) tft.drawPixel(col, 107, WHITE); //2 ohms = 20 rows, 127-20 = 107
-  if (topRow < orangeRow) { //some red
-    drawVLine(col, topRow, min(botRow, orangeRow - 1), RED);
-    if (botRow >= orangeRow) {
-      if (botRow >= greenRow) { //extends to green
-        drawVLine(col, orangeRow, greenRow - 1, ORANGE); //complete orange section
-        drawVLine(col, greenRow, botRow, GREEN);
-      } else { //ends in orange
-        drawVLine(col, orangeRow, botRow, ORANGE);
-      }
-    }
-  } else {  //no red
-    if (topRow < greenRow) { //some orange
-      drawVLine(col, topRow, min(botRow, greenRow - 1), ORANGE);
-      if (botRow > greenRow) { //extends to green
-        drawVLine(col, greenRow, botRow, GREEN);
-      }
-    } else { //green only
-      drawVLine(col, topRow, botRow, GREEN);
-    }
-  }
-  if (botRow < 127) { //fill black to bottom
-    drawVLine(col, botRow + 1, 127, BLACK);
-    if (botRow < 77) tft.drawPixel(col, 77, WHITE); //restore 5 ohm line
-    if (botRow < 107) tft.drawPixel(col, 107, WHITE); //restore 2 ohm line
-    tft.drawPixel(col, 127, WHITE); //restore 0 ohm line
-  }
-  if (col < 127) {
-    int icol = col + 1; int irow = max(valRow - 1, 28);
-    //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    tft.drawFastVLine(icol, irow, 2, CYAN);
-  }  //show where we are as 2x1 cyan line at col+1
-  oldRow = valRow;
-  oldVal = val;
-  }*/
-
-//Draw a static line graph from an array
-//  rData = array with resistance values in tenths of an ohm
-//  oThresh = resistance of Orange threshold im tenths of an ohm
-//  gThresh = resistance of Green threshold in tenths of an ohm
-/* void LineGraph(int rData[127]) {
-  int i, val, maxVal, vMax, vRatio, yVal, oldY, startColor, endColor, oY, gY;
-  maxVal = 0;
-  for (i = 0; i < 128; i++) if ((rData[i] > val) && (rData[i] != 990)) maxVal = rData[i]; //find biggest value
-  // We reserve 28 rows for text, leaving 100 rows for graph
-  // Graphs are scaled to the max resistance in the array
-  //    Max R  Precision (1 pixel)
-  //      10    .1 ohm
-  //      20   .25 ohm
-  //     100    1 ohm
-  //     500    5 ohm
-  startTime = micros();
-  vMax = 100;  // assume 10 ohm scale
-  if (maxVal > 100) vMax = 500;  //possible 20 ohm scale
-  if (maxVal > 200) vMax = 1000;  //possible 100 scale
-  if (maxVal > 1000) vMax = 5000;  //nope, it's 500 ohm scale
-  if (vMax != oldScale) {  //don't change scale fast
-    if (slowShift++ < SLOWCOUNT) {
-      vMax = oldScale;  //use the old scale for a while
-    }
-    else {  //new scale
-      oldScale = vMax;  //change scale
-      slowShift = 0;  //restart slow filter
-    }
-  } else slowShift = 0;  //stay in your lane
-  vRatio = vMax / 100;  //tenths of an ohm per row
-  oY = 100 - (weaponOrangeThresh / vRatio);  //calculate row # of orange threshold
-  gY = 100 - (weaponGreenThresh / vRatio);  // same for green threshold
-  //oldVal = rData[0]; //force first column to be a point
-  for (i = 0; i < 128; i++) {
-    val = rData[i];
-    if (val == 990) val = maxVal; //if not connected, use max value in array
-    drawColumn(i, val);
-    //oldVal = val;
-  }
-  endTime = micros();
-  if (startTime < endTime) {
-    totalTime = endTime - startTime;
-    timeSamples = 1ul;
-  };
-  }
-*/
 
 void displaySplashScreen() {
   tft.fillRect(0, 0, 128, 128, BLACK);
@@ -316,18 +169,46 @@ void InitializeDisplay()
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
+  
+  lineALabel = oledGraphLabel(&tft,0,ABAR);
+  lineABar = oledReverseHBarGraph(&tft, 0, ABAR+17, barHeight, 128, 0.0f, 25.0f);
+  lineBLabel = oledGraphLabel(&tft,0,BBAR);
+  lineBBar = oledReverseHBarGraph(&tft, 0, BBAR+17, barHeight, 128, 0.0f, 25.0f);
+  lineCLabel = oledGraphLabel(&tft,0,CBAR);
+  lineCBar = oledReverseHBarGraph(&tft, 0, CBAR+17, barHeight, 128, 0.0f, 25.0f);
+  float cableLimits[5] = {0.0f, 5.0f, 15.0f, 20.0f, 999.9f};
+  int cableColors[5] = {colorList.cGREEN, colorList.cYELLOW, colorList.cORANGE,colorList.cLIGHTRED, colorList.cLIGHTRED};
+  lineABar.setBarColors(5,cableLimits,cableColors);
+  lineALabel.setColors(5,cableLimits,cableColors);
+  lineBBar.setBarColors(5,cableLimits,cableColors);
+  lineBLabel.setColors(5,cableLimits,cableColors);
+  lineCBar.setBarColors(5,cableLimits,cableColors);
+  lineCLabel.setColors(5,cableLimits,cableColors);
+
+  initializeProbeScreen();
+  
+  //prEpeeBar = oledBarGraph(&tft,)
+  //prFoilBar = oledBarGraph(&tft,)
+  //prACBar = oledBarGraph(&tft,)
+  //prABar = oledBarGraph(&tft,)
+  //prBBar = oledBarGraph(&tft,)
+  //prCBar = oledBarGraph()
+
   int bars = 5;
   float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
-  int lameColors[5] {lameGraph.cGREEN, lameGraph.cYELLOW, lameGraph.cORANGE, lameGraph.cRED, lameGraph.cRED};
+  int lameColors[5] {colorList.cGREEN, colorList.cYELLOW, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED};
   lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
-  //lameGraph.setHorizontalBarValues(5, [0.0f,5.0f,10.0f,15.0f,20.0f], [lameGraph.cGREEN,lameGraph.cYELLOW,lameGraph.cORANGE,lameGraph.cRED,lameGraph.cRED]);
+  lameBar = oledReverseHBarGraph(&tft, 0, 16, 22, 128, 0.0f, 20.0f);
+  lameBar.setBarColors(5, lameVals, lameColors);
+  lameLabel=oledGraphLabel(&tft,0,0);
+  lameLabel.setColors(5, lameVals, lameColors);
 
   float wvals[4] {0.0f, 2.0f, 5.0f, 10.0f};
-  int wcolors[4] {weaponGraph.cGREEN, weaponGraph.cORANGE, weaponGraph.cRED, weaponGraph.cRED};
+  int wcolors[4] {colorList.cGREEN, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED};
   weaponGraph.setHorizontalBarValues(4, wvals, wcolors);
 
   float cvals[4] {0.0f, 10.0f, 20.0f, 40.0f};
-  int ccolors[4] {captureGraph.cGREEN, captureGraph.cORANGE, captureGraph.cRED, captureGraph.cRED};
+  int ccolors[4] {colorList.cGREEN, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED};
   captureGraph.setHorizontalBarValues(4, cvals, ccolors);
 
   //lameLED=CRGB::Black;
@@ -342,6 +223,39 @@ void dimOLEDDisplay() {
   lameLED = CRGB::Black;
   FastLED.show();
 #endif
+}
+
+void initializeProbeScreen() {
+  float limits[3] = {0.0f, 5.0f, 10.0f};
+  int colors[3] = {colorList.cGREEN, colorList.cYELLOW,  colorList.cLIGHTRED};
+  int barSpace=19;
+  int barYStart=19;
+  int barLeftEdge=97;
+  int barHeight=16;
+  prEpeeBar = oledReverseHBarGraph(&tft, 0, barYStart+barSpace, barHeight, 128, 0.0f, 15.0f);
+  prEpeeLabel=oledGraphLabel(&tft,0,barYStart);
+  prEpeeBar.setBarColors(3, limits, colors);
+  prEpeeLabel.setColors(3, limits, colors);
+  prFoilBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace, barHeight, 128-barLeftEdge, 0.0f, 20.0f);
+  prFoilLabel=oledGraphLabel(&tft,0,barYStart+barSpace);
+  prFoilBar.setBarColors(3, limits, colors);
+  prFoilLabel.setColors(3, limits, colors);
+  prACBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace*2, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prACLabel=oledGraphLabel(&tft,0,barYStart+barSpace*2);
+  prACBar.setBarColors(3, limits, colors);
+  prACLabel.setColors(3, limits, colors);
+  prABar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace*3, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prALabel=oledGraphLabel(&tft,0,barYStart+barSpace*3);
+  prABar.setBarColors(3, limits, colors);
+  prALabel.setColors(3, limits, colors);
+  prBBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace*4, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prBLabel=oledGraphLabel(&tft,0,barYStart+barSpace*4);
+  prBBar.setBarColors(3, limits, colors);
+  prBLabel.setColors(3, limits, colors);
+  prCBar = oledReverseHBarGraph(&tft, barLeftEdge, barYStart+barSpace*5, barHeight, 128-barLeftEdge, 0.0f, 15.0f);
+  prCLabel=oledGraphLabel(&tft,0,barYStart+barSpace*5);
+  prCBar.setBarColors(3, limits, colors);
+  prCLabel.setColors(3, limits, colors);    
 }
 
 void displayBatteryStatus() {
@@ -394,11 +308,11 @@ void displayBatteryStatus() {
   //tft.setTextColor(CYAN,BLACK);
   //tft.print(battPercent);
 }
-int floatTo10xInt(float g) {
+/*int floatTo10xInt(float g) {
   if (g < 0.0) g = 0.0;
   return ((int) (g * 10.0 + .5));
-}
-int gv(const char *s) {
+}*/
+float gv(const char *s) {
   //arduino does not support strings in switch statements
   /*switch (s[0]) {
     case 'A':
@@ -409,13 +323,13 @@ int gv(const char *s) {
     case 'C':
       return floatTo10xInt(cableState.ohm_CC);
     }*/
-  if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
-  if (s == "BB") return floatTo10xInt(cableState.ohm_BB);
-  if (s == "CC") return floatTo10xInt(cableState.ohm_CC);
+  if (s == "AA") return cableState.ohm_AA;
+  if (s == "BB") return cableState.ohm_BB;
+  if (s == "CC") return cableState.ohm_CC;
 
   for (int k = 0; k < NUM_ADC_SCAN_CHANNELS; k++) {
     if ((s[0] == ChanArray[k].ch_label[1]) && (s[1] == ChanArray[k].ch_label[2]) ) {
-      return floatTo10xInt(cableState.cableOhm[k]);
+      return cableState.cableOhm[k];
     }
   }
   /*if (s == "AA") return floatTo10xInt(cableState.ohm_AA);
@@ -452,24 +366,28 @@ void labelTitle(const char *s, int color) {
 }
 
 static int oldA = 0, oldB = 0, oldC = 0;
-#define ABAR 25
-#define BBAR 60
-#define CBAR 95
-void graph1(const char *s) {
-  barGraph(ABAR, 8, gv(s), oldA, s);
+
+void graph1(const char *s) {    
+  lineABar.updateGraph(gv(s));
+  lineALabel.printLabel(s,gv(s));
+  //barGraph(ABAR, 8, gv(s), oldA, s);
 }
 void graph2(const char *s) {
-  barGraph(BBAR, 8, gv(s), oldB, s);
+  lineBBar.updateGraph(gv(s));
+  lineBLabel.printLabel(s,gv(s));
+  //barGraph(BBAR, 8, gv(s), oldB, s);
 }
 void graph3(const char *s) {
-  barGraph(CBAR, 8, gv(s), oldC, s);
+  lineCBar.updateGraph(gv(s));
+  lineCLabel.printLabel(s,gv(s));
+  //barGraph(CBAR, 8, gv(s), oldC, s);
 }
 
 void updateOLED(TestBoxModes Mode) {
   static int i = 0, val, oldMode = 'z';
   //static bool oledEnabled = true;
   enum lastConnected { first, none, epee, foil, shorted};
-  enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_wpnR, disp_wpnTest, disp_capture, disp_unk, disp_error};
+  enum displayStates {disp_off, disp_idle, disp_cable, disp_clip, disp_lame, disp_probe, disp_wpnR, disp_wpnTest, disp_capture, disp_unk, disp_error};
   static lastConnected lastConnection;
   lastConnected newConnection;
   //static lastConnected lastConnectionSeen;
@@ -521,6 +439,9 @@ void updateOLED(TestBoxModes Mode) {
       case HIT_CAPTURE:
         currentDisplayState = disp_capture;
         break;
+      case PROBE:
+        currentDisplayState = disp_probe;
+        break;
       case WPN_TEST:
         currentDisplayState = disp_wpnTest;
         break;
@@ -546,28 +467,34 @@ void updateOLED(TestBoxModes Mode) {
       case disp_lame:
         createLameDisplay();
         break;
+      case disp_probe:
+        createProbeDisplay();
+        break;
       case disp_cable:
         //tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
         //tft.print("Cable");
         labelTitle("Cable", YELLOW);
         oldA = oldB = oldC = 320;
         totalTime = 0ul; timeSamples = 0ul;
-        tft.drawFastVLine(127, 31, 96, CYAN);
-        tft.drawFastVLine(107, 31, 96, CYAN);
-        tft.drawFastVLine(87, 31, 96, CYAN);
-        tft.drawFastVLine(47, 31, 96, CYAN);
+        tft.drawFastVLine(127, 31, 96, CYAN); //0.0f line
+        tft.drawFastVLine(102, 31, 96, CYAN); //5.0f line
+        tft.drawFastVLine(77, 31, 96, CYAN);  //10.0f line
+        tft.drawFastVLine(26, 31, 96, CYAN);  //20.f line
         //tft.fillRect(0, X + 16, 128, H, BLACK);
         //Height of bar is 8, height of textsize(2) is 14, 1 pix between text and bar, 1 pix between text/bar and line
-        tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
-        tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
-        tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
+        lineABar.resetGraph();
+        lineBBar.resetGraph();
+        lineCBar.resetGraph();
+        //tft.fillRect(0, ABAR - 1, 128, 26, BLACK);
+        //tft.fillRect(0, BBAR - 1, 128, 26, BLACK);
+        //tft.fillRect(0, CBAR - 1, 128, 26, BLACK);
         tft.setTextSize(1);
         tft.setTextColor(WHITE);
-        tft.setCursor(47 - 14, 120);
+        tft.setCursor(26 - 14, 120);
         tft.print("20");
-        tft.setCursor(88 - 14, 120);
+        tft.setCursor(77 - 14, 120);
         tft.print("10");
-        tft.setCursor(108 - 8, 120);
+        tft.setCursor(102 - 8, 120);
         tft.print("5");
         tft.setCursor(127 - 8, 120);
         tft.print("0");
@@ -616,6 +543,10 @@ void updateOLED(TestBoxModes Mode) {
 
     case disp_lame:
       updateLameDisplay();
+      break;
+    
+    case disp_probe:
+      updateProbeDisplay();
       break;
 
     case disp_capture: {
@@ -743,8 +674,12 @@ void updateOLED(TestBoxModes Mode) {
           oldA = oldB = 320;
           //oldA=weaponState.ohm10xEpee;
           //oldB=weaponState.ohm10xFoil;
-          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
-          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
+          //barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
+          //barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
+          lineBLabel.printLabel("AB",weaponState.ohm_Epee,true, colorList.cMAGENTA);
+          lineBBar.updateGraph(weaponState.ohm_Epee);
+          lineCLabel.printLabel("BC",weaponState.ohm_Foil,true, colorList.cMAGENTA);
+          lineCBar.updateGraph(weaponState.ohm_Foil);
         }
         if (newConnection == none) {
           //tft.setTextColor(YELLOW, BLACK);
@@ -774,10 +709,10 @@ void updateOLED(TestBoxModes Mode) {
         case none:
           break;
         case shorted:
-          barGraph(BBAR, 8, weaponState.ohm10xEpee, oldA, "AB");
-          //oldA=weaponState.ohm10xEpee;
-          barGraph(CBAR, 8, weaponState.ohm10xFoil, oldB, "BC");
-          //oldB=weaponState.ohm10xFoil;
+          lineBLabel.printLabel("AB",weaponState.ohm_Epee, true, colorList.cMAGENTA);
+          lineBBar.updateGraph(weaponState.ohm_Epee);
+          lineCLabel.printLabel("BC",weaponState.ohm_Foil, true, colorList.cMAGENTA);
+          lineCBar.updateGraph(weaponState.ohm_Foil);
           break;
       }
       break;
@@ -1015,12 +950,85 @@ void updateDisplayCableMode() {
 
 void createWeaponDisplay() {
   //tft.setCursor(2, 2);
-  tft.setTextColor(YELLOW, BLACK); tft.setTextSize(2);
+  tft.setTextColor(colorList.cYELLOW, colorList.cBLACK); tft.setTextSize(2);
   //tft.print("Weapon");
-  labelTitle("Weapon", YELLOW);
+  labelTitle("Weapon", colorList.cYELLOW);
   weaponGraph.resetGraph();
 }
 
+void createProbeDisplay() {
+  tft.fillRect(0, 27, 128, 100, colorList.cBLACK);
+  labelTitle("Probe", colorList.cMAGENTA);
+  //prEpeeLabel.printLabel("Ep", OPEN_CIRCUIT_VALUE);
+  //prEpeeBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  //prFoilLabel.printLabel("Fl", OPEN_CIRCUIT_VALUE);
+  //prFoilBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  if (TTArmMOSFETWeaponAC) {
+    //prACLabel.printLabel("GND", OPEN_CIRCUIT_VALUE);
+    //prACBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  }
+  prALabel.printLabel("PrA", OPEN_CIRCUIT_VALUE);
+  prABar.updateGraph(OPEN_CIRCUIT_VALUE);
+  prBLabel.printLabel("PrB", OPEN_CIRCUIT_VALUE);
+  prBBar.updateGraph(OPEN_CIRCUIT_VALUE);
+  prCLabel.printLabel("PrC", OPEN_CIRCUIT_VALUE);
+  prCBar.updateGraph(OPEN_CIRCUIT_VALUE);
+}
+
+void updateProbeDisplay() {
+  enum connectionType {none,epee,foil,shorted};
+  static connectionType lastConnected=none;
+  connectionType newConnection = lastConnected;
+  static long tLastChanged=0;
+
+  if (probeData.ohm_Epee<OPEN_CIRCUIT_VALUE) {
+    newConnection=epee;    
+  }
+  if (probeData.ohm_Foil<OPEN_CIRCUIT_VALUE) {
+    newConnection=foil;
+  }
+  //If we were shorted, hold that configuration 
+  if (lastConnected==shorted && ((millis()-tLastChanged)<tIdleModeOn) ) {
+    newConnection=shorted; 
+  }
+  if (probeData.ohm_Epee<OPEN_CIRCUIT_VALUE && probeData.ohm_Foil<OPEN_CIRCUIT_VALUE)  {
+    newConnection=shorted;
+  }
+  if (probeData.ohm_WpnAC<OPEN_CIRCUIT_VALUE) {
+    newConnection=shorted;
+  }
+  if (newConnection!=lastConnected) {
+    prEpeeBar.resetGraph();
+    lastConnected=newConnection;
+    prEpeeLabel.clearLabel();    
+    prFoilLabel.clearLabel();
+    prACLabel.clearLabel();
+    tLastChanged=millis();
+  }
+  switch (lastConnected) {
+    case epee:
+      prEpeeLabel.printLabel("Epee", probeData.ohm_Epee);
+      prEpeeBar.updateGraph(probeData.ohm_Epee);  
+      break;
+    case foil:    
+      prEpeeLabel.printLabel("Foil", probeData.ohm_Foil);
+      prEpeeBar.updateGraph(probeData.ohm_Foil);  
+      break;
+    case shorted:
+      prEpeeLabel.printLabel("Epee", probeData.ohm_Epee);
+      prFoilLabel.printLabel("Foil", probeData.ohm_Foil);
+      if (TTArmMOSFETWeaponAC) {
+        prACLabel.printLabel("GND", probeData.ohm_WpnAC);
+        //prACBar.updateGraph(probeData.ohm_WpnAC);    
+      }
+  }
+  prALabel.printLabel("PrA", probeData.ohm_APr);
+  prABar.updateGraph(probeData.ohm_APr);  
+  prBLabel.printLabel("PrB", probeData.ohm_BPr);
+  prBBar.updateGraph(probeData.ohm_BPr);  
+  prCLabel.printLabel("PrC", probeData.ohm_CPr);
+  prCBar.updateGraph(probeData.ohm_CPr);
+}
 // barGraph(X, H, oldVal, newVal, oldVal)
 void createLameDisplay() {
   labelTitle("", YELLOW);
@@ -1028,9 +1036,6 @@ void createLameDisplay() {
 }
 
 void updateLameDisplay() {
-  static int oldVal = 9999;
-  int lameVal;
-  static byte i = 0;
   float lameOhms;
 
   if (cableState.ohm_Lame < MAX_LAME_RESISTANCE) {
@@ -1039,15 +1044,9 @@ void updateLameDisplay() {
     lameOhms = OPEN_CIRCUIT_VALUE;
   }
 
-  lameVal = floatTo10xInt(lameOhms);
-  //Serial.println(lameVal);
-  barGraph(2, 18, lameVal, oldVal, "Lame");
-  oldVal = lameVal;
-  if (lameVal > 50) {
-    //labelTitle("Lame", GREEN);
-  } else {
-    //labelTitle("Lame", RED);
-  }
+  lameBar.updateGraph(lameOhms);
+  lameLabel.printLabel("Lame",lameOhms);
+
   lameGraph.updateGraph(lameOhms);
 #if FAST_LED_ACTIVE
   updateLED(lameOhms);
