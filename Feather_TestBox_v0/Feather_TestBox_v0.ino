@@ -4,7 +4,7 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 1 
+#define TTArmBoardRev 2 
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -54,7 +54,8 @@ static const char BUILD_DATE[16] = "2023-01-25";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 //#include "splashScreenImage.c"
-#include "Tim'sBox.c"
+//#include "TimsBox.c"
+#include "NOVA_logo.c"
 #else 
 #define DISPLAY_SPLASH_IMAGE 0
 #endif
