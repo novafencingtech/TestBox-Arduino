@@ -4,7 +4,7 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 1 
+#define TTArmBoardRev 2 
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -37,7 +37,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 0
+#define FAST_LED_ACTIVE 1
 
 #if FAST_LED_ACTIVE 
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
