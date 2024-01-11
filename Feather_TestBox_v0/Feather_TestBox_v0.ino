@@ -4,7 +4,7 @@
 #define ARM_MATH_CM4 //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 1 
+#define TTArmBoardRev 2 
 
 // Used for defining board revision specific changes and features
 #if (TTArmBoardRev>=2)
@@ -553,20 +553,76 @@ void wdtOverrideCallback(void *p_context) {
   //}
 }
 
+void resetMUX() {
+  //Initialize the MUX if needed
+  //Serial.println("Starting MUX");
+  pinMode(MUX_LATCH, OUTPUT);
+  pinMode(MUX_CLK, OUTPUT);
+  pinMode(MUX_DATA, OUTPUT);
+
+  digitalWrite(MUX_LATCH, LOW);
+  digitalWrite(MUX_CLK, LOW);
+  digitalWrite(MUX_DATA, LOW);
+
+  //initialise vspi with default pins
+  //SCLK = 18, MISO = 19, MOSI = 23, SS = 5
+  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_DISABLED);
+  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+}
+
+uint16_t selfTest() {
+  static const int numPins=6;
+  byte pinList[6]={PIN_A0,PIN_A1,PIN_A2,PIN_A3,PIN_A4,PIN_A5};  
+  uint16_t adcResult=0;
+  uint16_t res=0;
+
+  analogCalibrateOffset();
+  analogReference(AR_INTERNAL_2_4);
+  analogReadResolution(12);
+  analogOversampling(32);
+  analogSampleTime(20);
+  
+  for (int k=0;k<numPins; k++) {
+    pinMode(pinList[k], INPUT_PULLUP);
+    delay(20);    
+    res=analogRead(pinList[k]);
+    if (res<=4090) {
+      adcResult= adcResult & (0x1 << k)
+    }    
+    pinMode(pinList[k], INPUT_PULLDOWN);
+    delay(20);    
+    res=analogRead(pinList[k]);
+    if (res>=10) {
+      adcResult = adcResult & (0x1 << (k+8));
+    }
+  }
+  return adcResult;
+}
+
 void setup() {
+  uint16_t selfTest=0;
   // put your setup code here, to run once:
+  resetMUX();  //Start by immediately putting the MUX into a low state
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, LOW);
-
+  
   //Activate display
   //delay(50); //Hold for half second to power on
   //Initialize the display
-  InitializeDisplay();
+  InitializeDisplay();  
   //delay(100);
   //Hold the power on
   pinMode(POWER_CONTROL, OUTPUT);
   digitalWrite(POWER_CONTROL, HIGH);
-  delay(250);
+  uint16_t result=selfTest();
+  //delay(250);
+  if (result==0) {
+    labelTitle("Self-Test PASS", GREEN);
+  } else {
+    
+  }
+  
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -584,21 +640,7 @@ void setup() {
 
   //EEPROM.begin(EEPROM_SIZE);
 
-  //Initialize the MUX if needed
-  //Serial.println("Starting MUX");
-  pinMode(MUX_LATCH, OUTPUT);
-  pinMode(MUX_CLK, OUTPUT);
-  pinMode(MUX_DATA, OUTPUT);
 
-  digitalWrite(MUX_LATCH, LOW);
-  digitalWrite(MUX_CLK, LOW);
-  digitalWrite(MUX_DATA, LOW);
-
-  //initialise vspi with default pins
-  //SCLK = 18, MISO = 19, MOSI = 23, SS = 5
-  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
-  shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_DISABLED);
-  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
   //while (true) {}
 
   //Enable button interrupts

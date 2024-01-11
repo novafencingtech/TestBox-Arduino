@@ -67,6 +67,16 @@ void setup() {
   digitalWrite(POWER_CONTROL, HIGH);
   Serial.begin(115200);
   delay(100);
+  uint16_t val=selfTest();
+  if (val) {
+    Serial.print("Self-test failed!"); Serial.print(val,BIN);
+  }
+  pinMode(PIN_A0, INPUT_PULLDOWN);
+  pinMode(PIN_A1, INPUT_PULLDOWN);
+  pinMode(PIN_A2, INPUT_PULLDOWN);
+  pinMode(PIN_A3, INPUT_PULLDOWN);
+  pinMode(PIN_A4, INPUT_PULLDOWN);  
+  pinMode(PIN_A5, INPUT_PULLDOWN);  
 
   initMUX();
   initADC();  
@@ -113,6 +123,37 @@ void initADC() {
   analogSampleTime(20);
 }
 
+uint16_t selfTest() {
+  static const int numPins=6;
+  byte pinList[6]={PIN_A0,PIN_A1,PIN_A2,PIN_A3,PIN_A4,PIN_A5};  
+  uint16_t adcResult=0;
+  uint16_t res=0;
+
+  analogCalibrateOffset();
+  analogReference(AR_INTERNAL_2_4);
+  analogReadResolution(12);
+  analogOversampling(32);
+  analogSampleTime(20);
+  
+  for (int k=0;k<numPins; k++) {
+    pinMode(pinList[k], INPUT_PULLUP);
+    delay(20);    
+    res=analogRead(pinList[k]);
+    if (res<=4090) {
+      adcResult= adcResult & (0x1 << k);
+    }    
+    pinMode(pinList[k], INPUT_PULLDOWN);
+    delay(20);    
+    res=analogRead(pinList[k]);
+    if (res>=10) {
+      adcResult = adcResult & (0x1 << (k+8));
+    }
+    pinMode(pinList[k], INPUT);
+  }
+  return adcResult;
+}
+
+
 void loop() {
   static uint8_t muxSetting=0;
   static long tUpdate=-1*MUX_HOLD_TIME;
@@ -121,6 +162,7 @@ void loop() {
 
   if ((millis()-tUpdate)>MUX_HOLD_TIME) {
     muxSetting=(muxSetting+1) % MUX_COUNT;//wrap the mux setting
+    %muxSetting = 1;
     
     setMUX(muxSetting);
     delay(20);
