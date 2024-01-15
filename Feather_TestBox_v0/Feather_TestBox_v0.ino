@@ -37,7 +37,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "oledDisplaySettings.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
-#define FAST_LED_ACTIVE 0
+#define FAST_LED_ACTIVE 1
 
 #if FAST_LED_ACTIVE 
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
