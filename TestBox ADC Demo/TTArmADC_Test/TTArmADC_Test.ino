@@ -14,7 +14,7 @@
 #define ADC_BUFFER_SIZE 8
 #define OPEN_CIRCUIT 999.9
 
-const uint32_t MUX_HOLD_TIME=10000; //ms
+const uint32_t MUX_HOLD_TIME=100; //ms
 
 //Pin defintions, as needed
 const byte POWER_CONTROL = 11;
@@ -76,7 +76,8 @@ void setup() {
   pinMode(PIN_A2, INPUT_PULLDOWN);
   pinMode(PIN_A3, INPUT_PULLDOWN);
   pinMode(PIN_A4, INPUT_PULLDOWN);  
-  pinMode(PIN_A5, INPUT_PULLDOWN);  
+  pinMode(PIN_A5, INPUT_PULLDOWN);
+  pinMode(BUTTON_PIN, INPUT);
 
   initMUX();
   initADC();  
@@ -160,9 +161,11 @@ void loop() {
   static long tDisplay=-1*MUX_HOLD_TIME;
   long tic, toc;
 
-  if ((millis()-tUpdate)>MUX_HOLD_TIME) {
+  //if ((millis()-tUpdate)>MUX_HOLD_TIME) {
+  if ( (digitalRead(BUTTON_PIN)==HIGH) && (millis()-tUpdate)>MUX_HOLD_TIME)
+  {
     muxSetting=(muxSetting+1) % MUX_COUNT;//wrap the mux setting
-    %muxSetting = 1;
+    //muxSetting = 1;
     
     setMUX(muxSetting);
     delay(20);
