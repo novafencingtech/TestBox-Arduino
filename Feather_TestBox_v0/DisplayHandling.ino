@@ -128,8 +128,29 @@ void drawVLine(int col, int startRow, int endRow, int color) {
 }
 
 void displaySplashScreen() {
+  int16_t xi, yj;
+  uint16_t* pixelColor;
   tft.fillRect(0, 0, 128, 128, BLACK);
-  tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  //tft.dmaWait();
+  #if defined(ARDUINO_NRF52840_FEATHER)
+    tft.startWrite();    
+    for (yj = 0; yj < splashImage.height; yj++) {      
+      for (xi = 0; xi < splashImage.width; xi++) {
+        pixelColor=(uint16_t*) &(splashImage.pixel_data[sizeof(uint16_t)*(yj * splashImage.width + xi)]);
+        tft.writePixel(xi, yj, *pixelColor);
+        //tft.drawPixel(xi,yj,pixelColor);
+                //delay(1);
+        //tft.setCursor(35, 120);
+        //tft.setTextSize(1);
+        //tft.setTextColor(MAGENTA, BLACK);
+        //tft.print(xi); tft.print("    "); tft.print(yj); 
+      }     
+    }
+    tft.endWrite();
+    tft.dmaWait(); 
+  #else
+    tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  #endif
 }
 
 void InitializeDisplay()
@@ -141,6 +162,20 @@ void InitializeDisplay()
   lameLED = CRGB(25, 10, 70);
   FastLED.show();
 #endif
+
+  //For Feather 52840, we need to ensure that the D2 pin is enabled.  
+  // Check the NFCPINS status and change it, if needed.  
+  #if defined(ARDUINO_NRF52840_FEATHER)
+    if (NRF_UICR->NFCPINS & 0x0001) {
+      digitalWrite(PIN_LED1,HIGH);
+      NRF_NVMC->CONFIG = 0x0001;
+      while (!NRF_NVMC->READYNEXT) delay(50);
+      NRF_UICR->NFCPINS = 0x0000;
+      while (!NRF_NVMC->READYNEXT) delay(50);
+      NRF_NVMC->CONFIG = 0x0000;
+      digitalWrite(PIN_LED1,LOW);
+    }
+  #endif
 
   //oledSPI.begin();
   tft.begin();
