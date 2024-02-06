@@ -14,6 +14,7 @@
 
 //ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
 #ifdef _VARIANT_FEATHER52840_  
+  const char MCU_ID_STRING[16]="840";
   const uint8_t AINpinA_amp=2; //AIN2
   const uint8_t AINpinB_amp=3; //AIN3
   const uint8_t AINpinC_amp=6; //AIN6
@@ -41,7 +42,8 @@
   #define CS_PIN  (9)
   //#define RST_PIN  (-1)
   
-#else 
+#else
+  const char MCU_ID_STRING[16]="832";
   const uint8_t AINpinA_amp=0; //AIN0
   const uint8_t AINpinB_amp=1; //AIN1
   const uint8_t AINpinC_amp=2; //AIN2

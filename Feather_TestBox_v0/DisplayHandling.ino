@@ -127,27 +127,25 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
 
+void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, uint16_t h) { 
+  tft.startWrite();
+  for (int16_t j = 0; j < h; j++) {    
+    for (int16_t i = 0; i < w; i++) {
+      tft.writePixel(x + i, y+j, pixels[j * w + i]);
+    }
+  }
+  tft.dmaWait();
+  tft.endWrite();
+}
+
+
 void displaySplashScreen() {
   int16_t xi, yj;
   uint16_t* pixelColor;
   tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.dmaWait();
   #if defined(ARDUINO_NRF52840_FEATHER)
-    tft.startWrite();    
-    for (yj = 0; yj < splashImage.height; yj++) {      
-      for (xi = 0; xi < splashImage.width; xi++) {
-        pixelColor=(uint16_t*) &(splashImage.pixel_data[sizeof(uint16_t)*(yj * splashImage.width + xi)]);
-        tft.writePixel(xi, yj, *pixelColor);
-        //tft.drawPixel(xi,yj,pixelColor);
-                //delay(1);
-        //tft.setCursor(35, 120);
-        //tft.setTextSize(1);
-        //tft.setTextColor(MAGENTA, BLACK);
-        //tft.print(xi); tft.print("    "); tft.print(yj); 
-      }     
-    }
-    tft.endWrite();
-    tft.dmaWait(); 
+    displayRGB565Bitmap(0,0,(uint16_t*) &(splashImage.pixel_data[0]),splashImage.width,splashImage.height);
   #else
     tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
   #endif
@@ -182,6 +180,8 @@ void InitializeDisplay()
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.setCursor(0, 0);
+
+
   if (DISPLAY_SPLASH_IMAGE) {
     displaySplashScreen();
   } else {
@@ -190,6 +190,7 @@ void InitializeDisplay()
     tft.setTextColor(CYAN, BLACK); tft.setTextSize(2);
     tft.println("  G Allen \n     &\n  B Rosen");
   }
+
   tft.setCursor(65, 120);
   tft.setTextSize(1);
   tft.setTextColor(MAGENTA, BLACK);
@@ -200,11 +201,15 @@ void InitializeDisplay()
   tft.setTextColor(CYAN, BLACK);
   tft.print(VERSION_NUM);
 
+  tft.setCursor(110, 8);
+  tft.setTextSize(1);
+  tft.setTextColor(0x57fb, BLACK);
+  tft.print(MCU_ID_STRING);
+
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
   lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
-
   
   lineALabel = oledGraphLabel(&tft,0,ABAR);
   lineABar = oledReverseHBarGraph(&tft, 0, ABAR+17, barHeight, 128, 0.0f, 25.0f);

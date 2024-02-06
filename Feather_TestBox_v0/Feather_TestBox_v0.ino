@@ -51,8 +51,10 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
+
+
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2023-02-14";
+static const char BUILD_DATE[16] = "2024-02-24";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -591,6 +593,7 @@ void setup() {
   //Enable button interrupts
   pinMode(BUTTON_PIN, INPUT);
 
+  //Wait for boot to start Serial
   Serial.begin(115200);
   InternalFS.begin();
 
