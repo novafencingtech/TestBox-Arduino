@@ -546,13 +546,12 @@ void setup() {
   digitalWrite(POWER_CONTROL, LOW);
 
   //Activate display
-  //delay(50); //Hold for half second to power on
+  delay(50); //Hold for half second to power on
+  digitalWrite(POWER_CONTROL, HIGH);
   //Initialize the display
   InitializeDisplay();
   //delay(100);
   //Hold the power on
-  pinMode(POWER_CONTROL, OUTPUT);
-  digitalWrite(POWER_CONTROL, HIGH);
   delay(250);
 
   //Required to fix FPU prevent sleep bug
@@ -568,8 +567,6 @@ void setup() {
   digitalWrite(LED1_PIN, LOW);
   pinMode(LED2_PIN, OUTPUT);
   digitalWrite(LED2_PIN, LOW);
-
-
 
   //EEPROM.begin(EEPROM_SIZE);
 

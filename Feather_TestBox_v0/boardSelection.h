@@ -32,7 +32,8 @@
   const byte BUTTON_PIN = 5;
   const byte LED1_PIN = 3;
   const byte LED2_PIN = 4;
-  #define LED_DATA_PIN 8 //LEDs are on SDA/pin25
+  //#define LED_DATA_PIN 8 //Onboard NeoPixel is pin 8
+  #define LED_DATA_PIN 22 //FeatherWing WS2812b LED is on SDA/pin 22.  
 
   //SPI pin definitions
   #define SCLK_PIN (26)
