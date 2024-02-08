@@ -190,8 +190,6 @@ const byte MUX_WEAPON_CB = B00011000;
   const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
 #endif
 
-const uint32_t LineADetect = 5;
-const uint32_t LineCDetect = 29;
 nrfx_gpiote_in_config_t weaponPinConfig = {
   .sense = NRF_GPIOTE_POLARITY_TOGGLE,
   .pull = NRF_GPIO_PIN_NOPULL,
