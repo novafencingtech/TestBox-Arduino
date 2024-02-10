@@ -23,8 +23,8 @@
   const uint8_t AINpinC_raw=1; //AIN1
   const byte AINBattMon = 5; //AIN5
   
-  const uint32_t LineADetect = 17;  //Pin mapped to A3
-  const uint32_t LineCDetect = 19;  //Pin mapped to A5
+  const uint32_t LineADetect = 28;  //Pin mapped to A3
+  const uint32_t LineCDetect = 3;  //Pin mapped to A5
 
   const uint8_t MUX_LATCH = 13;
   const uint8_t MUX_CLK = 12;
