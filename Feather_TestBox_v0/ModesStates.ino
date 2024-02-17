@@ -414,6 +414,7 @@ void updateWeaponResistance() {
   for (int k=0; k<3; k++) {
     if (CableCheck[k].getRawValue() < shortADCthreshold) {
       weaponState.cableDC = true;
+      cableState.cableDC = false;
       Serial.println("Cable connection detected");
       //setBoxMode(CABLE);
     }

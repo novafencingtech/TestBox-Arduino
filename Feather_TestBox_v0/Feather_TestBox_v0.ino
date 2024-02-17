@@ -102,6 +102,9 @@ float LowPass5HzCoef[5] = {// Scaled for floating point
 float LowPass3HzCoef[5] = {// Scaled for floating point
   0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
 };
+float LowPass2HzCoef[5] = {// Scaled for floating point
+    0.01335920002785649, 0.02671840005571298, 0.01335920002785649, 1.6474599810769768, -0.7008967811884027// b0, b1, b2, a1, a2
+};
 float LowPass1HzCoef[5] = {// Scaled for floating point
   0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
 };
@@ -772,7 +775,11 @@ void loop() {
       setBoxMode(BOX_IDLE);
     }
     if ((BoxState == WPN_GRAPH) && (weaponState.cableDC))  {
-      setBoxMode(BOX_IDLE);
+      if (!cableState.cableDC) {
+        setBoxMode(BOX_IDLE);
+      } else {
+        setBoxMode(CABLE);
+      }
     }
     if ((BoxState == WPN_TEST) && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
       //setBoxMode(BOX_IDLE);

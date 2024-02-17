@@ -195,9 +195,9 @@ void InitializeChannels() {
     }*/
 
   //Initialize the cable Low Pass Filters
-  arm_biquad_cascade_df1_init_f32(&(cableState.LineALowPass), 1, LowPass5HzCoef, cableState.LineALPFState);
-  arm_biquad_cascade_df1_init_f32(&(cableState.LineBLowPass), 1, LowPass5HzCoef, cableState.LineBLPFState);
-  arm_biquad_cascade_df1_init_f32(&(cableState.LineCLowPass), 1, LowPass5HzCoef, cableState.LineCLPFState);
+  arm_biquad_cascade_df1_init_f32(&(cableState.LineALowPass), 1, LowPass3HzCoef, cableState.LineALPFState);
+  arm_biquad_cascade_df1_init_f32(&(cableState.LineBLowPass), 1, LowPass3HzCoef, cableState.LineBLPFState);
+  arm_biquad_cascade_df1_init_f32(&(cableState.LineCLowPass), 1, LowPass3HzCoef, cableState.LineCLPFState);
   arm_biquad_cascade_df1_init_f32(&(cableState.LameLowPass), 1, LameLPF2HzCoef, cableState.LameLPFState);
 }
 
