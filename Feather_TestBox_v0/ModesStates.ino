@@ -654,7 +654,8 @@ void CheckBatteryStatus() {
   }
   //BatteryCheck=true;
 
-  NRF_SAADC->CH[ADC_UNIT].PSELP = 7; //AIN 6+1
+  //NRF_SAADC->CH[ADC_UNIT].PSELP = 7; //AIN 6+1
+  NRF_SAADC->CH[ADC_UNIT].PSELP = AINBattMon+1; //AIN 6+1
   nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
   ave_data = 0;
   sampleCount = 0;
