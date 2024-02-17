@@ -54,7 +54,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-02-10";
+static const char BUILD_DATE[16] = "2024-02-16";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -308,6 +308,7 @@ const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}
 ADC_Channel FoilADC(AINpinC_amp);
 ADC_Channel EpeeADC(AINpinA_amp);
 ADC_Channel WeaponAC(AINpinC_raw);
+ADC_Channel CableCheck[3] {AINpinA_amp,AINpinB_amp,AINpinC_amp};
 //ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
