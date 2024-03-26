@@ -595,7 +595,7 @@ void checkButtonState() {
           //lcd.clear();
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
-          tftDisplayMessage("Calibration");
+          tftDisplayMessage("Calibrate");
           calibrationMode = true;
         }
       }

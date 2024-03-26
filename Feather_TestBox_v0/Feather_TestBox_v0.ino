@@ -54,7 +54,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-02-16";
+static const char BUILD_DATE[16] = "2024-03-25";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -235,7 +235,7 @@ volatile long tLastActive = 0; //ms - Time that an event was last detected
 bool wdtOverride = false;
 
 // Store the box state
-typedef enum TestBoxModes {
+enum TestBoxModes {
   CABLE,
   WPN_TEST,
   WPN_GRAPH,

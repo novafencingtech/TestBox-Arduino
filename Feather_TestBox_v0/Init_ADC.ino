@@ -357,7 +357,10 @@ void calibrateSystem() {
   }
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.setCursor(2, 2);
-  tft.println("Tap to save\nor hold to discard");
+  tft.println("Tap -> save");
+  tft.println("----------");
+  tft.println("hold -> exit");
+  tft.println("w/o save\n");
 
   while (digitalRead(BUTTON_PIN) == LOW) {
     NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
