@@ -54,7 +54,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-02-10";
+static const char BUILD_DATE[16] = "2024-03-25";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -101,6 +101,9 @@ float LowPass5HzCoef[5] = {// Scaled for floating point
 };
 float LowPass3HzCoef[5] = {// Scaled for floating point
   0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
+};
+float LowPass2HzCoef[5] = {// Scaled for floating point
+    0.01335920002785649, 0.02671840005571298, 0.01335920002785649, 1.6474599810769768, -0.7008967811884027// b0, b1, b2, a1, a2
 };
 float LowPass1HzCoef[5] = {// Scaled for floating point
   0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
@@ -232,7 +235,7 @@ volatile long tLastActive = 0; //ms - Time that an event was last detected
 bool wdtOverride = false;
 
 // Store the box state
-typedef enum TestBoxModes {
+enum TestBoxModes {
   CABLE,
   WPN_TEST,
   WPN_GRAPH,
@@ -308,6 +311,7 @@ const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}
 ADC_Channel FoilADC(AINpinC_amp);
 ADC_Channel EpeeADC(AINpinA_amp);
 ADC_Channel WeaponAC(AINpinC_raw);
+ADC_Channel CableCheck[3] {AINpinA_amp,AINpinB_amp,AINpinC_amp};
 //ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
@@ -771,7 +775,11 @@ void loop() {
       setBoxMode(BOX_IDLE);
     }
     if ((BoxState == WPN_GRAPH) && (weaponState.cableDC))  {
-      setBoxMode(BOX_IDLE);
+      if (!cableState.cableDC) {
+        setBoxMode(BOX_IDLE);
+      } else {
+        setBoxMode(CABLE);
+      }
     }
     if ((BoxState == WPN_TEST) && (!weaponState.foilOn) && (!weaponState.epeeOn)) {
       //setBoxMode(BOX_IDLE);
