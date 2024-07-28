@@ -127,6 +127,20 @@ void drawVLine(int col, int startRow, int endRow, int color) {
   //  if (weaponState.ohm10xFoil > 18) { Serial.print(col);Serial.print("=");Serial.print(sRow);Serial.print(",");Serial.print(eRow);Serial.print(","); Serial.println(s);}
 }
 
+void displayRGB565Bitmap(int16_t x, int16_t y, uint16_t *pixels, uint16_t w, uint16_t h)
+{
+  tft.startWrite();
+  tft.setAddrWindow(x,y,w,h);
+  tft.writePixels(pixels,w*h);
+
+  //tft.dmaWait();
+  // Reset the address window to full screen;
+  //tft.setAddrWindow(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
+  tft.endWrite();  
+}
+
+
+/*
 void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, uint16_t h) { 
   tft.startWrite();
   for (int16_t j = 0; j < h; j++) {    
@@ -136,7 +150,7 @@ void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, u
   }
   tft.dmaWait();
   tft.endWrite();
-}
+}*/
 
 
 void displaySplashScreen() {
@@ -147,7 +161,8 @@ void displaySplashScreen() {
   #if defined(ARDUINO_NRF52840_FEATHER)
     displayRGB565Bitmap(0,0,(uint16_t*) &(splashImage.pixel_data[0]),splashImage.width,splashImage.height);
   #else
-    tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+    //tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+    displayRGB565Bitmap(0,0,(uint16_t*) &(splashImage.pixel_data[0]),splashImage.width,splashImage.height);
   #endif
 }
 
@@ -209,7 +224,7 @@ void InitializeDisplay()
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
-  lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
+  //lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
   
   lineALabel = oledGraphLabel(&tft,0,ABAR);
   lineABar = oledReverseHBarGraph(&tft, 0, ABAR+17, barHeight, 128, 0.0f, 25.0f);
@@ -238,8 +253,8 @@ void InitializeDisplay()
   int bars = 5;
   float lameVals[5] {0.0f, 5.0f, 10.0f, 15.0f, 20.0f};
   int lameColors[5] {colorList.cGREEN, colorList.cYELLOW, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED};
-  lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
-  lameBar = oledReverseHBarGraph(&tft, 0, 16, 22, 128, 0.0f, 20.0f);
+  //lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
+  lameBar = oledReverseHBarGraph(&tft, 0, 107, 20, 128, 0.0f, 20.0f);
   lameBar.setBarColors(5, lameVals, lameColors);
   lameLabel=oledGraphLabel(&tft,0,0);
   lameLabel.setColors(5, lameVals, lameColors);
@@ -1101,11 +1116,14 @@ void updateProbeDisplay() {
 // barGraph(X, H, oldVal, newVal, oldVal)
 void createLameDisplay() {
   labelTitle("", YELLOW);
-  lameGraph.resetGraph();
+  //lameGraph.resetGraph();
+
 }
 
 void updateLameDisplay() {
   float lameOhms;
+  int txtColor=colorList.cBLACK;
+  char msg[5];
 
   if (cableState.ohm_Lame < MAX_LAME_RESISTANCE) {
     lameOhms = cableState.ohm_Lame;
@@ -1115,8 +1133,37 @@ void updateLameDisplay() {
 
   lameBar.updateGraph(lameOhms);
   lameLabel.printLabel("Lame",lameOhms);
+  txtColor=lameBar.getBarColor();
 
-  lameGraph.updateGraph(lameOhms);
+  lameTxtCanvas.setFont(&FreeSansBold24pt7b);
+  lameTxtCanvas.setTextSize(2);
+  
+  lameTxtCanvas.setTextColor(txtColor);
+  lameTxtCanvas.fillRect(0,0,128,LAME_DIGIT_HEIGHT,colorList.cBLACK);
+  
+  int intOhms = floor(lameOhms);
+  int deciOhms = floor(10*(lameOhms-intOhms));
+  if (lameOhms<10) {
+    lameTxtCanvas.setCursor(0, LAME_DIGIT_HEIGHT-3);
+    lameTxtCanvas.print(intOhms);
+    lameTxtCanvas.print("."); 
+    lameTxtCanvas.setCursor(72, LAME_DIGIT_HEIGHT-3);
+    lameTxtCanvas.print(deciOhms);
+  } else if (lameOhms==OPEN_CIRCUIT_VALUE) {
+    lameTxtCanvas.setTextColor(colorList.cBLUE);
+    lameTxtCanvas.setCursor(32,LAME_DIGIT_HEIGHT-3);
+    lameTxtCanvas.print("--");
+  } else {
+    lameTxtCanvas.setCursor(12,LAME_DIGIT_HEIGHT-3);
+    lameTxtCanvas.print(intOhms);
+  }
+
+  //tft.drawBitmap(0, 32, lameTxtCanvas.getBuffer(), 128, 64, txtColor, colorList.cBLACK);
+  displayRGB565Bitmap(0,27,lameTxtCanvas.getBuffer(),128,LAME_DIGIT_HEIGHT);
+
+  tft.setTextColor(txtColor);
+
+  //lameGraph.updateGraph(lameOhms);
 #if FAST_LED_ACTIVE
   updateLED(lameOhms);
 #endif

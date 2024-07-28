@@ -240,6 +240,10 @@ int oledReverseHBarGraph::getBarEnd(float val){
   return colValue;
 }
 
+int oledReverseHBarGraph::getBarColor() {
+  return _barColor;
+}
+
 void oledReverseHBarGraph::updateGraph(float newValue) {
   int difVal, newEnd, gColor;
 
