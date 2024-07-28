@@ -81,6 +81,7 @@ class oledReverseHBarGraph: oledColorList
     //void setGraphLimits(int X, int Y, int H, int W);
     void setLimit(float minValue, float maxValue);
     void setBarColors(int numBars, float values[], int colors[]);
+    int getBarColor();
     void updateGraph(float newValue);
     void resetGraph();
     //void drawTextLabels();

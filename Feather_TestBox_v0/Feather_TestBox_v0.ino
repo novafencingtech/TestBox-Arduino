@@ -20,6 +20,7 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1351.h>
+#include <Fonts/FreeSansBold24pt7b.h>
 #include <nrf_saadc.h>
 #include <avr/dtostrf.h>
 #include <Adafruit_LittleFS.h>
@@ -256,6 +257,10 @@ volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=Weapon
 //SPIClass oledSPI = SPIClass(NRF_SPIM0, PIN_SPI_MISO, SCLK_PIN, MOSI_PIN);
 //oledSPI->begin();
 Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
+const int LAME_DIGIT_HEIGHT=68; //Height of the lame digit display
+GFXcanvas16 lameTxtCanvas(SCREEN_WIDTH, LAME_DIGIT_HEIGHT); // 128x64 pixel canvas
+//GFXcanvas16 lameTxtCanvas2(SCREEN_WIDTH, 64); // 128x64 pixel canvas
+
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
 
 oledColorList colorList;
