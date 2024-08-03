@@ -555,11 +555,6 @@ void setup() {
   //Activate display
   delay(50); //Hold for half second to power on
   digitalWrite(POWER_CONTROL, HIGH);
-  //Initialize the display
-  InitializeDisplay();
-  //delay(100);
-  //Hold the power on
-  delay(250);
 
   //Required to fix FPU prevent sleep bug
   //Likely no longer necessary with release 0.24
@@ -600,6 +595,13 @@ void setup() {
   //Wait for boot to start Serial
   Serial.begin(115200);
   InternalFS.begin();
+
+  //Initialize the display
+  InitializeDisplay();
+  //delay(100);
+  //Hold the power on
+  delay(250);
+
 
   //Initialize the various channel settings
   Serial.println("Initializing channels");
