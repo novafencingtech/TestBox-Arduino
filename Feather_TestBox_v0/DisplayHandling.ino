@@ -130,11 +130,10 @@ void displayRGB565Bitmap(int16_t x, int16_t y, uint16_t *pixels, uint16_t w, uin
   tft.startWrite();
 
   //  hWindow=(h>hMax) ? h : hMax
-  for (uint16_t k=0; k<h; k++) { 
-    tft.setAddrWindow(x, y+k, w, 1);
-    //tft.setAddrWindow(x,y,w,32);
-    tft.writePixels(&(pixels[k*w]), w * 1);
-  }
+  //for (uint16_t k=0; k<h; k++) { 
+  tft.setAddrWindow(x, y, w, h);
+  //tft.setAddrWindow(x,y,w,32);
+  tft.writePixels(&(pixels[0]), w * h);
 
   //tft.dmaWait();
   // Reset the address window to full screen;
@@ -158,26 +157,21 @@ void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, u
 
 void displaySplashScreen() {
   int16_t xi, yj;
-  uint16_t *pixelColor;  
+  //uint16_t *pixelColor;  
   //tft.startWrite();
   //tft.setAddrWindow(0, 0, 16, 16);
   //tft.writePixels(&(pixels[k*w]), w * 1);
-  lameTxtCanvas.setTextSize(3);
-  lameTxtCanvas.setTextColor(colorList.cBLUE);
-  lameTxtCanvas.setCursor(0, LAME_DIGIT_HEIGHT - 3);
-  lameTxtCanvas.print("---");
-  displayRGB565Bitmap(0, 27, lameTxtCanvas.getBuffer(), 128, LAME_DIGIT_HEIGHT);
-  delay(2000);
-
-  //tft.fillRect(0, 0, 128, 128, BLACK);
-  tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
+  
+  tft.fillRect(0, 0, 128, 128, BLACK);
+  //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
 //tft.dmaWait();
-#if defined(ARDUINO_NRF52840_FEATHER)  
-  displayRGB565Bitmap(0, 30, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
-#else
-  //tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  #if defined(ARDUINO_NRF52840_FEATHER)
+    gfxBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[0]),splashImage.width, splashImage.height);
+    displayRGB565Bitmap(0, 0, gfxBuffer.getBuffer(), splashImage.width, splashImage.height);
+  #else
+  
   displayRGB565Bitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
-#endif
+  #endif
 }
 
 void InitializeDisplay() {
@@ -208,14 +202,6 @@ void InitializeDisplay() {
   tft.setRotation(3);  //3 sets the display top to be aligned with the Feather uUSB.
   //tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.setCursor(0, 0);
-  delay(500);
-
-  tft.setCursor(65, 120);
-  tft.setTextSize(1);
-  tft.setTextColor(MAGENTA, BLACK);
-  tft.print(BUILD_DATE);
-
-  delay(2000);
 
   if (DISPLAY_SPLASH_IMAGE) {
     displaySplashScreen();
@@ -1169,31 +1155,31 @@ void updateLameDisplay() {
   lameLabel.printLabel("Lame", lameOhms);
   txtColor = lameBar.getBarColor();
 
-  lameTxtCanvas.setFont(&FreeSansBold24pt7b);
-  lameTxtCanvas.setTextSize(2);
+  gfxBuffer.setFont(&FreeSansBold24pt7b);
+  gfxBuffer.setTextSize(2);
 
-  lameTxtCanvas.setTextColor(txtColor);
-  lameTxtCanvas.fillRect(0, 0, 128, LAME_DIGIT_HEIGHT, colorList.cBLACK);
+  gfxBuffer.setTextColor(txtColor);
+  gfxBuffer.fillRect(0, 0, 128, LAME_DIGIT_HEIGHT, colorList.cBLACK);
 
   int intOhms = floor(lameOhms);
   int deciOhms = floor(10 * (lameOhms - intOhms));
   if (lameOhms < 10) {
-    lameTxtCanvas.setCursor(0, LAME_DIGIT_HEIGHT - 3);
-    lameTxtCanvas.print(intOhms);
-    lameTxtCanvas.print(".");
-    lameTxtCanvas.setCursor(72, LAME_DIGIT_HEIGHT - 3);
-    lameTxtCanvas.print(deciOhms);
+    gfxBuffer.setCursor(0, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.print(intOhms);
+    gfxBuffer.print(".");
+    gfxBuffer.setCursor(72, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.print(deciOhms);
   } else if (lameOhms == OPEN_CIRCUIT_VALUE) {
-    lameTxtCanvas.setTextColor(colorList.cBLUE);
-    lameTxtCanvas.setCursor(32, LAME_DIGIT_HEIGHT - 3);
-    lameTxtCanvas.print("--");
+    gfxBuffer.setTextColor(colorList.cBLUE);
+    gfxBuffer.setCursor(32, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.print("--");
   } else {
-    lameTxtCanvas.setCursor(12, LAME_DIGIT_HEIGHT - 3);
-    lameTxtCanvas.print(intOhms);
+    gfxBuffer.setCursor(12, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.print(intOhms);
   }
 
   //tft.drawBitmap(0, 32, lameTxtCanvas.getBuffer(), 128, 64, txtColor, colorList.cBLACK);
-  displayRGB565Bitmap(0, 27, lameTxtCanvas.getBuffer(), 128, LAME_DIGIT_HEIGHT);
+  displayRGB565Bitmap(0, 27, gfxBuffer.getBuffer(), 128, LAME_DIGIT_HEIGHT);
 
   tft.setTextColor(txtColor);
 

@@ -265,8 +265,12 @@ batteryDisplayModes batteryDisplayType = NONE;
 //oledSPI->begin();
 Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
 const int LAME_DIGIT_HEIGHT=68; //Height of the lame digit display
-GFXcanvas16 lameTxtCanvas(SCREEN_WIDTH, LAME_DIGIT_HEIGHT); // 128x64 pixel canvas
-//GFXcanvas16 lameTxtCanvas2(SCREEN_WIDTH, 64); // 128x64 pixel canvas
+#if defined(ARDUINO_NRF52840_FEATHER)
+  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, SCREEN_HEIGHT); // 128x128 pixel canvas
+#else 
+  //nrf52832 doesn't have enough memory to support full screen buffering
+  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, LAME_DIGIT_HEIGHT); 
+#endif
 
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
 
