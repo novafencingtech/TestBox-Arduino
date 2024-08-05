@@ -42,6 +42,24 @@
 #include <SPI.h>
 //#include "TTArmGraphic.c"
 #include "splashScreenImage.c"
+#include <Fonts/FreeSansBold24pt7b.h>
+
+//Create class to allow using buffer with fixed stack memory
+class GFXcanvas16stack : protected GFXcanvas16 {
+public:
+  // Constructor
+  GFXcanvas16stack(uint16_t* memPointer) :  GFXcanvas16(1,1) {
+    if (buffer) {
+      free(buffer);  //Free the automatically created buffer
+    }
+    buffer=memPointer; //Reset the pointer.
+  }
+  ~GFXcanvas16stack() {};  //Do not try to free stack memory
+
+private:
+  // Private members specific to this subclass
+};
+
 //#include <nrf_nvmc.h>
 
 //#ifdef _VARIANT_FEATHER52840_  
@@ -60,6 +78,11 @@
 Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
 //SPIClass oledSPI = SPIClass(NRF_SPIM2, PIN_SPI_MISO, SCLK_PIN, MOSI_PIN);
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
+
+// Pre-allocate buffer memory in global address space
+//uint16_t gfxBuffer[SCREEN_WIDTH][SCREEN_HEIGHT];
+//GFXcanvas16stack screenBuffer(&(gfxBuffer[0][0]));
+GFXcanvas16 screenBuffer(SCREEN_WIDTH,SCREEN_HEIGHT);
 
 void setup() {
   Serial.begin(115200);
@@ -93,6 +116,9 @@ void setup() {
   digitalWrite(DC_PIN,HIGH);
   tft.fillRect(0, 0, 128, 128, BLACK);
   tft.drawLine(0,0,127, 127, WHITE);
+
+  displaySplashScreen();
+  delay(500);
 
   Serial.println(F("Benchmark                Time (microseconds)"));
   delay(10);
@@ -143,29 +169,54 @@ void setup() {
   Serial.println(testFilledRoundRects());
   delay(500);
 
+  testGfxBuffer();
+  delay(1000);
+
   Serial.println(F("Done!"));
 
   
 }
 
-void drawBitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, uint16_t h) {
+void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, uint16_t h) {
   tft.startWrite();
-  //delay(5);
-  //tft.setAddrWindow(x,y,w,h);
-  //delay(1);
-  //tft.writePixels(pixels,w*h,true,false);
-  //delay(5);
-  for (int16_t j = 0; j < h; j++) {
-    //tft.setAddrWindow(j,0,h,1);
-    //tft.writePixels(&(pixels[j * h]),(uint32_t) h,false,false);    
-    //tft.dmaWait();
-    //delay(20);
-    for (int16_t i = 0; i < w; i++) {
-      tft.writePixel(x + i, y+j, pixels[j * w + i]);
-    }
-  }
-  tft.dmaWait();
+
+  //  hWindow=(h>hMax) ? h : hMax
+  //for (uint16_t k=0; k<h; k++) { 
+  tft.setAddrWindow(x, y, w, h);
+    //tft.setAddrWindow(x,y,w,32);
+  tft.writePixels(pixels, w * h);
+
+  //tft.dmaWait();
+  // Reset the address window to full screen;
+  //tft.setAddrWindow(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
   tft.endWrite();
+}
+
+void displaySplashScreen() {
+  int16_t xi, yj;
+  uint16_t *pixelColor;  
+  //tft.startWrite();
+  //tft.setAddrWindow(0, 0, 16, 16);
+  //tft.writePixels(&(pixels[k*w]), w * 1);
+  //lameTxtCanvas.setTextSize(3);
+  //lameTxtCanvas.setTextColor(colorList.cBLUE);
+  //lameTxtCanvas.setCursor(0, LAME_DIGIT_HEIGHT - 3);
+  //lameTxtCanvas.print("---");
+  //displayRGB565Bitmap(0, 27, lameTxtCanvas.getBuffer(), 128, LAME_DIGIT_HEIGHT);
+  //delay(2000);
+
+  //tft.fillRect(0, 0, 128, 128, BLACK);
+  //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
+//tft.dmaWait();
+#if defined(ARDUINO_NRF52840_FEATHER)  
+  //displayRGB565Bitmap(0, 30, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  screenBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[0]),splashImage.width, splashImage.height);
+  displayRGB565Bitmap(0, 0, screenBuffer.getBuffer(), splashImage.width, splashImage.height);
+  //displayRGB565Bitmap(0, 30, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+#else
+  //tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  displayRGB565Bitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+#endif
 }
 
 void loop() {
@@ -192,7 +243,8 @@ void loop() {
   //delay(5000);
   //tft.fillRect(0, 0, 128, 128, BLACK);  
   //tft.drawRGBBitmap(0,0, (uint16_t *) pixelData, tempSize,tempSize);
-  drawBitmap(0, 0, (uint16_t *) splashImage.pixel_data, splashImage.width, splashImage.height);
+  //displayRGB565Bitmap(0, 0, (uint16_t *) splashImage.pixel_data, splashImage.width, splashImage.height);
+  displaySplashScreen();
   //tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
   //Serial.print("Drawing image that is : ");Serial.print(splashImage.width);Serial.print("x");Serial.println(splashImage.height);
   //tft.drawRGBBitmap(0, 0, (uint16_t *) splashImage.pixel_data, splashImage.width, splashImage.height);
@@ -214,6 +266,35 @@ void loop() {
   }
   
 }
+
+unsigned long testGfxBuffer() {
+  float frameRate = 0;
+  int frameRateInt = 0;
+
+  unsigned long tStart = micros();
+  unsigned long tNow = micros();
+  screenBuffer.setFont(&FreeSansBold24pt7b);
+  screenBuffer.setTextSize(2);
+  for (int loopNum=1; loopNum<500; loopNum++) {
+    tNow = micros();
+    frameRate=float(loopNum)/float((tNow-tStart)*1e-6);
+    frameRateInt=frameRate;
+    screenBuffer.fillRect(0,0,SCREEN_WIDTH,SCREEN_HEIGHT,BLACK);
+    screenBuffer.fillRect(0,0,16,16,CYAN);
+    screenBuffer.fillRect(127-16,0,16,16,GREEN);
+    screenBuffer.fillRect(0,127-16,16,16,MAGENTA);
+    screenBuffer.fillRect(127-16,127-16,16,16,WHITE);
+    //screenBuffer.setTextSize(6);
+    screenBuffer.setTextColor(GREEN);
+    screenBuffer.setCursor(10, 100);
+    frameRateInt=frameRate;
+    screenBuffer.print(frameRateInt);
+    displayRGB565Bitmap(0, 0, screenBuffer.getBuffer(), 128, 128);
+    }
+  unsigned long tStop = micros();
+  return (tStop-tStart);
+}
+
 
 unsigned long testFillScreen() {
   unsigned long start = micros();
