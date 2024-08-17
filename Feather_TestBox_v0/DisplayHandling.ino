@@ -1112,6 +1112,27 @@ void createLameDisplay() {
   //lameGraph.resetGraph();
 }
 
+void displayLargeString(int leftX, int bottomY, char *buf, int txtColor, int fontSize) {
+  gfxBuffer.setTextColor(txtColor);
+  gfxBuffer.setFont(&FreeSansBold24pt7b);
+  gfxBuffer.setTextSize(fontSize);
+
+  int fontHeight = (24+6)*fontSize;
+  int baseline = fontHeight-6*fontSize; 
+  
+  frameY=bottomY;
+  while (baseline>GFX_BUFFER_HEIGHT) {
+    gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
+    gfxBuffer.setCursor(0, baseline);
+    gfxBuffer.print(buf);
+    displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), 128, GFX_BUFFER_HEIGHT);
+    baseline=baseline-GFX_BUFFER_HEIGHT;  //Move the font baseline relative to the panel
+    frameY=frameY-GFX_BUFFER_HEIGHT;  //Shift up by one buffer panel
+
+  }
+
+}
+
 void updateLameDisplay() {
   float lameOhms;
   int txtColor = colorList.cBLACK;
@@ -1131,27 +1152,27 @@ void updateLameDisplay() {
   gfxBuffer.setTextSize(2);
 
   gfxBuffer.setTextColor(txtColor);
-  gfxBuffer.fillRect(0, 0, 128, LAME_DIGIT_HEIGHT, colorList.cBLACK);
+  gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
 
   int intOhms = floor(lameOhms);
   int deciOhms = floor(10 * (lameOhms - intOhms));
   if (lameOhms < 10) {
-    gfxBuffer.setCursor(0, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.setCursor(0, 55);
     gfxBuffer.print(intOhms);
     gfxBuffer.print(".");
-    gfxBuffer.setCursor(72, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.setCursor(72, 55);
     gfxBuffer.print(deciOhms);
   } else if (lameOhms == OPEN_CIRCUIT_VALUE) {
     gfxBuffer.setTextColor(colorList.cBLUE);
-    gfxBuffer.setCursor(32, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.setCursor(32, 55);
     gfxBuffer.print("--");
   } else {
-    gfxBuffer.setCursor(12, LAME_DIGIT_HEIGHT - 3);
+    gfxBuffer.setCursor(12, 55);
     gfxBuffer.print(intOhms);
   }
 
   //tft.drawBitmap(0, 32, lameTxtCanvas.getBuffer(), 128, 64, txtColor, colorList.cBLACK);
-  displayRGB565Bitmap(0, 27, gfxBuffer.getBuffer(), 128, LAME_DIGIT_HEIGHT);
+  displayRGB565Bitmap(0, 27, gfxBuffer.getBuffer(), 128, GFX_BUFFER_HEIGHT);
 
   tft.setTextColor(txtColor);
 
