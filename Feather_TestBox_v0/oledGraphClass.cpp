@@ -247,20 +247,24 @@ int oledReverseHBarGraph::getBarColor() {
 void oledReverseHBarGraph::updateGraph(float newValue) {
   int difVal, newEnd, gColor;
 
+  newEnd = getBarEnd(newValue);
+  difVal = newEnd - _barEnd;
+  if (difVal==0) return; // return if no change
+  gColor = getLineColor(newEnd);
+  
+
   //printVal(X, 0, bc, conn, newValue);
   if (newValue > _limitMax) {
+    //gColor=_hBarColors[_numActiveBars-1];
     if (_barValue <= _limitMax) {
-      //Serial.println("Graph Reset");
+      //Serial.println("Graph Reset");      
       resetGraph(); //If we previously had a value, blank the graph
     }
+    //_barColor=gColor;
     _barValue = newValue;
     _barEnd = _locX; 
     return; // no bar if beyond 32 ohms
   } 
-
-  newEnd = getBarEnd(newValue);
-  difVal = newEnd - _barEnd;
-  gColor = getLineColor(newEnd);
   
   if (difVal < 0) {
     //Serial.print("New end = "); Serial.println(newEnd);
@@ -271,7 +275,7 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
     _barColor=gColor; 
   } else {
     if (difVal > 0)  {//increase bar graph length
-      _tft->fillRect(_barEnd,_locY,newEnd-_barEnd,_height,gColor);  
+      _tft->fillRect(_barEnd,_locY,difVal,_height,gColor);  
     }
   }
   _barColor=gColor;  

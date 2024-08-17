@@ -112,14 +112,24 @@ float LowPass1HzCoef[5] = {// Scaled for floating point
 float LowPass0p2HzCoef[5] = {// Scaled for floating point
   0.00015514842347569914, 0.0003102968469513983, 0.00015514842347569914, 1.9644605802052322, -0.9650811738991351// b0, b1, b2, a1, a2
 };
-float LameLPF1HzCoef[5] = {
+float LameLPF4HzCoef[5] = {
+  // Fs = 60 Hz; 4Hz LPF Butterworth Order = 1
+  // Scaled for floating point
+   0.1752962034012447, 0.1752962034012447, 0, 0.6494075931975106, 0// b0, b1, b2, a1, a2
+};
+float LameLPF3HzCoef[5] = {
+  // Fs = 60 Hz; 3Hz LPF Butterworth Order = 1
   // Scaled for floating point
     0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0// b0, b1, b2, a1, a2
 };
 float LameLPF2HzCoef[5] = {
   // Scaled for floating point
-  0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0// b0, b1, b2, a1, a2
+   0.09510798340249636, 0.09510798340249636, 0, 0.8097840331950072, 0// b0, b1, b2, a1, a2
 };
+
+
+
+
 
 
 // Change the calibration valid flag when changing the format of the calibration data
@@ -264,12 +274,12 @@ batteryDisplayModes batteryDisplayType = NONE;
 //SPIClass oledSPI = SPIClass(NRF_SPIM0, PIN_SPI_MISO, SCLK_PIN, MOSI_PIN);
 //oledSPI->begin();
 Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
-const int LAME_DIGIT_HEIGHT=68; //Height of the lame digit display
+const int GFX_BUFFER_HEIGHT=32; //Height of the lame digit display
 #if defined(ARDUINO_NRF52840_FEATHER)
   GFXcanvas16 gfxBuffer(SCREEN_WIDTH, SCREEN_HEIGHT); // 128x128 pixel canvas
 #else 
   //nrf52832 doesn't have enough memory to support full screen buffering
-  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, LAME_DIGIT_HEIGHT); 
+  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, GFX_BUFFER_HEIGHT); 
 #endif
 
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
