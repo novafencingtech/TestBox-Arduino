@@ -246,6 +246,13 @@ enum TestBoxModes {
 };
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
+enum batteryDisplayModes {
+  NONE,
+  PERCENT,
+  VOLTAGE
+};
+batteryDisplayModes batteryDisplayType = PERCENT;
+
 // Option 1: use any pins but a little slower
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
 
