@@ -348,8 +348,12 @@ void displayBatteryStatus() {
   if (barW>0) {
     tft.fillRect(BattX0 + (BattW - barW), BattY0, barW, BattH, fillColor);
   }
-  //tft.setCursor(BattX0 + BattW + 3, BattY0);
-  //tft.setCursor(BattX0-3-6*4, 1); //Allow space for 4 characters each width 6=(5+1 space)
+  
+  //Only display battery status in idle
+  if (BoxState!=BOX_IDLE) {
+    return;
+  }
+
   tft.setTextSize(1);
   tft.setTextColor(fillColor,BLACK);
   //tft.print(battPercent); tft.print("%");
@@ -361,11 +365,13 @@ void displayBatteryStatus() {
       tft.print(battString); 
       break;
     case PERCENT:
+      tft.setCursor(BattX0-3-6*3, 1); //Allow space for 4 characters each width 6=(5+1 space)   
       if (battPercent>99) {
-        battPercent=99;
+        tft.setCursor(BattX0-3-6*4, 1);
+        tft.print("Full");
+      } else {         
+        tft.print(battPercent); tft.print("%");
       }
-      tft.setCursor(BattX0-3-6*3, 1); //Allow space for 4 characters each width 6=(5+1 space)      
-      tft.print(battPercent); tft.print("%"); 
     break;
     default: break;
 
