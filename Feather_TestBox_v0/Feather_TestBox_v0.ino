@@ -251,7 +251,7 @@ enum batteryDisplayModes {
   PERCENT,
   VOLTAGE
 };
-batteryDisplayModes batteryDisplayType = PERCENT;
+batteryDisplayModes batteryDisplayType = NONE;
 
 // Option 1: use any pins but a little slower
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
