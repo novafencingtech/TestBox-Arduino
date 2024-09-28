@@ -300,8 +300,7 @@ void initializeProbeScreen() {
 }
 
 void displayBatteryStatus() {
-  char voltString[5] = "\0";
-  char percString[5] = "\0";
+  char battString[5] = "\0";  
   int battPercent = 75;
   int rectColor = WHITE;
   int fillColor = WHITE;
@@ -314,7 +313,10 @@ void displayBatteryStatus() {
   static const byte BattY0 = 1;
 
   if (batteryVoltage > 2.5) {
-    battPercent = int( (batteryVoltage - 3.3) / (4.1 - 3.3) * 100);
+    battPercent = int( (batteryVoltage - 3.3) / (4.12 - 3.3) * 100);
+    if (battPercent<0) {
+      battPercent = 0;
+    }
     battActive = true;
   } else {
     return;
@@ -343,11 +345,37 @@ void displayBatteryStatus() {
 
   tft.drawRect(BattX0 - 1, BattY0 - 1, BattW + 2, BattH + 2, rectColor);
   tft.drawFastVLine(BattX0 - 2, BattY0 + 1, 5, rectColor);
-  tft.fillRect(BattX0 + (BattW - barW), BattY0, barW, BattH, fillColor);
-  tft.setCursor(BattX0 + BattW + 3, BattY0);
-  //tft.setTextSize(1);
-  //tft.setTextColor(CYAN,BLACK);
-  //tft.print(battPercent);
+  if (barW>0) {
+    tft.fillRect(BattX0 + (BattW - barW), BattY0, barW, BattH, fillColor);
+  }
+  
+  //Only display battery status in idle
+  if (BoxState!=BOX_IDLE) {
+    return;
+  }
+
+  tft.setTextSize(1);
+  tft.setTextColor(fillColor,BLACK);
+  //tft.print(battPercent); tft.print("%");
+  switch (batteryDisplayType) {
+    case VOLTAGE:
+      tft.setCursor(BattX0-3-6*4, 1); //Allow space for 4 characters each width 6=(5+1 space)
+      dtostrf(batteryVoltage,-3,1,battString);
+      snprintf(battString,5,"%sV",battString);  
+      tft.print(battString); 
+      break;
+    case PERCENT:
+      tft.setCursor(BattX0-3-6*3, 1); //Allow space for 4 characters each width 6=(5+1 space)   
+      if (battPercent>99) {
+        tft.setCursor(BattX0-3-6*4, 1);
+        tft.print("Full");
+      } else {         
+        tft.print(battPercent); tft.print("%");
+      }
+    break;
+    default: break;
+
+  }
 }
 /*int floatTo10xInt(float g) {
   if (g < 0.0) g = 0.0;

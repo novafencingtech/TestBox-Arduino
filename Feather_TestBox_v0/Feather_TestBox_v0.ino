@@ -54,7 +54,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-03-25";
+static const char BUILD_DATE[16] = "2024-09-28";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -245,6 +245,13 @@ enum TestBoxModes {
   BOX_OFF
 };
 volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
+
+enum batteryDisplayModes {
+  NONE,
+  PERCENT,
+  VOLTAGE
+};
+batteryDisplayModes batteryDisplayType = NONE;
 
 // Option 1: use any pins but a little slower
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN);
