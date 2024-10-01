@@ -82,7 +82,8 @@ Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PI
 // Pre-allocate buffer memory in global address space
 //uint16_t gfxBuffer[SCREEN_WIDTH][SCREEN_HEIGHT];
 //GFXcanvas16stack screenBuffer(&(gfxBuffer[0][0]));
-GFXcanvas16 screenBuffer(SCREEN_WIDTH,SCREEN_HEIGHT);
+const int GFX_BUFFER_HEIGHT=80;
+GFXcanvas16 screenBuffer(SCREEN_WIDTH,GFX_BUFFER_HEIGHT);
 
 void setup() {
   Serial.begin(115200);
@@ -186,7 +187,7 @@ void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, u
     //tft.setAddrWindow(x,y,w,32);
   tft.writePixels(pixels, w * h);
 
-  //tft.dmaWait();
+  tft.dmaWait();
   // Reset the address window to full screen;
   //tft.setAddrWindow(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
   tft.endWrite();
@@ -207,7 +208,23 @@ void displaySplashScreen() {
 
   //tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
-//tft.dmaWait();
+  //tft.dmaWait();
+  tft.fillRect(0, 0, 128, 128, BLACK);
+  //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
+  tft.dmaWait();
+  // Need to raster the buffer due to 832 memory limitations
+  int drawRows=GFX_BUFFER_HEIGHT;
+  for (int16_t k=0; k<splashImage.height; k+=GFX_BUFFER_HEIGHT) {
+    if ((k+GFX_BUFFER_HEIGHT)>SCREEN_HEIGHT) {
+      drawRows=(k+GFX_BUFFER_HEIGHT)-SCREEN_HEIGHT;      
+    }
+    screenBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[2*k*splashImage.width]),splashImage.width, drawRows);
+    //screenBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[0]),splashImage.width, 64);
+    displayRGB565Bitmap(0, k, screenBuffer.getBuffer(), splashImage.width, drawRows);
+  }
+
+
+/*
 #if defined(ARDUINO_NRF52840_FEATHER)  
   //displayRGB565Bitmap(0, 30, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
   screenBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[0]),splashImage.width, splashImage.height);
@@ -217,6 +234,7 @@ void displaySplashScreen() {
   //tft.drawRGBBitmap(0, 0, (uint16_t*) & (splashImage.pixel_data[0]), splashImage.width, splashImage.height);
   displayRGB565Bitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
 #endif
+*/
 }
 
 void loop() {

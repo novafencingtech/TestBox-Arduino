@@ -128,13 +128,11 @@ void drawVLine(int col, int startRow, int endRow, int color) {
 void displayRGB565Bitmap(int16_t x, int16_t y, uint16_t *pixels, uint16_t w, uint16_t h) {
   
   tft.startWrite();
-
   //  hWindow=(h>hMax) ? h : hMax
   //for (uint16_t k=0; k<h; k++) { 
   tft.setAddrWindow(x, y, w, h);
   //tft.setAddrWindow(x,y,w,32);
   tft.writePixels(&(pixels[0]), w * h);
-
   //tft.dmaWait();
   // Reset the address window to full screen;
   //tft.setAddrWindow(0,0,SCREEN_WIDTH,SCREEN_HEIGHT);
@@ -164,14 +162,26 @@ void displaySplashScreen() {
   
   tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
-//tft.dmaWait();
+  tft.dmaWait();
+  // Need to raster the buffer due to 832 memory limitations
+  int drawRows=GFX_BUFFER_HEIGHT;
+  for (int16_t k=0; k<splashImage.height; k+=GFX_BUFFER_HEIGHT) {
+    if ((k+GFX_BUFFER_HEIGHT)>SCREEN_HEIGHT) {
+      drawRows=(k+GFX_BUFFER_HEIGHT)-SCREEN_HEIGHT;      
+    }
+    gfxBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[2*k*splashImage.width]),splashImage.width, drawRows);
+    displayRGB565Bitmap(0, k, gfxBuffer.getBuffer(), splashImage.width, drawRows);
+  }
+
+  /*  
+  // Old code used for full screen buffer and handling of mapping for 840
   #if defined(ARDUINO_NRF52840_FEATHER)
     gfxBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[0]),splashImage.width, splashImage.height);
     displayRGB565Bitmap(0, 0, gfxBuffer.getBuffer(), splashImage.width, splashImage.height);
-  #else
-  
-  displayRGB565Bitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
+  #else  
+    displayRGB565Bitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[0]), splashImage.width, splashImage.height);
   #endif
+  */
 }
 
 void InitializeDisplay() {
@@ -1148,7 +1158,7 @@ void displayLargeString(int leftX, int bottomY, char *buf, int txtColor, int fon
   int fontHeight = (24+6)*fontSize;
   int baseline = fontHeight-6*fontSize; 
   
-  frameY=bottomY;
+  int frameY=bottomY;
   while (baseline>GFX_BUFFER_HEIGHT) {
     gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
     gfxBuffer.setCursor(0, baseline);
@@ -1156,9 +1166,7 @@ void displayLargeString(int leftX, int bottomY, char *buf, int txtColor, int fon
     displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), 128, GFX_BUFFER_HEIGHT);
     baseline=baseline-GFX_BUFFER_HEIGHT;  //Move the font baseline relative to the panel
     frameY=frameY-GFX_BUFFER_HEIGHT;  //Shift up by one buffer panel
-
   }
-
 }
 
 void updateLameDisplay() {
