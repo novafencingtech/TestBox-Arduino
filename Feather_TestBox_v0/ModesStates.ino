@@ -546,7 +546,7 @@ void checkButtonState() {
   static long tButtonPress = 0;
   static bool buttonState = LOW;
   static long tSwitch = 0;
-  bool calibrationMode = false;
+  bool settingsMode = false;
 
   if (newState != buttonState) {
     //Serial.print(F("tButtonPress="));  Serial.println(tButtonPress);
@@ -596,19 +596,33 @@ void checkButtonState() {
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
           tftDisplayMessage("Calibrate");
-          calibrationMode = true;
+          settingsMode = true;
         }
       }
-      if (calibrationMode) {
+      if (settingsMode) {
         //Start the watchdog override
         //app_timer_start(wdtOverrideTimer,6554,true); 
-        calibrateSystem();
+        //calibrateSystem();
         //app_timer_stop(wdtOverrideTimer);
+        menuLoop();
       } else {
         setPowerOff();
       }
     }
   }
+}
+
+void menuLoop() {
+    bool buttonPressed = digitalRead(BUTTON_PIN);
+    unsigned long currentTime = millis();     
+
+    menu.activateMenu();
+    while (menu.isActive()) {
+      buttonPressed = digitalRead(BUTTON_PIN);  // Read the button state
+      currentTime = millis();         // Get the current time
+      menu.updateMenu(buttonPressed, currentTime);  // Update the menu system
+      NRF_WDT->RR[0] = WDT_RR_RR_Reload;  //Reload the watchdog timer      
+    }
 }
 
 

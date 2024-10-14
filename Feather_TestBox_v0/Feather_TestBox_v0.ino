@@ -38,6 +38,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "CaptureBuffer.h"
 #include "oledGraphClass.h"
 #include "oledDisplaySettings.h"
+#include "MenuSystem.h"
 
 #define DISPLAY_SPLASH_IMAGE 1
 #define FAST_LED_ACTIVE 1
@@ -55,7 +56,7 @@ CRGB lameLED;
 
 
 static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-09-28";
+static const char BUILD_DATE[16] = "2024-10-14";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -281,6 +282,8 @@ const int GFX_BUFFER_HEIGHT=16; //Height of the lame digit display
   //nrf52832 doesn't have enough memory to support full screen buffering
   GFXcanvas16 gfxBuffer(SCREEN_WIDTH, GFX_BUFFER_HEIGHT); 
 //#endif
+MenuSystem menu(tft);
+
 
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
 
