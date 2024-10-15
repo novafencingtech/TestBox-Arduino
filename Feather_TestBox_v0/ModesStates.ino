@@ -595,7 +595,7 @@ void checkButtonState() {
           //lcd.clear();
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
-          tftDisplayMessage("Calibrate");
+          tftDisplayMessage("Settings");
           settingsMode = true;
         }
       }
@@ -605,6 +605,8 @@ void checkButtonState() {
         //calibrateSystem();
         //app_timer_stop(wdtOverrideTimer);
         menuLoop();
+        tButtonPress=millis();
+        settingsMode=false;
       } else {
         setPowerOff();
       }
@@ -619,9 +621,15 @@ void menuLoop() {
     menu.activateMenu();
     while (menu.isActive()) {
       buttonPressed = digitalRead(BUTTON_PIN);  // Read the button state
+      if (buttonPressed) {
+        //Serial.println("Button DOWN");
+      } else {
+        //Serial.println("Button UP");
+      }      
       currentTime = millis();         // Get the current time
       menu.updateMenu(buttonPressed, currentTime);  // Update the menu system
-      NRF_WDT->RR[0] = WDT_RR_RR_Reload;  //Reload the watchdog timer      
+      NRF_WDT->RR[0] = WDT_RR_RR_Reload;  //Reload the watchdog timer
+      delay(20);
     }
 }
 
