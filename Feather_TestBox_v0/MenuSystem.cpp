@@ -1,5 +1,7 @@
 #include "MenuSystem.h"
 
+//Adafruit_LittleFS_Namespace::File settingsFile(Adafruit_LittleFS);
+
 // Constructor
 MenuSystem::MenuSystem(Adafruit_SSD1351& display)
   : display(display) {
@@ -13,6 +15,33 @@ MenuSystem::MenuSystem(Adafruit_SSD1351& display)
   menuActive = false;
   initializeMenu();
 }
+
+MenuSystem::MenuSystem(Adafruit_SSD1351& display, const char* version)
+  : MenuSystem(display) {
+  
+  strncpy(settings.version,version,16);
+  //resetToDefaults();
+  //loadSettings();
+}
+
+MenuSystem::Settings MenuSystem::getSettings() const {
+  return settings;
+}
+
+void MenuSystem::resetToDefaults() {
+  // Set default values for the settings
+  //strncpy(settings.version, CURRENT_VERSION, sizeof(settings.version));
+  Serial.println("Loading default settings...");
+  settings.lameDisplay = GRAPH;
+  settings.weaponDisplay = GRAPH;
+  settings.advancedMode = false;
+  display.fillScreen(menuColorBLACK);
+  display.setCursor(0, 50);
+  display.setTextColor(menuColorORANGE);
+  display.println("Defaults\n  loaded");
+  delay(1000);
+}
+
 
 const char* MenuSystem::displayTypeToString(displayType val) {
   switch (val) {
@@ -68,7 +97,7 @@ void MenuSystem::initializeMenu() {
     strcpy(exitText, "Exit");
     menuItemsCount = 3;
     cursorItemIndex = 0;
-    highlightItemIndex=menuItemsCount+2;
+    highlightItemIndex = menuItemsCount + 2;
   } else if (currentPageIndex == lameSettingsPage) {
     strcpy(menuHeading, "Lame");
     strcpy(menuItems[0], "Graph");
@@ -130,6 +159,7 @@ void MenuSystem::confirmSelection() {
     }
     if (cursorItemIndex == menuItemsCount) {
       menuActive = false;
+      if (settingsChanged) {saveSettings();}
     }
   }
 
@@ -140,9 +170,11 @@ void MenuSystem::confirmSelection() {
       cursorItemIndex = 0;
     } else {
       if (strcmp(selectedItem, "Graph")) {
+        settingsChanged = true;
         lameDispSetting = GRAPH;
       }
       if (strcmp(selectedItem, "Numeric")) {
+        settingsChanged = true;
         lameDispSetting = NUMERIC;
       }
       highlightItemIndex = cursorItemIndex;
@@ -164,10 +196,10 @@ void MenuSystem::confirmSelection() {
 void MenuSystem::renderMenu() {
   //If nothing changed do no re-draw
   if (!menuChanged) return;
-  
+
   display.fillScreen(menuColorBLACK);
   if (!menuActive) return;
-  display.setTextSize(2);  // Set text size to 2 for larger text  
+  display.setTextSize(2);  // Set text size to 2 for larger text
 
   // Draw the menu header
   display.setCursor(0, 0);
@@ -227,4 +259,52 @@ void MenuSystem::drawSelectionBox(int x, int y, int w, int h) {
 // Placeholder function for calibration
 void MenuSystem::calibrate() {
   // Perform calibration logic here
+}
+
+void MenuSystem::loadSettings() {
+
+  Adafruit_LittleFS_Namespace::File settingsFile(InternalFS);
+
+  InternalFS.begin();
+
+  if (settingsFile.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_READ)) {
+    Settings readSettings;
+    settingsFile.read(reinterpret_cast<uint8_t*>(&readSettings), sizeof(Settings));
+    settingsFile.close();
+
+    // Check the version before applying the settings
+    if (strncmp(readSettings.version, settings.version, sizeof(settings.version)) == 0) {
+      settings = readSettings;  // Only apply settings if the version matches
+      display.fillScreen(menuColorBLACK);
+      display.setTextColor(menuColorCYAN);
+      display.setCursor(0, 50);
+      display.println("Settings\n  loaded");
+      delay(1000);
+    } else {
+      
+      resetToDefaults();
+    }
+  } else {
+    // If the file doesn't exist or fails to read, use default settings
+    resetToDefaults();
+  }
+}
+
+void MenuSystem::saveSettings() {
+
+  Adafruit_LittleFS_Namespace::File settingsFile(InternalFS);
+  //InternalFS.begin();
+
+  if (settingsFile.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_WRITE)) {
+    // Ensure the version is set correctly before saving
+    //strncpy(settings.version, CURRENT_VERSION, sizeof(settings.version));
+    settingsFile.write(reinterpret_cast<const uint8_t*>(&settings), sizeof(Settings));
+    settingsFile.close();
+    display.fillScreen(menuColorBLACK);
+    display.setTextColor(menuColorCYAN);
+    display.setCursor(0, 50);
+    display.println("Settings\n  saved");
+    delay(1000);
+  }
+  settingsChanged = false;
 }

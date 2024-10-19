@@ -282,7 +282,7 @@ const int GFX_BUFFER_HEIGHT=16; //Height of the lame digit display
   //nrf52832 doesn't have enough memory to support full screen buffering
   GFXcanvas16 gfxBuffer(SCREEN_WIDTH, GFX_BUFFER_HEIGHT); 
 //#endif
-MenuSystem menu(tft);
+MenuSystem menu(tft,BUILD_DATE);
 
 
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
@@ -632,6 +632,8 @@ void setup() {
   //delay(500);
   InitializeChannels();
   InitializeADC(false);
+
+  menu.loadSettings();
 
   CheckBatteryStatus();
   //displayBatteryStatus();
