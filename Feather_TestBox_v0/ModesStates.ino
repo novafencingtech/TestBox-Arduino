@@ -616,20 +616,21 @@ void checkButtonState() {
 
 void menuLoop() {
     bool buttonPressed = digitalRead(BUTTON_PIN);
-    unsigned long currentTime = millis();     
+    unsigned long currentTime = millis();    
 
     menu.activateMenu();
-    while (menu.isActive()) {
-      buttonPressed = digitalRead(BUTTON_PIN);  // Read the button state
-      if (buttonPressed) {
-        //Serial.println("Button DOWN");
-      } else {
-        //Serial.println("Button UP");
-      }      
+    while (menu.isActive()) { 
+      buttonPressed = digitalRead(BUTTON_PIN);  // Read the button state      
+      delay(10);
+      while (buttonPressed!=digitalRead(BUTTON_PIN)) {
+        buttonPressed=digitalRead(BUTTON_PIN);
+        delay(10);
+      }
+      //Serial.println("Triggering loop update");
       currentTime = millis();         // Get the current time
       menu.updateMenu(buttonPressed, currentTime);  // Update the menu system
       NRF_WDT->RR[0] = WDT_RR_RR_Reload;  //Reload the watchdog timer
-      delay(20);
+      //delay(20);
     }
 }
 

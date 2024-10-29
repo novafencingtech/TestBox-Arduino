@@ -42,18 +42,20 @@ public:
   void resetToDefaults();  // Reset settings to default values
 
 
+
   bool isActive() const {
     return menuActive;
   }
   void activateMenu() {
     menuActive = true;
+    menuChanged = true;
     return;
   }
 
   const static uint16_t maxStrLen = 24;
 
-  displayType lameDispSetting = GRAPH;
-  displayType weaponDispSetting = GRAPH;
+  //displayType lameDispSetting = GRAPH;
+  //displayType weaponDispSetting = GRAPH;
 
 private:
   const uint16_t menuColorBLACK = 0x0000;
@@ -86,8 +88,10 @@ private:
   bool menuActive = false;
   bool menuChanged = false;
   bool settingsChanged = false;
-  const uint8_t lameSettingsPage = 1;
-  const uint8_t weaponSettingsPage = 2;
+  const uint8_t lameSettingsPage = 2;
+  const uint8_t weaponSettingsPage = 3;
+  const uint8_t advancedModePage = 1;
+  const uint8_t calibratePage = 4;
 
 
   // Initialize menu with entries
@@ -107,6 +111,8 @@ private:
 
   // Placeholder function for calibration
   void calibrate();
+
+  //void printSettings();
 };
 
 #endif  // MENUSYSTEM_H

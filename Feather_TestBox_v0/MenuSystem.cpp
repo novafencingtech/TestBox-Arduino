@@ -1,6 +1,7 @@
 #include "MenuSystem.h"
 
-//Adafruit_LittleFS_Namespace::File settingsFile(Adafruit_LittleFS);
+// Uncomment and adjust the following line if using LittleFS
+// Adafruit_LittleFS_Namespace::File settingsFile(Adafruit_LittleFS);
 
 // Constructor
 MenuSystem::MenuSystem(Adafruit_SSD1351& display)
@@ -11,15 +12,17 @@ MenuSystem::MenuSystem(Adafruit_SSD1351& display)
   lastButtonPressTime = 0;
 
   // Default settings in the map
-
   menuActive = false;
   initializeMenu();
 }
 
 MenuSystem::MenuSystem(Adafruit_SSD1351& display, const char* version)
   : MenuSystem(display) {
-  
-  strncpy(settings.version,version,16);
+
+  // Issue 1 Fix: Ensure strncpy null-terminates the string
+  strncpy(settings.version, version, sizeof(settings.version) - 1);
+  settings.version[sizeof(settings.version) - 1] = '\0';
+
   //resetToDefaults();
   //loadSettings();
 }
@@ -42,7 +45,6 @@ void MenuSystem::resetToDefaults() {
   delay(1000);
 }
 
-
 const char* MenuSystem::displayTypeToString(displayType val) {
   switch (val) {
     case GRAPH:
@@ -60,7 +62,9 @@ const char* MenuSystem::displayTypeToString(displayType val) {
 
 // Update menu based on button interaction
 void MenuSystem::updateMenu(bool buttonPressed, unsigned long currentTime) {
-  unsigned long debounceTime = 20;
+  // Issue 2 Fix: Removed unused debounceTime
+  // unsigned long debounceTime = 20;
+
   if (buttonPressed) {
     if (buttonState == 0) {
       lastButtonPressTime = currentTime;
@@ -71,31 +75,36 @@ void MenuSystem::updateMenu(bool buttonPressed, unsigned long currentTime) {
       buttonState = 2;
       confirmSelection();
     }
-  }
-  if ((buttonState != 0) && (!buttonPressed)) {
-    // Short press detected, switch item
-    if (buttonState == 1) { switchItem(); }
-    buttonState = 0;  // Reset button state
+  } else {
+    switch (buttonState) {
+      case 0:  // Button not pressed
+        break;
+      case 1:  // Button was pressed and is now released
+        switchItem();
+        break;  // Issue 2 Fix: Added missing break statement
+      case 2:   // Confirmed has released
+        break;
+      default:
+        break;
+    }
+    buttonState = 0;
   }
   renderMenu();
 }
 
-// Query configuration dictionary
-/*
-std::string MenuSystem::querySetting(const std::string& key) {
-    return settings[key];
-}
-*/
-
 // Initialize menu with entries
 void MenuSystem::initializeMenu() {
+  //printSettings();
+  //Serial.print("Lame Display: ");
+  //Serial.println(displayTypeToString(settings.lameDisplay));
   if (currentPageIndex == 0) {
     strcpy(menuHeading, "Settings");
-    strcpy(menuItems[0], "Calibrate");
-    strcpy(menuItems[lameSettingsPage], "Lame");
-    strcpy(menuItems[weaponSettingsPage], "Weapon");
+    strcpy(menuItems[calibratePage - 1], "Calibrate");
+    strcpy(menuItems[lameSettingsPage - 1], "Lame");
+    strcpy(menuItems[weaponSettingsPage - 1], "Weapon");
+    strcpy(menuItems[advancedModePage - 1], "User Mode");
     strcpy(exitText, "Exit");
-    menuItemsCount = 3;
+    menuItemsCount = 4;
     cursorItemIndex = 0;
     highlightItemIndex = menuItemsCount + 2;
   } else if (currentPageIndex == lameSettingsPage) {
@@ -103,7 +112,7 @@ void MenuSystem::initializeMenu() {
     strcpy(menuItems[0], "Graph");
     strcpy(menuItems[1], "Numeric");
     strcpy(exitText, "Back");
-    switch (lameDispSetting) {
+    switch (settings.lameDisplay) {
       case GRAPH:
         highlightItemIndex = 0;
         break;
@@ -118,13 +127,25 @@ void MenuSystem::initializeMenu() {
     strcpy(menuItems[0], "Graph");
     strcpy(menuItems[1], "Numeric");
     strcpy(exitText, "Back");
-    switch (weaponDispSetting) {
+    switch (settings.weaponDisplay) {
       case GRAPH:
         highlightItemIndex = 0;
         break;
       case NUMERIC:
         highlightItemIndex = 1;
         break;
+    }
+    cursorItemIndex = 0;
+    menuItemsCount = 2;
+  } else if (currentPageIndex == advancedModePage) {
+    strcpy(menuHeading, "Box Mode");
+    strcpy(menuItems[0], "Basic");
+    strcpy(menuItems[1], "Advanced");
+    strcpy(exitText, "Back");
+    if (settings.advancedMode) {
+      highlightItemIndex = 1;
+    } else {
+      highlightItemIndex = 0;
     }
     cursorItemIndex = 0;
     menuItemsCount = 2;
@@ -145,46 +166,81 @@ void MenuSystem::confirmSelection() {
   char* selectedItem = menuItems[cursorItemIndex];
   Serial.print("Confirming setting: ");
   Serial.println(selectedItem);
+
   if (currentPageIndex == 0) {
-    if (cursorItemIndex == 0) {
+    if (cursorItemIndex == calibratePage-1) {
       calibrate();
     }
-    if (cursorItemIndex == lameSettingsPage) {
+    if (cursorItemIndex == lameSettingsPage-1) {
       currentPageIndex = lameSettingsPage;
       cursorItemIndex = 0;
     }
-    if (cursorItemIndex == weaponSettingsPage) {
+    if (cursorItemIndex == advancedModePage-1) {
+      currentPageIndex = advancedModePage;
+      cursorItemIndex = 0;
+    }
+    if (cursorItemIndex == weaponSettingsPage-1) {
       currentPageIndex = weaponSettingsPage;
       cursorItemIndex = 0;
     }
     if (cursorItemIndex == menuItemsCount) {
       menuActive = false;
-      if (settingsChanged) {saveSettings();}
+      if (settingsChanged) { saveSettings(); }
     }
   }
 
   if (currentPageIndex == lameSettingsPage) {
-    //Back to root menu
+    // Back to root menu
     if (cursorItemIndex == menuItemsCount) {
       currentPageIndex = 0;
       cursorItemIndex = 0;
     } else {
-      if (strcmp(selectedItem, "Graph")) {
+      // Issue 3 Fix: Corrected strcmp conditions to check for equality
+      if (strcmp(selectedItem, "Graph") == 0) {
         settingsChanged = true;
-        lameDispSetting = GRAPH;
+        settings.lameDisplay = GRAPH;
       }
-      if (strcmp(selectedItem, "Numeric")) {
+      if (strcmp(selectedItem, "Numeric") == 0) {
         settingsChanged = true;
-        lameDispSetting = NUMERIC;
+        settings.lameDisplay = NUMERIC;
       }
-      highlightItemIndex = cursorItemIndex;
+      //highlightItemIndex = cursorItemIndex;
     }
   }
   if (currentPageIndex == weaponSettingsPage) {
-    //Back to root menu
+    // Back to root menu
     if (cursorItemIndex == menuItemsCount) {
       currentPageIndex = 0;
       cursorItemIndex = 0;
+    } else {
+      // Issue 3 Fix: Corrected strcmp conditions to check for equality
+      if (strcmp(selectedItem, "Graph") == 0) {
+        settingsChanged = true;
+        settings.weaponDisplay = GRAPH;
+      }
+      if (strcmp(selectedItem, "Numeric") == 0) {
+        settingsChanged = true;
+        settings.weaponDisplay = NUMERIC;
+      }
+      //highlightItemIndex = cursorItemIndex;
+    }
+  }
+  if (currentPageIndex == advancedModePage) {
+    // Back to root menu
+    if (cursorItemIndex == menuItemsCount) {
+      currentPageIndex = 0;
+      cursorItemIndex = 0;
+    } else {
+      // Issue 3 Fix: Corrected strcmp conditions to check for equality
+      if (strcmp(selectedItem, "Basic") == 0) {
+        settingsChanged = true;
+        settings.advancedMode = false;
+      }
+      if (strcmp(selectedItem, "Advanced") == 0) {
+        settingsChanged = true;
+        settings.advancedMode = true;
+      }
+      //highlightItemIndex = cursorItemIndex;
     }
   }
 
@@ -194,11 +250,21 @@ void MenuSystem::confirmSelection() {
 
 // Render the menu on the screen
 void MenuSystem::renderMenu() {
-  //If nothing changed do no re-draw
+  // If nothing changed, do not re-draw
   if (!menuChanged) return;
 
+  Serial.println("Rendering menu");
+  Serial.print("Page: ");
+  Serial.print(currentPageIndex);
+  Serial.print("\tCursor: ");
+  Serial.print(cursorItemIndex);
+  Serial.print("\tHighlight: ");
+  Serial.print(highlightItemIndex);
+
   display.fillScreen(menuColorBLACK);
+
   if (!menuActive) return;
+
   display.setTextSize(2);  // Set text size to 2 for larger text
 
   // Draw the menu header
@@ -206,44 +272,45 @@ void MenuSystem::renderMenu() {
   display.setTextColor(menuColorWHITE);
   if (currentPageIndex == 0) {
     display.print("Settings:");
-  } else if (currentPageIndex == 1) {
+  } else if (currentPageIndex == lameSettingsPage) {
     display.print("Lame");
-  } else if (currentPageIndex == 2) {
+  } else if (currentPageIndex == weaponSettingsPage) {
     display.print("Weapon");
+  } else if (currentPageIndex == advancedModePage) {
+    display.print("Box Mode");
   }
 
   // Draw each menu item
   for (int i = 0; i < menuItemsCount; i++) {
     if (i == cursorItemIndex) {
       display.setTextColor(menuColorPaleBLUE);  // Active selection color
-      display.setCursor(0, (i + 1) * 24);       // Increase line spacing for larger text size
+      display.setCursor(0, (i + 1) * 22);       // Increase line spacing for larger text size
       display.print("> ");
     } else {
-      display.setTextColor(menuColorWHITE);
+      display.setTextColor(menuColorGREY);
     }
-    display.setTextColor(menuColorGREY);
-    display.setCursor(15, (i + 1) * 24);  // Increase line spacing for larger text size
+    display.setCursor(15, (i + 1) * 22);  // Position the text
     display.print(menuItems[i]);
 
     // If the item is a stored setting, draw a light blue-green box around it
     //std::string currentSetting = querySetting(menuItems[i]);
     if (i == highlightItemIndex) {
       display.setTextColor(menuColorCYAN);  // Light blue-green color for settings
-      display.setCursor(15, (i + 1) * 24);  // Print the setting next to the item
-      display.print(menuItems[highlightItemIndex]);
+      display.setCursor(15, (i + 1) * 22);  // Print the setting next to the item
+      display.print(menuItems[i]);
 
       // Draw a white box around the setting
-      display.drawRect(15 - 2, (i + 1) * 24 - 2, 12 * strlen(menuItems[highlightItemIndex]) + 4, 16 + 4, menuColorCYAN);
+      display.drawRect(15 - 2, (i + 1) * 22 - 2, 12 * strlen(menuItems[i]) + 4, 16 + 4, menuColorCYAN);
     }
   }
 
-  //Print the exit button at the bottom
+  // Print the exit button at the bottom
   if (cursorItemIndex == menuItemsCount) {
-    display.setCursor(60 - 14, 112);
+    display.setCursor(70 - 14, 5 * 22);
     display.setTextColor(menuColorPaleBLUE);
     display.print(">");
   }
-  display.setCursor(60, 112);
+  display.setCursor(70, 5 * 22);
   display.setTextColor(menuColorRED);
   display.print(exitText);
 
@@ -262,49 +329,84 @@ void MenuSystem::calibrate() {
 }
 
 void MenuSystem::loadSettings() {
+  // Issue 2 Fix: Initialize InternalFS before opening files
+  if (!InternalFS.begin()) {
+    Serial.println("Failed to initialize filesystem");
+    resetToDefaults();
+    return;
+  }
 
-  Adafruit_LittleFS_Namespace::File settingsFile(InternalFS);
+  Adafruit_LittleFS_Namespace::File settingsFile = InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_READ);
 
-  InternalFS.begin();
-
-  if (settingsFile.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_READ)) {
+  if (settingsFile) {  // Equivalent to checking if the file was successfully opened
     Settings readSettings;
-    settingsFile.read(reinterpret_cast<uint8_t*>(&readSettings), sizeof(Settings));
-    settingsFile.close();
-
-    // Check the version before applying the settings
-    if (strncmp(readSettings.version, settings.version, sizeof(settings.version)) == 0) {
-      settings = readSettings;  // Only apply settings if the version matches
-      display.fillScreen(menuColorBLACK);
-      display.setTextColor(menuColorCYAN);
-      display.setCursor(0, 50);
-      display.println("Settings\n  loaded");
-      delay(1000);
+    if (settingsFile.read(reinterpret_cast<uint8_t*>(&readSettings), sizeof(Settings)) == sizeof(Settings)) {
+      // Check the version before applying the settings
+      if (strncmp(readSettings.version, settings.version, sizeof(settings.version)) == 0) {
+        settings = readSettings;  // Only apply settings if the version matches
+        display.fillScreen(menuColorBLACK);
+        display.setTextColor(menuColorCYAN);
+        display.setCursor(0, 50);
+        display.println("Settings\n  loaded");
+        delay(1000);
+      } else {
+        resetToDefaults();
+      }
     } else {
-      
+      Serial.println("Failed to read settings from file");
       resetToDefaults();
     }
+    settingsFile.close();
   } else {
+    Serial.println("Settings file not found, loading defaults");
     // If the file doesn't exist or fails to read, use default settings
     resetToDefaults();
   }
 }
 
 void MenuSystem::saveSettings() {
+  // Issue 2 Fix: Initialize InternalFS before opening files
+  if (!InternalFS.begin()) {
+    Serial.println("Failed to initialize filesystem");
+    return;
+  }
 
-  Adafruit_LittleFS_Namespace::File settingsFile(InternalFS);
-  //InternalFS.begin();
+  Adafruit_LittleFS_Namespace::File settingsFile = InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_WRITE);
 
-  if (settingsFile.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_WRITE)) {
+  if (settingsFile) {  // Equivalent to checking if the file was successfully opened
     // Ensure the version is set correctly before saving
     //strncpy(settings.version, CURRENT_VERSION, sizeof(settings.version));
-    settingsFile.write(reinterpret_cast<const uint8_t*>(&settings), sizeof(Settings));
+    if (settingsFile.write(reinterpret_cast<const uint8_t*>(&settings), sizeof(Settings)) == sizeof(Settings)) {
+      display.fillScreen(menuColorBLACK);
+      display.setTextColor(menuColorCYAN);
+      display.setCursor(0, 50);
+      display.println("Settings\n  saved");
+      delay(1000);
+    } else {
+      Serial.println("Failed to write settings to file");
+    }
     settingsFile.close();
-    display.fillScreen(menuColorBLACK);
-    display.setTextColor(menuColorCYAN);
-    display.setCursor(0, 50);
-    display.println("Settings\n  saved");
-    delay(1000);
+    settingsChanged = false;
+  } else {
+    Serial.println("Failed to open settings file for writing");
   }
-  settingsChanged = false;
 }
+
+/*
+void MenuSystem::printSettings() {
+    Serial.println("Settings Status:");
+    Serial.print("Version: ");
+    Serial.println(settings.version);
+    
+    Serial.print("Lame Display: ");
+    Serial.println(displayTypeToString(settings.lameDisplay));
+    
+    Serial.print("Weapon Display: ");
+    Serial.println(displayTypeToString(settings.weaponDisplay));
+    
+    Serial.print("Advanced Mode: ");
+    Serial.println(settings.advancedMode ? "Enabled" : "Disabled");
+    
+    Serial.println(); // For spacing between different outputs
+}
+*/
