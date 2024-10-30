@@ -27,13 +27,14 @@ MenuSystem::MenuSystem(Adafruit_SSD1351& display, const char* version)
   //loadSettings();
 }
 
-MenuSystem::Settings MenuSystem::getSettings() const {
+MenuSystem::Settings MenuSystem::getSettings() {
   return settings;
 }
 
 void MenuSystem::resetToDefaults() {
   // Set default values for the settings
   //strncpy(settings.version, CURRENT_VERSION, sizeof(settings.version));
+  //strncpy(settings.version, "Default", sizeof(settings.version));
   Serial.println("Loading default settings...");
   settings.lameDisplay = GRAPH;
   settings.weaponDisplay = GRAPH;
@@ -168,24 +169,31 @@ void MenuSystem::confirmSelection() {
   Serial.println(selectedItem);
 
   if (currentPageIndex == 0) {
-    if (cursorItemIndex == calibratePage-1) {
-      calibrate();
-    }
-    if (cursorItemIndex == lameSettingsPage-1) {
-      currentPageIndex = lameSettingsPage;
-      cursorItemIndex = 0;
-    }
-    if (cursorItemIndex == advancedModePage-1) {
-      currentPageIndex = advancedModePage;
-      cursorItemIndex = 0;
-    }
-    if (cursorItemIndex == weaponSettingsPage-1) {
-      currentPageIndex = weaponSettingsPage;
-      cursorItemIndex = 0;
-    }
-    if (cursorItemIndex == menuItemsCount) {
-      menuActive = false;
-      if (settingsChanged) { saveSettings(); }
+    switch (cursorItemIndex) {
+      case (advancedModePage - 1):
+        currentPageIndex = advancedModePage;
+        cursorItemIndex = 0;
+        break;
+      case (lameSettingsPage - 1):
+        currentPageIndex = lameSettingsPage;
+        cursorItemIndex = 0;
+        break;
+      case (weaponSettingsPage - 1):
+        currentPageIndex = weaponSettingsPage;
+        cursorItemIndex = 0;
+        break;
+      case (calibratePage - 1):
+        calibrate();
+        break;
+      case calibratePage:
+        menuActive = false;
+        if (settingsChanged) {
+          saveSettings();
+        }
+        break;
+      default:
+        // Optional: handle any unexpected cursorItemIndex values
+        break;
     }
   }
 
@@ -252,7 +260,7 @@ void MenuSystem::confirmSelection() {
 void MenuSystem::renderMenu() {
   // If nothing changed, do not re-draw
   if (!menuChanged) return;
-
+  /*
   Serial.println("Rendering menu");
   Serial.print("Page: ");
   Serial.print(currentPageIndex);
@@ -260,7 +268,7 @@ void MenuSystem::renderMenu() {
   Serial.print(cursorItemIndex);
   Serial.print("\tHighlight: ");
   Serial.print(highlightItemIndex);
-
+*/
   display.fillScreen(menuColorBLACK);
 
   if (!menuActive) return;
@@ -270,14 +278,23 @@ void MenuSystem::renderMenu() {
   // Draw the menu header
   display.setCursor(0, 0);
   display.setTextColor(menuColorWHITE);
-  if (currentPageIndex == 0) {
-    display.print("Settings:");
-  } else if (currentPageIndex == lameSettingsPage) {
-    display.print("Lame");
-  } else if (currentPageIndex == weaponSettingsPage) {
-    display.print("Weapon");
-  } else if (currentPageIndex == advancedModePage) {
-    display.print("Box Mode");
+  switch (currentPageIndex) {
+    case 0:
+      display.print("Settings:");
+      break;
+    case lameSettingsPage:
+      display.print("Lame");
+      break;
+    case weaponSettingsPage:
+      display.print("Weapon");
+      break;
+    case advancedModePage:
+      display.print("Box Mode");
+      break;
+    default:
+      // Optional: Handle unexpected cases
+      display.print("Unknown Page");
+      break;
   }
 
   // Draw each menu item
@@ -330,13 +347,9 @@ void MenuSystem::calibrate() {
 
 void MenuSystem::loadSettings() {
   // Issue 2 Fix: Initialize InternalFS before opening files
-  if (!InternalFS.begin()) {
-    Serial.println("Failed to initialize filesystem");
-    resetToDefaults();
-    return;
-  }
 
   Adafruit_LittleFS_Namespace::File settingsFile = InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_READ);
+  //settingsFile=InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_READ);
 
   if (settingsFile) {  // Equivalent to checking if the file was successfully opened
     Settings readSettings;
@@ -344,11 +357,11 @@ void MenuSystem::loadSettings() {
       // Check the version before applying the settings
       if (strncmp(readSettings.version, settings.version, sizeof(settings.version)) == 0) {
         settings = readSettings;  // Only apply settings if the version matches
-        display.fillScreen(menuColorBLACK);
+        /*display.fillScreen(menuColorBLACK);
         display.setTextColor(menuColorCYAN);
         display.setCursor(0, 50);
         display.println("Settings\n  loaded");
-        delay(1000);
+        delay(1000);*/
       } else {
         resetToDefaults();
       }
@@ -357,6 +370,7 @@ void MenuSystem::loadSettings() {
       resetToDefaults();
     }
     settingsFile.close();
+    printSettings();
   } else {
     Serial.println("Settings file not found, loading defaults");
     // If the file doesn't exist or fails to read, use default settings
@@ -371,7 +385,14 @@ void MenuSystem::saveSettings() {
     return;
   }
 
+  if (InternalFS.exists(settingsFileName)) {
+    if (InternalFS.remove(settingsFileName)) {
+      Serial.println("Settings file deleted");
+    }
+  }
+
   Adafruit_LittleFS_Namespace::File settingsFile = InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_WRITE);
+  //settingsFile=InternalFS.open(settingsFileName, Adafruit_LittleFS_Namespace::FILE_O_WRITE);
 
   if (settingsFile) {  // Equivalent to checking if the file was successfully opened
     // Ensure the version is set correctly before saving
@@ -379,6 +400,7 @@ void MenuSystem::saveSettings() {
     if (settingsFile.write(reinterpret_cast<const uint8_t*>(&settings), sizeof(Settings)) == sizeof(Settings)) {
       display.fillScreen(menuColorBLACK);
       display.setTextColor(menuColorCYAN);
+      display.setTextSize(2);
       display.setCursor(0, 50);
       display.println("Settings\n  saved");
       delay(1000);
@@ -386,13 +408,17 @@ void MenuSystem::saveSettings() {
       Serial.println("Failed to write settings to file");
     }
     settingsFile.close();
+    if (settingsFile.size()<=sizeof(Settings)) {
+      Serial.println("Error:  Settings file is incorrect or zero size");
+    }
     settingsChanged = false;
+    //printSettings();
   } else {
     Serial.println("Failed to open settings file for writing");
   }
 }
 
-/*
+
 void MenuSystem::printSettings() {
     Serial.println("Settings Status:");
     Serial.print("Version: ");
@@ -409,4 +435,4 @@ void MenuSystem::printSettings() {
     
     Serial.println(); // For spacing between different outputs
 }
-*/
+

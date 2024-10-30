@@ -28,20 +28,18 @@ public:
     bool advancedMode=true;
   };
 
-  Settings getSettings() const;
+  Settings getSettings();
   // Update menu based on button interaction
   void updateMenu(bool buttonPressed, unsigned long currentTime);
 
   const char* displayTypeToString(displayType);
 
-  // Query configuration dictionary
-  //std::string querySetting(const std::string& key);
-
   void loadSettings();
   void saveSettings();
   void resetToDefaults();  // Reset settings to default values
 
-
+  //Adafruit_LittleFS_Namespace::File *settingsFile;
+  //bool isInitialized=false;
 
   bool isActive() const {
     return menuActive;
@@ -51,6 +49,7 @@ public:
     menuChanged = true;
     return;
   }
+  void printSettings();
 
   const static uint16_t maxStrLen = 24;
 
@@ -80,18 +79,18 @@ private:
   Settings settings;
   const char settingsFileName[32]="/settings.bin"; // File name for storing settings  
   //std::map<std::string, std::string> settings; // Store settings in an STL map
-  uint8_t cursorItemIndex;     // Currently selected menu item
-  uint8_t currentPageIndex;    // Current page
-  uint8_t buttonState;         // 0: released, 1: pressed, 2: confirmed
-  uint8_t highlightItemIndex;  //Which index is currently active
+  int8_t cursorItemIndex;     // Currently selected menu item
+  int8_t currentPageIndex;    // Current page
+  int8_t buttonState;         // 0: released, 1: pressed, 2: confirmed
+  int8_t highlightItemIndex;  //Which index is currently active
   unsigned long lastButtonPressTime;
   bool menuActive = false;
   bool menuChanged = false;
   bool settingsChanged = false;
-  const uint8_t lameSettingsPage = 2;
-  const uint8_t weaponSettingsPage = 3;
-  const uint8_t advancedModePage = 1;
-  const uint8_t calibratePage = 4;
+  static const int8_t lameSettingsPage = 2;
+  static const int8_t weaponSettingsPage = 3;
+  static const int8_t advancedModePage = 1;
+  static const int8_t calibratePage = 4;
 
 
   // Initialize menu with entries
@@ -112,7 +111,7 @@ private:
   // Placeholder function for calibration
   void calibrate();
 
-  //void printSettings();
+  
 };
 
 #endif  // MENUSYSTEM_H

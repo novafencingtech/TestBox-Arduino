@@ -78,7 +78,7 @@ class oledReverseHBarGraph: oledColorList
     oledReverseHBarGraph();
     oledReverseHBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width); 
     oledReverseHBarGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue); 
-    //void setGraphLimits(int X, int Y, int H, int W);
+    void setGraphLimits(int X, int Y, int H, int W);
     void setLimit(float minValue, float maxValue);
     void setBarColors(int numBars, float values[], int colors[]);
     int getBarColor();

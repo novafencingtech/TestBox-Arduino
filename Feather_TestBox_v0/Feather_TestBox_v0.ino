@@ -1,16 +1,16 @@
 
 
-#define ARM_ARCH_7EM //Target Cortex-M4F
-#define ARM_MATH_CM4 //Required for arm_math library
+#define ARM_ARCH_7EM  //Target Cortex-M4F
+#define ARM_MATH_CM4  //Required for arm_math library
 #define __FPU_PRESENT 1
 
-#define TTArmBoardRev 2 
+#define TTArmBoardRev 2
 
 // Used for defining board revision specific changes and features
-#if (TTArmBoardRev>=2)
-  #define TTArmMOSFETWeaponAC 1 //Present on rev2 boards, Rev 2 boards have a battery disconnect switch
+#if (TTArmBoardRev >= 2)
+#define TTArmMOSFETWeaponAC 1  //Present on rev2 boards, Rev 2 boards have a battery disconnect switch
 #else
-  #define TTArmMOSFETWeaponAC 0 
+#define TTArmMOSFETWeaponAC 0
 #endif
 
 #include <arm_math.h>
@@ -25,10 +25,9 @@
 #include <avr/dtostrf.h>
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
+using namespace Adafruit_LittleFS_Namespace;
 #include <nrfx_gpiote.h>
 //#include <string.h>
-
-using namespace Adafruit_LittleFS_Namespace;
 
 //#include <nrf_adc.h>
 //#include <sdk_config.h>
@@ -43,7 +42,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #define DISPLAY_SPLASH_IMAGE 1
 #define FAST_LED_ACTIVE 1
 
-#if FAST_LED_ACTIVE 
+#if FAST_LED_ACTIVE
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
 #include <FastLED.h>
 //Required for FAST LED
@@ -53,79 +52,90 @@ using namespace Adafruit_LittleFS_Namespace;
 CRGB lameLED;
 #endif
 
+#define FILENAME "/calibration.txt"
 
+Adafruit_LittleFS_Namespace::File file(InternalFS);
+bool isInitialized = false;
 
-static const char VERSION_NUM[16] = "1.2-1.3"; //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-10-14";
+static const char VERSION_NUM[16] = "1.2-1.3";  //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "2024-10-29";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
-#else 
+#else
 #define DISPLAY_SPLASH_IMAGE 0
 #endif
 
-#define NUM_ADC_SCAN_CHANNELS 9 //9 combinations 
-#define OHM_FIELD_WIDTH 4 //Width of the text display for ohms
-#define SERIAL_OUTPUT_BUFFER_SIZE 256 //Length of serial buffer
+#define NUM_ADC_SCAN_CHANNELS 9        //9 combinations
+#define OHM_FIELD_WIDTH 4              //Width of the text display for ohms
+#define SERIAL_OUTPUT_BUFFER_SIZE 256  //Length of serial buffer
 #define ADC_BUFFER_SIZE 8
 #define OPEN_CIRCUIT 999.9
 
 const uint8_t ADC_UNIT = 0;
-nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
-                                         .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
-                                         .gain = NRF_SAADC_GAIN1_4,
-                                         .reference = NRF_SAADC_REFERENCE_INTERNAL,
-                                         .acq_time = NRF_SAADC_ACQTIME_40US,
-                                         .mode = NRF_SAADC_MODE_SINGLE_ENDED,
-                                         .burst = NRF_SAADC_BURST_ENABLED
-                                         //.pin_p = NRF_SAADC_INPUT_AIN0,
-                                         //.pin_n = NRF_SAADC_INPUT_DISABLED
-                                        };
-nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABLED,
-                                         .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
-                                         .gain = NRF_SAADC_GAIN1_4,
-                                         .reference = NRF_SAADC_REFERENCE_INTERNAL,
-                                         .acq_time = NRF_SAADC_ACQTIME_20US,
-                                         .mode = NRF_SAADC_MODE_SINGLE_ENDED,
-                                         .burst = NRF_SAADC_BURST_ENABLED
-                                         //.pin_p = NRF_SAADC_INPUT_AIN0,
-                                         //.pin_n = NRF_SAADC_INPUT_DISABLED
-                                        };
-nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
+nrf_saadc_channel_config_t ADC_CONFIG = {
+  .resistor_p = NRF_SAADC_RESISTOR_DISABLED,
+  .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
+  .gain = NRF_SAADC_GAIN1_4,
+  .reference = NRF_SAADC_REFERENCE_INTERNAL,
+  .acq_time = NRF_SAADC_ACQTIME_40US,
+  .mode = NRF_SAADC_MODE_SINGLE_ENDED,
+  .burst = NRF_SAADC_BURST_ENABLED
+  //.pin_p = NRF_SAADC_INPUT_AIN0,
+  //.pin_n = NRF_SAADC_INPUT_DISABLED
+};
+nrf_saadc_channel_config_t FAST_ADC_CONFIG = {
+  .resistor_p = NRF_SAADC_RESISTOR_DISABLED,
+  .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
+  .gain = NRF_SAADC_GAIN1_4,
+  .reference = NRF_SAADC_REFERENCE_INTERNAL,
+  .acq_time = NRF_SAADC_ACQTIME_20US,
+  .mode = NRF_SAADC_MODE_SINGLE_ENDED,
+  .burst = NRF_SAADC_BURST_ENABLED
+  //.pin_p = NRF_SAADC_INPUT_AIN0,
+  //.pin_n = NRF_SAADC_INPUT_DISABLED
+};
+nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE];  //Buffer for ADC sample reads
 
 //Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
 // http://www.micromodeler.com/dsp/
-float LowPass8HzCoef[5] = {// Scaled for floating point
-  0.1340603846876515, 0.268120769375303, 0.1340603846876515, 0.6190201888761353, -0.15526172762674134// b0, b1, b2, a1, a2
+float LowPass8HzCoef[5] = {
+  // Scaled for floating point
+  0.1340603846876515, 0.268120769375303, 0.1340603846876515, 0.6190201888761353, -0.15526172762674134  // b0, b1, b2, a1, a2
 };
-float LowPass5HzCoef[5] = {// Scaled for floating point
-  0.06745527388907192, 0.13491054777814385, 0.06745527388907192, 1.142980502539901, -0.41280159809618855// b0, b1, b2, a1, a2
+float LowPass5HzCoef[5] = {
+  // Scaled for floating point
+  0.06745527388907192, 0.13491054777814385, 0.06745527388907192, 1.142980502539901, -0.41280159809618855  // b0, b1, b2, a1, a2
 };
-float LowPass3HzCoef[5] = {// Scaled for floating point
-  0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
+float LowPass3HzCoef[5] = {
+  // Scaled for floating point
+  0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904  // b0, b1, b2, a1, a2
 };
-float LowPass2HzCoef[5] = {// Scaled for floating point
-    0.01335920002785649, 0.02671840005571298, 0.01335920002785649, 1.6474599810769768, -0.7008967811884027// b0, b1, b2, a1, a2
+float LowPass2HzCoef[5] = {
+  // Scaled for floating point
+  0.01335920002785649, 0.02671840005571298, 0.01335920002785649, 1.6474599810769768, -0.7008967811884027  // b0, b1, b2, a1, a2
 };
-float LowPass1HzCoef[5] = {// Scaled for floating point
-  0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904// b0, b1, b2, a1, a2
+float LowPass1HzCoef[5] = {
+  // Scaled for floating point
+  0.02785976611713601, 0.05571953223427202, 0.02785976611713601, 1.4754804435926463, -0.5869195080611904  // b0, b1, b2, a1, a2
 };
-float LowPass0p2HzCoef[5] = {// Scaled for floating point
-  0.00015514842347569914, 0.0003102968469513983, 0.00015514842347569914, 1.9644605802052322, -0.9650811738991351// b0, b1, b2, a1, a2
+float LowPass0p2HzCoef[5] = {
+  // Scaled for floating point
+  0.00015514842347569914, 0.0003102968469513983, 0.00015514842347569914, 1.9644605802052322, -0.9650811738991351  // b0, b1, b2, a1, a2
 };
 float LameLPF4HzCoef[5] = {
   // Fs = 60 Hz; 4Hz LPF Butterworth Order = 1
   // Scaled for floating point
-   0.1752962034012447, 0.1752962034012447, 0, 0.6494075931975106, 0// b0, b1, b2, a1, a2
+  0.1752962034012447, 0.1752962034012447, 0, 0.6494075931975106, 0  // b0, b1, b2, a1, a2
 };
 float LameLPF3HzCoef[5] = {
   // Fs = 60 Hz; 3Hz LPF Butterworth Order = 1
   // Scaled for floating point
-    0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0// b0, b1, b2, a1, a2
+  0.1367287359973195, 0.1367287359973195, 0, 0.726542528005361, 0  // b0, b1, b2, a1, a2
 };
 float LameLPF2HzCoef[5] = {
   // Scaled for floating point
-   0.09510798340249636, 0.09510798340249636, 0, 0.8097840331950072, 0// b0, b1, b2, a1, a2
+  0.09510798340249636, 0.09510798340249636, 0, 0.8097840331950072, 0  // b0, b1, b2, a1, a2
 };
 
 
@@ -134,44 +144,44 @@ float LameLPF2HzCoef[5] = {
 
 
 // Change the calibration valid flag when changing the format of the calibration data
-const byte calibrationValid = 0xA0; //Flags the last valid calibration
-const byte calibrationInvalid = 0xEE; //Marks a calibration as invalid and moves to the next location (used for wear leveling)
+const byte calibrationValid = 0xA0;    //Flags the last valid calibration
+const byte calibrationInvalid = 0xEE;  //Marks a calibration as invalid and moves to the next location (used for wear leveling)
 //int eepromLocationStep  = 1 + sizeof(int) * (NUM_ADC_SCAN_CHANNELS + 2); //Step size in bytes between eeprom flags;
-const int calibrationErrorValue = 1000; //If calibration value exceeds, generate an error
-const byte calibrationRetries = 3; // Exit after this many retries
+const int calibrationErrorValue = 1000;  //If calibration value exceeds, generate an error
+const byte calibrationRetries = 3;       // Exit after this many retries
 
 // Pile of various parameters and constants for the box to use
-const int maxADCthreshold = 4000; //Used for switching between high/low gain
-const int shortADCthreshold = 3000; //ADC values below this will show as a short
+const int maxADCthreshold = 4000;    //Used for switching between high/low gain
+const int shortADCthreshold = 3000;  //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
-constexpr long powerOffTimeOut = 15L * 60L * 1000L; //Time before switching off if inactive;
-const long cableDisconnectTimeOut = 1000L; //Time out before flagging the cable as disconnected
-const long weaponDisconnectTimeOut = 10000L; //Time out before flagging the cable as disconnected
-const int weaponStateHoldTime = 500; //ms - How long the light remains lit after a weapon-press
-const long weaponFoilDebounce = 15; //ms - How long the light remains lit after a weapon-press
-const int weaponEpeeDebounce = 3; //ms - How long the light remains lit after a weapon-press
-static constexpr int usFoilDebounce = weaponFoilDebounce * 1000; //Foil debounce in us
-static constexpr int usEpeeDebounce = weaponEpeeDebounce * 1000; //Foil debounce in us
-const int t_Error_Display = 2000; //ms - How long to display error/debug messages;
-const int tLCDRefresh = 400; //ms - How often to refresh the lcd display
-const int tLEDRefresh = 50; //ms - How often to refresh the lcd display
-const int tOLEDRefresh = 20; //ms - How often to refresh the OLED display
+constexpr long powerOffTimeOut = 15L * 60L * 1000L;               //Time before switching off if inactive;
+const long cableDisconnectTimeOut = 1000L;                        //Time out before flagging the cable as disconnected
+const long weaponDisconnectTimeOut = 10000L;                      //Time out before flagging the cable as disconnected
+const int weaponStateHoldTime = 500;                              //ms - How long the light remains lit after a weapon-press
+const long weaponFoilDebounce = 15;                               //ms - How long the light remains lit after a weapon-press
+const int weaponEpeeDebounce = 3;                                 //ms - How long the light remains lit after a weapon-press
+static constexpr int usFoilDebounce = weaponFoilDebounce * 1000;  //Foil debounce in us
+static constexpr int usEpeeDebounce = weaponEpeeDebounce * 1000;  //Foil debounce in us
+const int t_Error_Display = 2000;                                 //ms - How long to display error/debug messages;
+const int tLCDRefresh = 400;                                      //ms - How often to refresh the lcd display
+const int tLEDRefresh = 50;                                       //ms - How often to refresh the lcd display
+const int tOLEDRefresh = 20;                                      //ms - How often to refresh the OLED display
 //constexpr long tDimOLED = 15L * 1000L; //ms - How long before the OLED dims
-constexpr long tOledOff = 5L*60L * 1000L; //ms - How long before the OLED turns off
+constexpr long tOledOff = 5L * 60L * 1000L;  //ms - How long before the OLED turns off
 //const long tLEDResync = 10000; //ms -- Completely reset the LED display
-const long tBatteryInterval = 10000; //ms - Check battery every 10s
-const long tIdleModeOn = 5000L; //ms - Switch to idle mode after 5s of in-activity.
+const long tBatteryInterval = 10000;  //ms - Check battery every 10s
+const long tIdleModeOn = 5000L;       //ms - Switch to idle mode after 5s of in-activity.
 //const uint8_t weaponIdleMultiplier = 4; //ms - Switch to idle mode after 20s of in-activity.
-const long tIdleWakeUpInterval = 20; //ms - How often to check inputs for changes while idle
-const int tSerialRefresh = 500; //ms - How often to send data over the serial port
-const int tPowerOffPress = 1500; //ms - How long to hold the button down before it's considered a long press
-const int tModeSwitchLockOut = 500; //ms - Used to prevent accidental double mode switches
-const int tEnterCalibrationMode = 3000; //ms - How long to hold before entering calibration mode
-const int tIdleLEDBlink = 750; //ms
-const int wdtTimerResetInterval = 3; //s
-const int tMaxHold = 1000; //ms -- Duration for a min/max hold value
-const long dispCaptureHoldTime = 500; //ms -- Minimum Duration that a hit capture displays for
-const long tLameWaitTime = 1000; //ms -- Duration before switch to lame mode from cable mode.
+const long tIdleWakeUpInterval = 20;     //ms - How often to check inputs for changes while idle
+const int tSerialRefresh = 500;          //ms - How often to send data over the serial port
+const int tPowerOffPress = 1500;         //ms - How long to hold the button down before it's considered a long press
+const int tModeSwitchLockOut = 500;      //ms - Used to prevent accidental double mode switches
+const int tEnterCalibrationMode = 3000;  //ms - How long to hold before entering calibration mode
+const int tIdleLEDBlink = 750;           //ms
+const int wdtTimerResetInterval = 3;     //s
+const int tMaxHold = 1000;               //ms -- Duration for a min/max hold value
+const long dispCaptureHoldTime = 500;    //ms -- Minimum Duration that a hit capture displays for
+const long tLameWaitTime = 1000;         //ms -- Duration before switch to lame mode from cable mode.
 
 const float HIGH_RESISTANCE_THRESHOLD = 5.0;
 const int CABLE_DISCONNECT_THRESHOLD = 4000;
@@ -184,7 +194,7 @@ const SPISettings OLED_SPI_SETTINGS(2000000, MSBFIRST, SPI_MODE0);
 //const uint8_t MUX_CLK = 15;
 //const uint8_t MUX_DATA = 7;
 
-//MUX is MSBFIRST, bit 0=NC, bits 1-3=source,bit 4=weaponB, bits 5-7=sink, 
+//MUX is MSBFIRST, bit 0=NC, bits 1-3=source,bit 4=weaponB, bits 5-7=sink,
 //For rev 2 board MUX is MSBFIRST, bit 0=WeaponC GND, bits 1-3=source A/B/C,bit 4=WeaponB GND, bits 5-7=Cable A/B/C
 const byte MUX_DISABLED = 0x0;
 const byte MUX_CABLE_AA = B00100010;
@@ -196,13 +206,13 @@ const byte MUX_CABLE_BC = B10000100;
 const byte MUX_CABLE_CA = B00101000;
 const byte MUX_CABLE_CB = B01001000;
 const byte MUX_CABLE_CC = B10001000;
-const byte MUX_WEAPON_MODE = B00011010; //Source=A & C, Sink=B
+const byte MUX_WEAPON_MODE = B00011010;  //Source=A & C, Sink=B
 const byte MUX_WEAPON_AB = B00010010;
 const byte MUX_WEAPON_CB = B00011000;
 #if TTArmMOSFETWeaponAC
-  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+const byte MUX_WEAPON_AC = B00000011;  //Only A is source, C relies on pull-down resistor
 #else
-  const byte MUX_WEAPON_AC = B00000011; //Only A is source, C relies on pull-down resistor
+const byte MUX_WEAPON_AC = B00000011;  //Only A is source, C relies on pull-down resistor
 #endif
 
 nrfx_gpiote_in_config_t weaponPinConfig = {
@@ -231,7 +241,7 @@ const byte BITCC = 8;
 //const byte BUTTON_PIN = 27;
 //const byte LED1_PIN = 17;
 //const byte LED2_PIN = 19;
-//const byte FASTLED_PIN 
+//const byte FASTLED_PIN
 
 // Basic variables
 volatile long numSamples = 0;
@@ -242,7 +252,7 @@ float batteryVoltage = 3.7;
 volatile long timing_seg = 0;
 volatile long tic = 0;
 volatile long toc = 0;
-volatile long tLastActive = 0; //ms - Time that an event was last detected
+volatile long tLastActive = 0;  //ms - Time that an event was last detected
 
 bool wdtOverride = false;
 
@@ -256,7 +266,7 @@ enum TestBoxModes {
   BOX_IDLE,
   BOX_OFF
 };
-volatile TestBoxModes BoxState = BOX_IDLE; //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
+volatile TestBoxModes BoxState = BOX_IDLE;  //i=Idle; c=Cable; w=Weapon; r=WeaponResistance; s=sleep;
 
 enum batteryDisplayModes {
   NONE,
@@ -275,14 +285,14 @@ batteryDisplayModes batteryDisplayType = NONE;
 //SPIClass oledSPI = SPIClass(NRF_SPIM0, PIN_SPI_MISO, SCLK_PIN, MOSI_PIN);
 //oledSPI->begin();
 Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN);
-const int GFX_BUFFER_HEIGHT=2; //Height of the lame digit display
-//#if defined(ARDUINO_NRF52840_FEATHER)
-//  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, SCREEN_HEIGHT); // 128x128 pixel canvas
-//#else 
-  //nrf52832 doesn't have enough memory to support full screen buffering
-  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, GFX_BUFFER_HEIGHT); 
+const int GFX_BUFFER_HEIGHT = 8;  //Height of the lame digit display
+                                  //#if defined(ARDUINO_NRF52840_FEATHER)
+                                  //  GFXcanvas16 gfxBuffer(SCREEN_WIDTH, SCREEN_HEIGHT); // 128x128 pixel canvas
+                                  //#else
+//nrf52832 doesn't have enough memory to support full screen buffering
+GFXcanvas16 gfxBuffer(SCREEN_WIDTH, GFX_BUFFER_HEIGHT);
 //#endif
-MenuSystem menu(tft,BUILD_DATE);
+MenuSystem menu(tft, BUILD_DATE);
 
 
 //Adafruit_SSD1351 tft = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &oledSPI, CS_PIN, DC_PIN);
@@ -333,25 +343,25 @@ volatile long tIdle = 0;
 
 //ADC parameters
 //ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {0, 3, 3, 4, 1, 4, 5, 5, 2}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
-ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS] {AINpinA_amp, AINpinA_raw, AINpinA_raw, AINpinB_raw, AINpinB_amp, AINpinB_raw, AINpinC_raw, AINpinC_raw, AINpinC_amp}; //AA, AB, AC, BA, BB, BC, CA, CB, CC
-ADC_Channel ProbeArray[6] {AINpinA_amp, AINpinC_amp, AINpinA_amp, AINpinB_amp, AINpinA_amp, AINpinC_amp}; // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
+ADC_Channel ChanArray[NUM_ADC_SCAN_CHANNELS]{ AINpinA_amp, AINpinA_raw, AINpinA_raw, AINpinB_raw, AINpinB_amp, AINpinB_raw, AINpinC_raw, AINpinC_raw, AINpinC_amp };  //AA, AB, AC, BA, BB, BC, CA, CB, CC
+ADC_Channel ProbeArray[6]{ AINpinA_amp, AINpinC_amp, AINpinA_amp, AINpinB_amp, AINpinA_amp, AINpinC_amp };                                                            // Epee (AB), Foil (CB), WepGnd (AC), BPrA, APrA,  CPrA
 //const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 4, 5, 3, 8, 7, 0, 6}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
-const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = {1, 2, 3, 4, 5, 6, 7, 8, 0}; //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
+const byte ChannelScanOrder[NUM_ADC_SCAN_CHANNELS] = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };  //Array showing the *Next channel, so Ch0 -> Ch1, Ch8->Ch0
 ADC_Channel FoilADC(AINpinC_amp);
 ADC_Channel EpeeADC(AINpinA_amp);
 ADC_Channel WeaponAC(AINpinC_raw);
-ADC_Channel CableCheck[3] {AINpinA_amp,AINpinB_amp,AINpinC_amp};
+ADC_Channel CableCheck[3]{ AINpinA_amp, AINpinB_amp, AINpinC_amp };
 //ADC_Channel BatteryMonitor(5);
 ADC_Channel* ActiveCh;
 static constexpr byte NUM_CAL_CHANNELS = NUM_ADC_SCAN_CHANNELS + 2;
 
 //Buffers for high-speed capture
 #define PRE_TRIGGER_SIZE 20
-#define ADC_CAPTURE_LEN 128 //128-PreTrigger
+#define ADC_CAPTURE_LEN 128  //128-PreTrigger
 //Declare arrays here so that we can use pointers internally to channels
 int ADC_PreTrigEpee[2][PRE_TRIGGER_SIZE];
 int ADC_PreTrigFoil[2][PRE_TRIGGER_SIZE];
-int ADC_CaptureBuffer[ADC_CAPTURE_LEN]; //Buffer for ADC sample reads
+int ADC_CaptureBuffer[ADC_CAPTURE_LEN];  //Buffer for ADC sample reads
 
 //Struct defining the cable/lame properties
 struct CableData {
@@ -367,7 +377,7 @@ struct CableData {
   int line_CC = 4095;
   bool update_flag = false;
   bool error_msg = false;
-  bool cableDC = true; //Cable disconnected flag
+  bool cableDC = true;    //Cable disconnected flag
   bool lameMode = false;  //Lame mode flag
   bool maskMode = false;  //Mask clip flag
   float ohm_AA = OPEN_CIRCUIT_VALUE;
@@ -411,7 +421,7 @@ struct weapon_test {
   bool lineAC = false;
   //byte epeeInterruptBit = PCINT4;
   //byte foilInterruptBit = PCINT6;
-  long tLightChange = weaponStateHoldTime; //ms -- time for the intermittent LED to be on
+  long tLightChange = weaponStateHoldTime;  //ms -- time for the intermittent LED to be on
   byte update_flag = false;
   float ohm_Foil = 0;
   int ohm10xFoil = 0;
@@ -436,7 +446,7 @@ struct probeDataStruct {
   float ohm_CPr = OPEN_CIRCUIT_VALUE;
   float ohm_Foil = OPEN_CIRCUIT_VALUE;
   float ohm_Epee = OPEN_CIRCUIT_VALUE;
-  float ohm_WpnAC = OPEN_CIRCUIT_VALUE; 
+  float ohm_WpnAC = OPEN_CIRCUIT_VALUE;
 
   arm_biquad_casd_df1_inst_f32 ProbeALPF;
   float ProbeALPFState[4];
@@ -458,116 +468,116 @@ struct probeDataStruct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-void SAADC_IRQHandler(void) {
-  //digitalWrite(DIAG_PIN,HIGH);
-  q31_t tempVal = 0;
-  long t_now = millis();
-  int ADCValue;
-  float flVal = 0.0;
-  static bool foilState=false;
-  static bool epeeState=false;
-  bool tempState=false;
+  void SAADC_IRQHandler(void) {
+    //digitalWrite(DIAG_PIN,HIGH);
+    q31_t tempVal = 0;
+    long t_now = millis();
+    int ADCValue;
+    float flVal = 0.0;
+    static bool foilState = false;
+    static bool epeeState = false;
+    bool tempState = false;
 
 
-  tempVal = 0;
+    tempVal = 0;
 
-  /*if (BatteryCheck) {
+    /*if (BatteryCheck) {
     Serial.println("We shouldn't be here.");
     return;
   }*/
 
-  if (nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE)) {
-    nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_RESULTDONE);
-    ADCValue = *(nrf_saadc_buffer_pointer_get(NRF_SAADC));
-  } else {
-    //Serial.println("SAADC fault");
-    return; //This should never happen
-  }
-  //digitalWrite(DIAG_PIN,HIGH);
-
-  if ( (ActiveCh->ch_label[0] == 'A') || (ActiveCh->ch_label[0] == 'E') ) {
-    numSamples++;  //Indicates a full scan was performed
-    //Serial.println(ADCValue);
-  }
-
-  ActiveCh->lastValue = ADCValue;
-
-  ActiveCh->sampleBuffer[ActiveCh->sampleCount] = (long) (ADCValue << 8); //Convert to Q1.31 format with a long cast and bit shift
-  ActiveCh->sampleCount++;
-  if (ActiveCh->sampleCount >= ActiveCh->FIR_BLOCK_SIZE) {
+    if (nrf_saadc_event_check(NRF_SAADC, NRF_SAADC_EVENT_RESULTDONE)) {
+      nrf_saadc_event_clear(NRF_SAADC, NRF_SAADC_EVENT_RESULTDONE);
+      ADCValue = *(nrf_saadc_buffer_pointer_get(NRF_SAADC));
+    } else {
+      //Serial.println("SAADC fault");
+      return;  //This should never happen
+    }
     //digitalWrite(DIAG_PIN,HIGH);
-    arm_fir_decimate_fast_q31(&(ActiveCh->FIR_filter), ActiveCh->sampleBuffer, &(ActiveCh->filterValue), ActiveCh->FIR_BLOCK_SIZE);
-    ActiveCh->filterValue = (ActiveCh->filterValue >> 8);
-    ActiveCh->valueReady = true;
-    ActiveCh->sampleCount = 0;
-  }
 
-  tempState=(ADCValue<maxADCthreshold);
-  if (ActiveCh == &EpeeADC) {
-    if (tempState!=epeeState) {
+    if ((ActiveCh->ch_label[0] == 'A') || (ActiveCh->ch_label[0] == 'E')) {
+      numSamples++;  //Indicates a full scan was performed
+      //Serial.println(ADCValue);
+    }
+
+    ActiveCh->lastValue = ADCValue;
+
+    ActiveCh->sampleBuffer[ActiveCh->sampleCount] = (long)(ADCValue << 8);  //Convert to Q1.31 format with a long cast and bit shift
+    ActiveCh->sampleCount++;
+    if (ActiveCh->sampleCount >= ActiveCh->FIR_BLOCK_SIZE) {
+      //digitalWrite(DIAG_PIN,HIGH);
+      arm_fir_decimate_fast_q31(&(ActiveCh->FIR_filter), ActiveCh->sampleBuffer, &(ActiveCh->filterValue), ActiveCh->FIR_BLOCK_SIZE);
+      ActiveCh->filterValue = (ActiveCh->filterValue >> 8);
+      ActiveCh->valueReady = true;
+      ActiveCh->sampleCount = 0;
+    }
+
+    tempState = (ADCValue < maxADCthreshold);
+    if (ActiveCh == &EpeeADC) {
+      if (tempState != epeeState) {
         ISR_EpeeHitDetect();
-        epeeState=tempState;
+        epeeState = tempState;
+      }
     }
-  }
-  if (ActiveCh == &FoilADC) {
-    if (tempState!=foilState) {
-      ISR_FoilHitDetect();
-      foilState=tempState;
+    if (ActiveCh == &FoilADC) {
+      if (tempState != foilState) {
+        ISR_FoilHitDetect();
+        foilState = tempState;
+      }
     }
+
+    if ((t_now - ActiveCh->t_max) > tMaxHold) {
+      ActiveCh->decay_max = 0;
+    }
+
+    if ((t_now - ActiveCh->t_min) > tMaxHold) {
+      ActiveCh->decay_min = 4096;
+    }
+
+    if (ADCValue > ActiveCh->decay_max) {
+      ActiveCh->maxval = ADCValue;
+      ActiveCh->decay_max = ADCValue;
+      ActiveCh->t_max = t_now;
+    }
+
+    if (ADCValue < ActiveCh->decay_min) {
+      ActiveCh->minval = ADCValue;
+      ActiveCh->decay_min = ADCValue;
+      ActiveCh->t_min = t_now;
+    }
+
+    if (ActiveCh->bufferEnabled) {
+      ActiveCh->hsBuffer.AddSample(ActiveCh->lastValue);
+    }
+
+    //Load the next channel
+    if (ActiveCh->ADC_Scan) {
+      ActiveCh = ActiveCh->nextChannel;
+      // Switch the MUX to toggle the MOSFETs
+      digitalWrite(MUX_LATCH, LOW);  //equivalent to digitalWrite(4, LOW); Toggle the SPI
+      shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
+      //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_AA);
+      digitalWrite(MUX_LATCH, HIGH);  //equivalent to digitalWrite(4,HIGH);
+      //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
+      NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
+
+      nrf_saadc_task_trigger(NRF_SAADC, NRF_SAADC_TASK_START);
+    }
+
+    //Reset the buffer and trigger sampling
+    nrf_saadc_buffer_init(NRF_SAADC, ADC_Buffer1, 1);
+    nrf_saadc_task_trigger(NRF_SAADC, NRF_SAADC_TASK_SAMPLE);
+
+    //digitalWrite(DIAG_PIN,LOW);
   }
-
-  if ((t_now - ActiveCh->t_max) > tMaxHold) {
-    ActiveCh->decay_max = 0;
-  }
-
-  if ((t_now - ActiveCh->t_min) > tMaxHold) {
-    ActiveCh->decay_min = 4096;
-  }
-
-  if (ADCValue > ActiveCh->decay_max) {
-    ActiveCh->maxval = ADCValue;
-    ActiveCh->decay_max = ADCValue;
-    ActiveCh->t_max = t_now;
-  }
-
-  if (ADCValue < ActiveCh->decay_min) {
-    ActiveCh->minval = ADCValue;
-    ActiveCh->decay_min = ADCValue;
-    ActiveCh->t_min = t_now;
-  }
-
-  if (ActiveCh->bufferEnabled) {
-    ActiveCh->hsBuffer.AddSample(ActiveCh->lastValue);
-  }
-
-  //Load the next channel
-  if (ActiveCh->ADC_Scan) {
-    ActiveCh = ActiveCh->nextChannel;
-    // Switch the MUX to toggle the MOSFETs
-    digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
-    shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, ActiveCh->muxSetting);
-    //shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_CABLE_AA);
-    digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
-    //nrf_saadc_channel_pos_input_set(ADC_UNIT,ActiveCh->AIn);
-    NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
-
-    nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
-  }
-
-  //Reset the buffer and trigger sampling
-  nrf_saadc_buffer_init(NRF_SAADC,ADC_Buffer1, 1);
-  nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_SAMPLE);
-
-  //digitalWrite(DIAG_PIN,LOW);
-}
 #ifdef __cplusplus
 }
 #endif
 
-void wdtOverrideCallback(void *p_context) {
+void wdtOverrideCallback(void* p_context) {
   //if (wdtOverride) {
-    //Manually kick the watch dog
-    //NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+  //Manually kick the watch dog
+  //NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
   //}
 }
 
@@ -577,7 +587,7 @@ void setup() {
   digitalWrite(POWER_CONTROL, LOW);
 
   //Activate display
-  delay(50); //Hold for half second to power on
+  delay(50);  //Hold for half second to power on
   digitalWrite(POWER_CONTROL, HIGH);
 
   //Required to fix FPU prevent sleep bug
@@ -608,9 +618,9 @@ void setup() {
 
   //initialise vspi with default pins
   //SCLK = 18, MISO = 19, MOSI = 23, SS = 5
-  digitalWrite(MUX_LATCH, LOW); //equivalent to digitalWrite(4, LOW); Toggle the SPI
+  digitalWrite(MUX_LATCH, LOW);  //equivalent to digitalWrite(4, LOW); Toggle the SPI
   shiftOut(MUX_DATA, MUX_CLK, MSBFIRST, MUX_DISABLED);
-  digitalWrite(MUX_LATCH, HIGH); //equivalent to digitalWrite(4,HIGH);
+  digitalWrite(MUX_LATCH, HIGH);  //equivalent to digitalWrite(4,HIGH);
   //while (true) {}
 
   //Enable button interrupts
@@ -618,7 +628,9 @@ void setup() {
 
   //Wait for boot to start Serial
   Serial.begin(115200);
-  InternalFS.begin();
+  if (!InternalFS.begin()) {
+    Serial.println("Error:  File system failed to start");
+  }
 
   //Initialize the display
   InitializeDisplay();
@@ -634,28 +646,28 @@ void setup() {
   InitializeADC(false);
 
   menu.loadSettings();
+  //menu.printSettings();
 
   CheckBatteryStatus();
   //displayBatteryStatus();
   wdt_init();
   //app_timer_start(wdtOverrideTimer,6554,true);
-  
+
   InitializeCableData();
   InitializeWeaponData();
-  tLastActive = -1 * (tIdleModeOn + 1); //Put the box into idle mode initially
+  tLastActive = -1 * (tIdleModeOn + 1);  //Put the box into idle mode initially
   //tLastActive= 0;
 
   //delay(1000);
   setBoxMode(BOX_IDLE);  //Start the box
   Serial.println("Setup complete");
 
-  //BlinkLEDThenPowerOff();
-  //delay(500);
-  #if FAST_LED_ACTIVE
-  lameLED=CRGB::Black;
+//BlinkLEDThenPowerOff();
+//delay(500);
+#if FAST_LED_ACTIVE
+  lameLED = CRGB::Black;
   FastLED.show();
-  #endif
-  
+#endif
 }
 
 /*
@@ -714,11 +726,10 @@ void ISR_FoilHitDetect() {
   }
 }
 
-void wdt_init(void)
-{
-  NRF_WDT->CONFIG = (WDT_CONFIG_HALT_Pause << WDT_CONFIG_HALT_Pos) | ( WDT_CONFIG_SLEEP_Run << WDT_CONFIG_SLEEP_Pos);
-  NRF_WDT->CRV = wdtTimerResetInterval*32768; // Watchdog timer reset interval
-  NRF_WDT->RREN |= WDT_RREN_RR0_Msk; //Enable reload register 0
+void wdt_init(void) {
+  NRF_WDT->CONFIG = (WDT_CONFIG_HALT_Pause << WDT_CONFIG_HALT_Pos) | (WDT_CONFIG_SLEEP_Run << WDT_CONFIG_SLEEP_Pos);
+  NRF_WDT->CRV = wdtTimerResetInterval * 32768;  // Watchdog timer reset interval
+  NRF_WDT->RREN |= WDT_RREN_RR0_Msk;             //Enable reload register 0
   NRF_WDT->TASKS_START = 1;
 }
 
@@ -739,7 +750,7 @@ void loop() {
 
   //bitWrite(PORTD,PORTD3,!bitRead(PORTD,PORTD3));
 
-  checkButtonState(); //Handle button pushes for mode states
+  checkButtonState();  //Handle button pushes for mode states
 
   switch (BoxState) {
     case CABLE:
@@ -754,7 +765,7 @@ void loop() {
         //toc = micros();
         //timing_seg = toc - tic;
         //updateOLED(BoxState);
-        if ((cableState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval) && ((t_now-tLastActive)>cableDisconnectTimeOut)) {
+        if ((cableState.cableDC) && ((t_now - t_idle_Check) > tIdleWakeUpInterval) && ((t_now - tLastActive) > cableDisconnectTimeOut)) {
           //Serial.println("Checking idle connections");
           if (checkWeaponConnected()) {
             Serial.println("Weapon connected, switching mode");
@@ -774,7 +785,7 @@ void loop() {
       //EpeeADC.updateVals();
       updateWeaponResistance();
       updateWeaponState();
-      if ((weaponState.cableDC) && ( (t_now - t_idle_Check) > tIdleWakeUpInterval)) {
+      if ((weaponState.cableDC) && ((t_now - t_idle_Check) > tIdleWakeUpInterval)) {
         if (checkCableConnected()) {
           setBoxMode(CABLE);
           return;
@@ -807,7 +818,7 @@ void loop() {
     if ((BoxState == CABLE) && (cableState.cableDC)) {
       setBoxMode(BOX_IDLE);
     }
-    if ((BoxState == WPN_GRAPH) && (weaponState.cableDC))  {
+    if ((BoxState == WPN_GRAPH) && (weaponState.cableDC)) {
       if (!cableState.cableDC) {
         setBoxMode(BOX_IDLE);
       } else {
@@ -856,7 +867,7 @@ void loop() {
     //}
     //digitalWrite(DIAG_PIN,LOW);
     t_OLED_upd = millis();
-    NRF_WDT->RR[0] = WDT_RR_RR_Reload; //Reload watchdog register 0
+    NRF_WDT->RR[0] = WDT_RR_RR_Reload;  //Reload watchdog register 0
     //Serial.print("Timing (us) = ");Serial.println(timing_seg);
   }
 }

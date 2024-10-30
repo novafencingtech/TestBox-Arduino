@@ -1,13 +1,3 @@
-#include <Adafruit_LittleFS.h>
-#include <InternalFileSystem.h>
-
-using namespace Adafruit_LittleFS_Namespace;
-
-#define FILENAME    "/calibration.txt"
-
-File file(InternalFS);
-bool isInitialized = false;
-
 ADC_Channel* getCalibrationChannel(int num) {
   switch (num) {
     case 0 ... (NUM_ADC_SCAN_CHANNELS-1):

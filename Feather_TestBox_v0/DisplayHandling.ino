@@ -126,10 +126,10 @@ void drawVLine(int col, int startRow, int endRow, int color) {
 }
 
 void displayRGB565Bitmap(int16_t x, int16_t y, uint16_t *pixels, uint16_t w, uint16_t h) {
-  
+
   tft.startWrite();
   //  hWindow=(h>hMax) ? h : hMax
-  //for (uint16_t k=0; k<h; k++) { 
+  //for (uint16_t k=0; k<h; k++) {
   tft.setAddrWindow(x, y, w, h);
   //tft.setAddrWindow(x,y,w,32);
   tft.writePixels(&(pixels[0]), w * h);
@@ -155,21 +155,21 @@ void displayRGB565Bitmap(uint16_t x, uint16_t y, uint16_t *pixels, uint16_t w, u
 
 void displaySplashScreen() {
   int16_t xi, yj;
-  //uint16_t *pixelColor;  
+  //uint16_t *pixelColor;
   //tft.startWrite();
   //tft.setAddrWindow(0, 0, 16, 16);
   //tft.writePixels(&(pixels[k*w]), w * 1);
-  
+
   tft.fillRect(0, 0, 128, 128, BLACK);
   //tft.fillRect(0, 0, 128, 128, colorList.cMAGENTA);
   tft.dmaWait();
   // Need to raster the buffer due to 832 memory limitations
-  int drawRows=GFX_BUFFER_HEIGHT;
-  for (int16_t k=0; k<splashImage.height; k+=GFX_BUFFER_HEIGHT) {
-    if ((k+GFX_BUFFER_HEIGHT)>SCREEN_HEIGHT) {
-      drawRows=(k+GFX_BUFFER_HEIGHT)-SCREEN_HEIGHT;      
+  int drawRows = GFX_BUFFER_HEIGHT;
+  for (int16_t k = 0; k < splashImage.height; k += GFX_BUFFER_HEIGHT) {
+    if ((k + GFX_BUFFER_HEIGHT) > SCREEN_HEIGHT) {
+      drawRows = (k + GFX_BUFFER_HEIGHT) - SCREEN_HEIGHT;
     }
-    gfxBuffer.drawRGBBitmap(0,0,(uint16_t *)&(splashImage.pixel_data[2*k*splashImage.width]),splashImage.width, drawRows);
+    gfxBuffer.drawRGBBitmap(0, 0, (uint16_t *)&(splashImage.pixel_data[2 * k * splashImage.width]), splashImage.width, drawRows);
     displayRGB565Bitmap(0, k, gfxBuffer.getBuffer(), splashImage.width, drawRows);
   }
 
@@ -244,7 +244,7 @@ void InitializeDisplay() {
   //oledGraph(Adafruit_SSD1351 *tft,int X, int Y, int height, int width,float minValue, float maxValue);
   weaponGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 10.0f);
   captureGraph = oledGraph(&tft, 0, 27, 100, 128, 0.0f, 40.0f);
-  //lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
+  lameGraph = oledGraph(&tft, 0, 40, 127 - 40, 128, 0.0f, 20.0f);
 
   lineALabel = oledGraphLabel(&tft, 0, ABAR);
   lineABar = oledReverseHBarGraph(&tft, 0, ABAR + 17, barHeight, 128, 0.0f, 25.0f);
@@ -273,7 +273,7 @@ void InitializeDisplay() {
   int bars = 5;
   float lameVals[5]{ 0.0f, 5.0f, 10.0f, 15.0f, 20.0f };
   int lameColors[5]{ colorList.cGREEN, colorList.cYELLOW, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED };
-  //lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
+  lameGraph.setHorizontalBarValues(5, lameVals, lameColors);
   lameBar = oledReverseHBarGraph(&tft, 0, 107, 20, 128, 0.0f, 20.0f);
   lameBar.setBarColors(5, lameVals, lameColors);
   lameLabel = oledGraphLabel(&tft, 0, 0);
@@ -335,7 +335,7 @@ void initializeProbeScreen() {
 }
 
 void displayBatteryStatus() {
-  char battString[5] = "\0";  
+  char battString[5] = "\0";
   int battPercent = 75;
   int rectColor = WHITE;
   int fillColor = WHITE;
@@ -348,8 +348,8 @@ void displayBatteryStatus() {
   static const byte BattY0 = 1;
 
   if (batteryVoltage > 2.5) {
-    battPercent = int( (batteryVoltage - 3.3) / (4.12 - 3.3) * 100);
-    if (battPercent<0) {
+    battPercent = int((batteryVoltage - 3.3) / (4.12 - 3.3) * 100);
+    if (battPercent < 0) {
       battPercent = 0;
     }
     battActive = true;
@@ -380,36 +380,36 @@ void displayBatteryStatus() {
 
   tft.drawRect(BattX0 - 1, BattY0 - 1, BattW + 2, BattH + 2, rectColor);
   tft.drawFastVLine(BattX0 - 2, BattY0 + 1, 5, rectColor);
-  if (barW>0) {
+  if (barW > 0) {
     tft.fillRect(BattX0 + (BattW - barW), BattY0, barW, BattH, fillColor);
   }
-  
+
   //Only display battery status in idle
-  if (BoxState!=BOX_IDLE) {
+  if (BoxState != BOX_IDLE) {
     return;
   }
 
   tft.setTextSize(1);
-  tft.setTextColor(fillColor,BLACK);
+  tft.setTextColor(fillColor, BLACK);
   //tft.print(battPercent); tft.print("%");
   switch (batteryDisplayType) {
     case VOLTAGE:
-      tft.setCursor(BattX0-3-6*4, 1); //Allow space for 4 characters each width 6=(5+1 space)
-      dtostrf(batteryVoltage,-3,1,battString);
-      snprintf(battString,5,"%sV",battString);  
-      tft.print(battString); 
+      tft.setCursor(BattX0 - 3 - 6 * 4, 1);  //Allow space for 4 characters each width 6=(5+1 space)
+      dtostrf(batteryVoltage, -3, 1, battString);
+      snprintf(battString, 5, "%sV", battString);
+      tft.print(battString);
       break;
     case PERCENT:
-      tft.setCursor(BattX0-3-6*3, 1); //Allow space for 4 characters each width 6=(5+1 space)   
-      if (battPercent>99) {
-        tft.setCursor(BattX0-3-6*4, 1);
+      tft.setCursor(BattX0 - 3 - 6 * 3, 1);  //Allow space for 4 characters each width 6=(5+1 space)
+      if (battPercent > 99) {
+        tft.setCursor(BattX0 - 3 - 6 * 4, 1);
         tft.print("Full");
-      } else {         
-        tft.print(battPercent); tft.print("%");
+      } else {
+        tft.print(battPercent);
+        tft.print("%");
       }
-    break;
+      break;
     default: break;
-
   }
 }
 /*int floatTo10xInt(float g) {
@@ -1147,25 +1147,46 @@ void updateProbeDisplay() {
 // barGraph(X, H, oldVal, newVal, oldVal)
 void createLameDisplay() {
   labelTitle("", YELLOW);
-  //lameGraph.resetGraph();
+  menu.printSettings();
+  switch (menu.getSettings().lameDisplay) {
+    case (MenuSystem::GRAPH):
+      Serial.println("Reset graph");
+      lameGraph.resetGraph();
+      lameBar.setGraphLimits(0, 16, 20, 128);
+      break;
+    case (MenuSystem::NUMERIC):
+      Serial.println("Lame create-- Doing nothing at the moment");
+      lameBar.setGraphLimits(0, 127 - 25, 25, 128);
+      break;
+    default:
+      Serial.println("Undefined enum, try again");
+      break;
+  }
 }
 
-void displayLargeString(int leftX, int bottomY, char *buf, int txtColor, int fontSize) {
+void displayLargeString(int leftX, int topY, char *buf, int txtColor, int fontSize) {
   gfxBuffer.setTextColor(txtColor);
   gfxBuffer.setFont(&FreeSansBold24pt7b);
   gfxBuffer.setTextSize(fontSize);
 
-  int fontHeight = (24+6)*fontSize;
-  int baseline = fontHeight-6*fontSize; 
-  
-  int frameY=bottomY;
-  while (baseline>GFX_BUFFER_HEIGHT) {
+  int fontHeight = (35) * fontSize;
+  //int baseline = GFX_BUFFER_HEIGHT-6*fontSize; //Offset for characters below baseline
+  int baseline = fontHeight-2; //Offset for characters below baseline    
+  //tft.fillRect(leftX,topY,128, fontHeight,colorList.cBLACK);
+  int frameY = topY;
+  //Draw starting at the top and work down 
+  // baseline moves up, frame moves down
+  int frameSize=GFX_BUFFER_HEIGHT;
+  while (frameY<(topY+fontHeight)) {
     gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
-    gfxBuffer.setCursor(0, baseline);
+    gfxBuffer.setCursor(leftX, baseline);
     gfxBuffer.print(buf);
-    displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), 128, GFX_BUFFER_HEIGHT);
-    baseline=baseline-GFX_BUFFER_HEIGHT;  //Move the font baseline relative to the panel
-    frameY=frameY-GFX_BUFFER_HEIGHT;  //Shift up by one buffer panel
+    displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), 128, frameSize);
+    if (baseline<GFX_BUFFER_HEIGHT) {
+      frameSize=GFX_BUFFER_HEIGHT-baseline;
+    }
+    baseline -= frameSize;  //Move the font baseline relative to the panel
+    frameY += frameSize;    //Shift the frame down on the screen
   }
 }
 
@@ -1173,46 +1194,47 @@ void updateLameDisplay() {
   float lameOhms;
   int txtColor = colorList.cBLACK;
   char msg[5];
+  static unsigned long lastFrameTime=millis();
+  unsigned long loopTime=millis();
 
   if (cableState.ohm_Lame < MAX_LAME_RESISTANCE) {
     lameOhms = cableState.ohm_Lame;
   } else {
     lameOhms = OPEN_CIRCUIT_VALUE;
   }
-
+  
   lameBar.updateGraph(lameOhms);
   lameLabel.printLabel("Lame", lameOhms);
   txtColor = lameBar.getBarColor();
-
-  gfxBuffer.setFont(&FreeSansBold24pt7b);
-  gfxBuffer.setTextSize(2);
-
-  gfxBuffer.setTextColor(txtColor);
-  gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
-
-  int intOhms = floor(lameOhms);
-  int deciOhms = floor(10 * (lameOhms - intOhms));
-  if (lameOhms < 10) {
-    gfxBuffer.setCursor(0, 55);
-    gfxBuffer.print(intOhms);
-    gfxBuffer.print(".");
-    gfxBuffer.setCursor(72, 55);
-    gfxBuffer.print(deciOhms);
-  } else if (lameOhms == OPEN_CIRCUIT_VALUE) {
-    gfxBuffer.setTextColor(colorList.cBLUE);
-    gfxBuffer.setCursor(32, 55);
-    gfxBuffer.print("--");
-  } else {
-    gfxBuffer.setCursor(12, 55);
-    gfxBuffer.print(intOhms);
+  //Serial.println("Updating lame bar");
+  switch (menu.getSettings().lameDisplay) {
+    case (MenuSystem::GRAPH):
+      lameGraph.updateGraph(lameOhms);
+      break;
+    case (MenuSystem::NUMERIC):
+      if (lameOhms > 99.9) {
+        txtColor = colorList.cBLUE;
+        strcpy(msg, "--");
+        displayLargeString(32, 22, msg, txtColor, 2);
+      } else if (lameOhms > 9.5) {
+        dtostrf(lameOhms+0.5,-3,0,msg);        
+        displayLargeString(10, 22, msg, txtColor, 2);
+      } else {
+        dtostrf(lameOhms+0.05, -3, 1, msg);
+        if (lameOhms < 0) { strcpy(msg, "0.0"); }
+        displayLargeString(0, 22, msg, txtColor, 2);
+      }      
+      //tft.setTextColor(txtColor);
+      //tft.setTextColor(colorList.cCYAN);
+      //tft.setCursor(100,17);
+      //tft.setTextSize(1);
+      //loopTime=millis();
+      //tft.print("    ");
+      //tft.print(loopTime-lastFrameTime);
+      //lastFrameTime=loopTime;
+      break;
   }
-
-  //tft.drawBitmap(0, 32, lameTxtCanvas.getBuffer(), 128, 64, txtColor, colorList.cBLACK);
-  displayRGB565Bitmap(0, 27, gfxBuffer.getBuffer(), 128, GFX_BUFFER_HEIGHT);
-
-  tft.setTextColor(txtColor);
-
-  //lameGraph.updateGraph(lameOhms);
+  
 #if FAST_LED_ACTIVE
   updateLED(lameOhms);
 #endif

@@ -209,6 +209,16 @@ void oledReverseHBarGraph::setBarColors(int numBars, float values[], int colors[
   _numActiveBars=numBars;
 }
 
+void oledReverseHBarGraph::setGraphLimits(int X, int Y, int H, int W) {
+  _locX=X;
+  _locY=Y;
+  _height=H;
+  _width=W;
+  _maxX=_locX+W;
+  _maxY=_locY+H;  
+  _pixelScaleFactor=(_width)/(_limitMax-_limitMin);    
+}
+
 
 void oledReverseHBarGraph::resetGraph() {
   _tft->fillRect(_locX, _locY, _width, _height, cBLACK);
@@ -260,6 +270,7 @@ void oledReverseHBarGraph::updateGraph(float newValue) {
       //Serial.println("Graph Reset");      
       resetGraph(); //If we previously had a value, blank the graph
     }
+    _barColor=_hBarColors[_numActiveBars-1];
     //_barColor=gColor;
     _barValue = newValue;
     _barEnd = _locX; 
