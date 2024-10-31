@@ -121,11 +121,17 @@ void oledGraph::drawColumn(float val){
     if ( (curRow>=_hBarY[k]) && (curRow<=_hBarY[k-1]) )  { //Indexes down, so below this bar
       if (topRow==botRow) {
         _tft->drawPixel(_col,curRow,_hBarColors[k-1]);
+        if (_col!=0) {
+          _tft->drawPixel(_col,curRow-1,_hBarColors[k-1]);
+        }
         lineDrawn=true;
         break;
       }
       endRow=min(_hBarY[k-1],botRow);
       _tft->drawFastVLine(_col,curRow,endRow-curRow+1,_hBarColors[k-1]); //
+      if (_col!=0) { //Use a width 2 line for better visibility
+        _tft->drawFastVLine(_col-1,curRow,endRow-curRow+1,_hBarColors[k-1]); //
+      }
       curRow=endRow;
       lineDrawn=true;
       //if (endRow>=botRow) break;      
@@ -156,8 +162,9 @@ void oledGraph::drawColumn(float val){
   if (_col < (_locX+_width) ) {
     int irow = max(valRow - 1, _locY);
     //    if (val>18) {Serial.print(icol);Serial.print("=");;Serial.print(irow);Serial.println(",CYAN");}
-    _tft->drawFastVLine(_col+1, irow, 2, cCYAN);
-    _tft->drawFastVLine(_col+2, irow, 2, cCYAN);
+    _tft->drawFastVLine(_col+1, irow, 3, cCYAN);
+    _tft->drawFastVLine(_col+2, irow, 3, cCYAN);
+    _tft->drawFastVLine(_col+3, irow, 3, cCYAN);
   }  //show where we are as 2x1 cyan line at col+1
   
 }
