@@ -341,8 +341,8 @@ void MenuSystem::drawSelectionBox(int x, int y, int w, int h) {
 }
 
 // Placeholder function for calibration
-void MenuSystem::calibrate() {
-  // Perform calibration logic here
+void MenuSystem::calibrate() {  
+  calibrateSystem();  
 }
 
 void MenuSystem::loadSettings() {

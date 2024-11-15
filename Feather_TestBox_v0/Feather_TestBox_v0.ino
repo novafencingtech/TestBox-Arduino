@@ -302,6 +302,7 @@ oledGraph lameGraph;
 oledReverseHBarGraph lameBar;
 oledGraphLabel lameLabel;
 oledGraph weaponGraph;
+oledReverseHBarGraph wpnBar;
 oledGraph captureGraph;
 
 oledReverseHBarGraph lineABar;

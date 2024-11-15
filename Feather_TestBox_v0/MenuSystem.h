@@ -5,6 +5,15 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 
+// Ensure C linkage
+#ifdef __cplusplus
+extern "C" {
+#endif
+void calibrateSystem();
+#ifdef __cplusplus
+}
+#endif
+
 #define MENU_LONG_PRESS_DURATION 1000  // Milliseconds for a long press
 #define MENU_MAX_STR_LEN 24
 
@@ -109,6 +118,7 @@ private:
   void drawSelectionBox(int x, int y, int w, int h);
 
   // Placeholder function for calibration
+
   void calibrate();
 
   

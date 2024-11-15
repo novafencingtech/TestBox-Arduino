@@ -35,7 +35,8 @@ int scaleWidth(int val) {  //tenths don't divide by 4 very well
 void tftDisplayMessage(const char *msg) {
   tft.setTextSize(2);
   tft.setCursor(2, 2);
-  tft.setTextColor(ORANGE, DARKBLUE);
+  tft.setTextColor(CYAN, BLACK);
+  tft.print("          ");
   tft.print(msg);
 }
 
@@ -282,6 +283,9 @@ void InitializeDisplay() {
   float wvals[4]{ 0.0f, 2.0f, 5.0f, 10.0f };
   int wcolors[4]{ colorList.cGREEN, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED };
   weaponGraph.setHorizontalBarValues(4, wvals, wcolors);
+  wpnBar = oledReverseHBarGraph(&tft, 0, 107, 20, 128, 0.0f, 20.0f);
+  wpnBar.setBarColors(5, wvals, wcolors);
+  wpnBar.setGraphLimits(0, 127 - 25, 25, 128);
 
   float cvals[4]{ 0.0f, 10.0f, 20.0f, 40.0f };
   int ccolors[4]{ colorList.cGREEN, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED };
@@ -745,9 +749,8 @@ void updateOLED(TestBoxModes Mode) {
           }*/
       }
       break;
-    case disp_wpnR:
+    case disp_wpnR: {
       updateWeaponIndicators();
-
       newConnection = lastConnection;
       if (weaponState.foilOn) {
         //lastConnection = foil;
@@ -781,12 +784,16 @@ void updateOLED(TestBoxModes Mode) {
         if (newConnection == epee) {
           //tft.print("Epee ");
           labelTitle("Epee", GREEN);
-          weaponGraph.resetGraph();
+          if (menu.getSettings().weaponDisplay==MenuSystem::GRAPH) {
+            weaponGraph.resetGraph();
+          }
         }
         if (newConnection == foil) {
           //tft.print("Foil ");
           labelTitle("Foil", GREEN);
-          weaponGraph.resetGraph();
+          if (menu.getSettings().weaponDisplay==MenuSystem::GRAPH) {
+            weaponGraph.resetGraph();
+          }
         }
         if (newConnection == shorted) {
           labelTitle("Wep GND", RED);
@@ -815,15 +822,18 @@ void updateOLED(TestBoxModes Mode) {
         }
         lastConnection = newConnection;
       }
-
-      switch (lastConnection) {
+      float wpnValue=0.0;
+      bool updateGraph=false;
+      switch (lastConnection) {        
         case foil:
-          weaponGraph.updateGraph(weaponState.ohm_Foil);
+          wpnValue=weaponState.ohm_Foil;
           printVal(0, 50, YELLOW, "", weaponState.ohm10xFoil);
+          updateGraph=true;
           break;
         case epee:
-          weaponGraph.updateGraph(weaponState.ohm_Epee);
+          wpnValue=weaponState.ohm_Epee;
           printVal(0, 50, YELLOW, "", weaponState.ohm10xEpee);
+          updateGraph=true;
           break;
         case first:
         case none:
@@ -835,7 +845,17 @@ void updateOLED(TestBoxModes Mode) {
           lineCBar.updateGraph(weaponState.ohm_Foil);
           break;
       }
+      if (updateGraph) {
+        if (menu.getSettings().weaponDisplay==MenuSystem::GRAPH) {          
+          weaponGraph.updateGraph(wpnValue);
+        } else if (menu.getSettings().weaponDisplay==MenuSystem::NUMERIC) {          
+          wpnBar.updateGraph(wpnValue);
+          int txtColor=wpnBar.getBarColor();
+          displayLargeNumber(wpnValue,txtColor);            
+        }
+      }  
       break;
+    }
     case disp_wpnTest:
       updateWeaponTestLights();
       break;
@@ -1065,7 +1085,9 @@ void createWeaponDisplay() {
   tft.setTextSize(2);
   //tft.print("Weapon");
   labelTitle("Weapon", colorList.cYELLOW);
-  weaponGraph.resetGraph();
+  if (menu.getSettings().weaponDisplay==MenuSystem::GRAPH) {
+    weaponGraph.resetGraph();
+  }
 }
 
 void createProbeDisplay() {
@@ -1164,6 +1186,22 @@ void createLameDisplay() {
   }
 }
 
+void displayLargeNumber(float value, int txtColor) {
+    char msg[5];
+    if (value > 99.9) {
+      txtColor = colorList.cBLUE;
+      strcpy(msg, "--");
+      displayLargeString(32, 22, msg, txtColor, 2);
+    } else if (value > 9.5) {
+      dtostrf(value+0.5,-3,0,msg);        
+      displayLargeString(10, 22, msg, txtColor, 2);
+    } else {
+      dtostrf(value+0.05, -3, 1, msg);
+      if (value < 0) { strcpy(msg, "0.0"); }
+      displayLargeString(0, 22, msg, txtColor, 2);
+    }
+}
+
 void displayLargeString(int leftX, int topY, char *buf, int txtColor, int fontSize) {
   gfxBuffer.setTextColor(txtColor);
   gfxBuffer.setFont(&FreeSansBold24pt7b);
@@ -1212,18 +1250,7 @@ void updateLameDisplay() {
       lameGraph.updateGraph(lameOhms);
       break;
     case (MenuSystem::NUMERIC):
-      if (lameOhms > 99.9) {
-        txtColor = colorList.cBLUE;
-        strcpy(msg, "--");
-        displayLargeString(32, 22, msg, txtColor, 2);
-      } else if (lameOhms > 9.5) {
-        dtostrf(lameOhms+0.5,-3,0,msg);        
-        displayLargeString(10, 22, msg, txtColor, 2);
-      } else {
-        dtostrf(lameOhms+0.05, -3, 1, msg);
-        if (lameOhms < 0) { strcpy(msg, "0.0"); }
-        displayLargeString(0, 22, msg, txtColor, 2);
-      }      
+      displayLargeNumber(lameOhms,txtColor);
       //tft.setTextColor(txtColor);
       //tft.setTextColor(colorList.cCYAN);
       //tft.setCursor(100,17);

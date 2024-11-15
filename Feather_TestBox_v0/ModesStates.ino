@@ -560,7 +560,11 @@ void checkButtonState() {
             setBoxMode(WPN_GRAPH);
             break;
           case WPN_GRAPH:
-            setBoxMode(HIT_CAPTURE);
+            if (menu.getSettings().advancedMode) {
+              setBoxMode(HIT_CAPTURE);  
+            } else {
+              setBoxMode(CABLE);
+            }
             break;
           case HIT_CAPTURE:
             setBoxMode(WPN_TEST);
