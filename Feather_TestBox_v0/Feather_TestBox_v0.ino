@@ -58,7 +58,7 @@ Adafruit_LittleFS_Namespace::File file(InternalFS);
 bool isInitialized = false;
 
 static const char VERSION_NUM[16] = "1.2-1.3";  //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "2024-10-29";
+static const char BUILD_DATE[16] = "24-11-15d";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
