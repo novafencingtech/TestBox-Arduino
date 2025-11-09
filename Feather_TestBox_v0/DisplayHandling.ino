@@ -1188,17 +1188,18 @@ void createLameDisplay() {
 
 void displayLargeNumber(float value, int txtColor) {
     char msg[5];
+    //Note:  dtostrf function rounds automatically
     if (value > 99.9) {
       txtColor = colorList.cBLUE;
       strcpy(msg, "--");
-      displayLargeString(32, 22, msg, txtColor, 2);
-    } else if (value > 9.5) {
-      dtostrf(value+0.5,-3,0,msg);        
-      displayLargeString(10, 22, msg, txtColor, 2);
+      displayLargeString(49, 32, msg, txtColor, 1);
+    } else if (value > 9.95) {
+      dtostrf(value,-4,0,msg);        
+      displayLargeString(36, 32, msg, txtColor, 1);
     } else {
-      dtostrf(value+0.05, -3, 1, msg);
+      dtostrf(value, -4, 1, msg);
       if (value < 0) { strcpy(msg, "0.0"); }
-      displayLargeString(0, 22, msg, txtColor, 2);
+      displayLargeString(32, 32, msg, txtColor, 1);
     }
 }
 
@@ -1206,20 +1207,24 @@ void displayLargeString(int leftX, int topY, char *buf, int txtColor, int fontSi
   gfxBuffer.setTextColor(txtColor);
   gfxBuffer.setFont(&FreeSansBold24pt7b);
   gfxBuffer.setTextSize(fontSize);
+  int bufferWidth = 128; //(2*25+9) * (fontSize);
 
-  int fontHeight = (35) * fontSize;
+  //int fontHeight = (35) * fontSize;
+  int fontHeight = (33) * fontSize;
   //int baseline = GFX_BUFFER_HEIGHT-6*fontSize; //Offset for characters below baseline
-  int baseline = fontHeight-2; //Offset for characters below baseline    
+  //int baseline = fontHeight-2; //Offset for characters below baseline
+  int baseline = fontHeight; //Offset for characters below baseline
   //tft.fillRect(leftX,topY,128, fontHeight,colorList.cBLACK);
   int frameY = topY;
   //Draw starting at the top and work down 
   // baseline moves up, frame moves down
   int frameSize=GFX_BUFFER_HEIGHT;
   while (frameY<(topY+fontHeight)) {
-    gfxBuffer.fillRect(0, 0, 128, GFX_BUFFER_HEIGHT, colorList.cBLACK);
+    gfxBuffer.fillRect(0, 0, bufferWidth, GFX_BUFFER_HEIGHT, colorList.cBLACK);
     gfxBuffer.setCursor(leftX, baseline);
+    //gfxBuffer.setCursor(0, baseline);
     gfxBuffer.print(buf);
-    displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), 128, frameSize);
+    displayRGB565Bitmap(0, frameY, gfxBuffer.getBuffer(), bufferWidth, frameSize);
     if (baseline<GFX_BUFFER_HEIGHT) {
       frameSize=GFX_BUFFER_HEIGHT-baseline;
     }

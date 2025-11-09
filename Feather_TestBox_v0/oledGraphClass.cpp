@@ -411,6 +411,7 @@ void oledGraphLabel::printLabel(const char *lab, float val, bool forceColor, uin
   if (val>10) {    
     dtostrf(val,-4,0,strBuf); //Don't display decimal points
   } else {
+    //dtostrf(val+0.05,-4,1,strBuf);
     dtostrf(val,-4,1,strBuf);
   }
   _tft->print(strBuf);     
