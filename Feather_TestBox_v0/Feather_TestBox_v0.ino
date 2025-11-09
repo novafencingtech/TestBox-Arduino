@@ -27,6 +27,7 @@
 #include <InternalFileSystem.h>
 using namespace Adafruit_LittleFS_Namespace;
 #include <nrfx_gpiote.h>
+//#include <delay.h>
 //#include <string.h>
 
 //#include <nrf_adc.h>
@@ -58,7 +59,7 @@ Adafruit_LittleFS_Namespace::File file(InternalFS);
 bool isInitialized = false;
 
 static const char VERSION_NUM[16] = "1.2-1.3";  //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "24-11-15d";
+static const char BUILD_DATE[16] = "25-11-05d";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -78,7 +79,7 @@ nrf_saadc_channel_config_t ADC_CONFIG = {
   .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
   .gain = NRF_SAADC_GAIN1_4,
   .reference = NRF_SAADC_REFERENCE_INTERNAL,
-  .acq_time = NRF_SAADC_ACQTIME_40US,
+  .acq_time = NRF_SAADC_ACQTIME_5US,
   .mode = NRF_SAADC_MODE_SINGLE_ENDED,
   .burst = NRF_SAADC_BURST_ENABLED
   //.pin_p = NRF_SAADC_INPUT_AIN0,
@@ -89,7 +90,7 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {
   .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
   .gain = NRF_SAADC_GAIN1_4,
   .reference = NRF_SAADC_REFERENCE_INTERNAL,
-  .acq_time = NRF_SAADC_ACQTIME_20US,
+  .acq_time = NRF_SAADC_ACQTIME_5US,
   .mode = NRF_SAADC_MODE_SINGLE_ENDED,
   .burst = NRF_SAADC_BURST_ENABLED
   //.pin_p = NRF_SAADC_INPUT_AIN0,
@@ -485,7 +486,7 @@ extern "C" {
     /*if (BatteryCheck) {
     Serial.println("We shouldn't be here.");
     return;
-  }*/
+    }*/
 
     if (nrf_saadc_event_check(NRF_SAADC, NRF_SAADC_EVENT_RESULTDONE)) {
       nrf_saadc_event_clear(NRF_SAADC, NRF_SAADC_EVENT_RESULTDONE);
@@ -563,10 +564,12 @@ extern "C" {
       NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
 
       nrf_saadc_task_trigger(NRF_SAADC, NRF_SAADC_TASK_START);
+      delayMicroseconds(20); //Allow FET and Amplifier to stablize
     }
 
     //Reset the buffer and trigger sampling
-    nrf_saadc_buffer_init(NRF_SAADC, ADC_Buffer1, 1);
+    nrf_saadc_buffer_init(NRF_SAADC, ADC_Buffer1, 1);    
+    //nrf_delay_us(5);
     nrf_saadc_task_trigger(NRF_SAADC, NRF_SAADC_TASK_SAMPLE);
 
     //digitalWrite(DIAG_PIN,LOW);

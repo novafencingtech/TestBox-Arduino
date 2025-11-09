@@ -93,8 +93,8 @@ void setCableTestMode() {
   loadCalibrationData();
 
   ActiveCh = &(ChanArray[0]);
-
-  weaponState.cableDC = true;
+  checkCableConnected();
+  //weaponState.cableDC = true;
   
   BoxState = CABLE;
   //tLastActive = millis();
