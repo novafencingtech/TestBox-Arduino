@@ -599,7 +599,7 @@ void checkButtonState() {
           //lcd.clear();
           //lcd.setCursor(0, 0);
           //lcd.print(F("Calibration"));
-          tftDisplayMessage("Settings");
+          tftDisplayMessage("Settings  ");
           settingsMode = true;
         }
       }

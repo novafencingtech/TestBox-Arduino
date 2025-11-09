@@ -90,7 +90,7 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {
   .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
   .gain = NRF_SAADC_GAIN1_4,
   .reference = NRF_SAADC_REFERENCE_INTERNAL,
-  .acq_time = NRF_SAADC_ACQTIME_5US,
+  .acq_time = NRF_SAADC_ACQTIME_3US,
   .mode = NRF_SAADC_MODE_SINGLE_ENDED,
   .burst = NRF_SAADC_BURST_ENABLED
   //.pin_p = NRF_SAADC_INPUT_AIN0,
@@ -98,6 +98,7 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {
 };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE];  //Buffer for ADC sample reads
 
+const int adcDecimationSamples = 8;
 //Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
 // http://www.micromodeler.com/dsp/
 float LowPass8HzCoef[5] = {
@@ -506,7 +507,7 @@ extern "C" {
 
     ActiveCh->sampleBuffer[ActiveCh->sampleCount] = (long)(ADCValue << 8);  //Convert to Q1.31 format with a long cast and bit shift
     ActiveCh->sampleCount++;
-    if (ActiveCh->sampleCount >= ActiveCh->FIR_BLOCK_SIZE) {
+    if (ActiveCh->sampleCount >= adcDecimationSamples) {
       //digitalWrite(DIAG_PIN,HIGH);
       arm_fir_decimate_fast_q31(&(ActiveCh->FIR_filter), ActiveCh->sampleBuffer, &(ActiveCh->filterValue), ActiveCh->FIR_BLOCK_SIZE);
       ActiveCh->filterValue = (ActiveCh->filterValue >> 8);
@@ -564,7 +565,7 @@ extern "C" {
       NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
 
       nrf_saadc_task_trigger(NRF_SAADC, NRF_SAADC_TASK_START);
-      delayMicroseconds(20); //Allow FET and Amplifier to stablize
+      delayMicroseconds(10); //Allow FET and Amplifier to stablize
     }
 
     //Reset the buffer and trigger sampling

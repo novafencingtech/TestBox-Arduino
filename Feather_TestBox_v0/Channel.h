@@ -19,7 +19,7 @@
 //  float gain = 1.0; //Scale factor
 //};
 
-#define DECIMATION_FACTOR 13
+#define DECIMATION_FACTOR 8
 #define NUM_DECIMATION_TAPS 13
 #define STATE_LENGTH 25 //NumTaps+blockSize-1
 
