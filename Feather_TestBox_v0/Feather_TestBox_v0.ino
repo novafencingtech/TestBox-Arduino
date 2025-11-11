@@ -73,7 +73,7 @@ nrf_saadc_channel_config_t ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_DISABL
                                          .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
                                          .gain = NRF_SAADC_GAIN1_4,
                                          .reference = NRF_SAADC_REFERENCE_INTERNAL,
-                                         .acq_time = NRF_SAADC_ACQTIME_40US,
+                                         .acq_time = NRF_SAADC_ACQTIME_5US,
                                          .mode = NRF_SAADC_MODE_SINGLE_ENDED,
                                          .burst = NRF_SAADC_BURST_ENABLED
                                          //.pin_p = NRF_SAADC_INPUT_AIN0,
@@ -83,13 +83,14 @@ nrf_saadc_channel_config_t FAST_ADC_CONFIG = {.resistor_p = NRF_SAADC_RESISTOR_D
                                          .resistor_n = NRF_SAADC_RESISTOR_PULLDOWN,
                                          .gain = NRF_SAADC_GAIN1_4,
                                          .reference = NRF_SAADC_REFERENCE_INTERNAL,
-                                         .acq_time = NRF_SAADC_ACQTIME_20US,
+                                         .acq_time = NRF_SAADC_ACQTIME_3US,
                                          .mode = NRF_SAADC_MODE_SINGLE_ENDED,
                                          .burst = NRF_SAADC_BURST_ENABLED
                                          //.pin_p = NRF_SAADC_INPUT_AIN0,
                                          //.pin_n = NRF_SAADC_INPUT_DISABLED
                                         };
 nrf_saadc_value_t ADC_Buffer1[ADC_BUFFER_SIZE]; //Buffer for ADC sample reads
+const int adcDecimationSamples = 8;
 
 //Assumes 50Hz downsampled frequency, 2nd order Butterworth filter coefs
 // http://www.micromodeler.com/dsp/
@@ -530,6 +531,7 @@ void SAADC_IRQHandler(void) {
     NRF_SAADC->CH[ADC_UNIT].PSELP = ActiveCh->AIn;
 
     nrf_saadc_task_trigger(NRF_SAADC,NRF_SAADC_TASK_START);
+    delayMicroseconds(10); //Allow FET and Amplifier to stablize
   }
 
   //Reset the buffer and trigger sampling

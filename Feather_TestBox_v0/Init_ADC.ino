@@ -8,8 +8,10 @@ void InitializeADC(bool fastAcq) {
   //ADC Configuration code
   if (fastAcq) {
     nrf_saadc_channel_init(NRF_SAADC,ADC_UNIT, &FAST_ADC_CONFIG);
+    nrf_saadc_oversample_set(NRF_SAADC,NRF_SAADC_OVERSAMPLE_8X);
   } else {
     nrf_saadc_channel_init(NRF_SAADC,ADC_UNIT, &ADC_CONFIG);
+    nrf_saadc_oversample_set(NRF_SAADC,NRF_SAADC_OVERSAMPLE_32X);
   }
   // Set the resolution to 12-bit (0..4095)
   nrf_saadc_resolution_set(NRF_SAADC,NRF_SAADC_RESOLUTION_12BIT);
@@ -19,9 +21,7 @@ void InitializeADC(bool fastAcq) {
   while (!nrf_saadc_event_check(NRF_SAADC,NRF_SAADC_EVENT_CALIBRATEDONE)) {
     delay(10);
   }
-  nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_CALIBRATEDONE);
-
-  nrf_saadc_oversample_set(NRF_SAADC,NRF_SAADC_OVERSAMPLE_4X);
+  nrf_saadc_event_clear(NRF_SAADC,NRF_SAADC_EVENT_CALIBRATEDONE);  
 
   nrf_saadc_burst_set(NRF_SAADC,ADC_UNIT, NRF_SAADC_BURST_ENABLED);
 }
