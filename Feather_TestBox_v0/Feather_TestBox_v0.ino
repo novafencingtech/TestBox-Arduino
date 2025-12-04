@@ -59,7 +59,7 @@ Adafruit_LittleFS_Namespace::File file(InternalFS);
 bool isInitialized = false;
 
 static const char VERSION_NUM[16] = "1.2-1.3";  //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "25-11-05d";
+static const char BUILD_DATE[16] = "25-11-30d";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -154,7 +154,7 @@ const byte calibrationRetries = 3;       // Exit after this many retries
 
 // Pile of various parameters and constants for the box to use
 const int maxADCthreshold = 4000;    //Used for switching between high/low gain
-const int shortADCthreshold = 3000;  //ADC values below this will show as a short
+const int shortADCthreshold = 1000;  //ADC values below this will show as a short
 //const int minADCthreshold = 20; //Used for switching between high/low gain
 constexpr long powerOffTimeOut = 15L * 60L * 1000L;               //Time before switching off if inactive;
 const long cableDisconnectTimeOut = 1000L;                        //Time out before flagging the cable as disconnected
