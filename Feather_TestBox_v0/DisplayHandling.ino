@@ -253,7 +253,7 @@ void InitializeDisplay() {
   lineBBar = oledReverseHBarGraph(&tft, 0, BBAR + 17, barHeight, 128, 0.0f, 25.0f);
   lineCLabel = oledGraphLabel(&tft, 0, CBAR);
   lineCBar = oledReverseHBarGraph(&tft, 0, CBAR + 17, barHeight, 128, 0.0f, 25.0f);
-  float cableLimits[5] = { 0.0f, 5.0f, 15.0f, 20.0f, 999.9f };
+  float cableLimits[5] = { 0.0f, 1.0f, 5.0f, 10.0f, 999.9f };
   int cableColors[5] = { colorList.cGREEN, colorList.cYELLOW, colorList.cORANGE, colorList.cLIGHTRED, colorList.cLIGHTRED };
   lineABar.setBarColors(5, cableLimits, cableColors);
   lineALabel.setColors(5, cableLimits, cableColors);

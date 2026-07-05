@@ -58,8 +58,8 @@ CRGB lameLED;
 Adafruit_LittleFS_Namespace::File file(InternalFS);
 bool isInitialized = false;
 
-static const char VERSION_NUM[16] = "1.2-1.3";  //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "25-11-30d";
+static const char VERSION_NUM[16] = "1.2-1.7";  //Version-Adafruit Feather board version
+static const char BUILD_DATE[16] = "26-06-29d";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
