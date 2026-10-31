@@ -59,7 +59,7 @@ Adafruit_LittleFS_Namespace::File file(InternalFS);
 bool isInitialized = false;
 
 static const char VERSION_NUM[16] = "1.2-1.7";  //Version-Adafruit Feather board version
-static const char BUILD_DATE[16] = "26-06-29d";
+static const char BUILD_DATE[16] = "26-10-28";
 
 #ifdef DISPLAY_SPLASH_IMAGE
 #include "splashScreenImage.c"
@@ -175,7 +175,7 @@ const long tBatteryInterval = 10000;  //ms - Check battery every 10s
 const long tIdleModeOn = 5000L;       //ms - Switch to idle mode after 5s of in-activity.
 //const uint8_t weaponIdleMultiplier = 4; //ms - Switch to idle mode after 20s of in-activity.
 const long tIdleWakeUpInterval = 20;     //ms - How often to check inputs for changes while idle
-const int tSerialRefresh = 500;          //ms - How often to send data over the serial port
+const int tSerialRefresh = 20;          //ms - How often to send data over the serial port
 const int tPowerOffPress = 1500;         //ms - How long to hold the button down before it's considered a long press
 const int tModeSwitchLockOut = 500;      //ms - Used to prevent accidental double mode switches
 const int tEnterCalibrationMode = 3000;  //ms - How long to hold before entering calibration mode
